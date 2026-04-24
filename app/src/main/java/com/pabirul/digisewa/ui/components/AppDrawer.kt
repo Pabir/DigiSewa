@@ -1,7 +1,9 @@
 package com.pabirul.digisewa.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -9,7 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pabirul.digisewa.Profile
@@ -22,11 +27,20 @@ fun AppDrawer(
     onSignOut: () -> Unit,
     closeDrawer: () -> Unit
 ) {
-    ModalDrawerSheet {
+    ModalDrawerSheet(
+        drawerContainerColor = MaterialTheme.colorScheme.surface,
+        drawerShape = RoundedCornerShape(topEnd = 32.dp, bottomEnd = 32.dp)
+    ) {
+        // Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+                    )
+                )
+                .padding(vertical = 48.dp, horizontal = 24.dp)
         ) {
             Column {
                 AsyncImage(
@@ -34,77 +48,106 @@ fun AppDrawer(
                     contentDescription = null,
                     modifier = Modifier
                         .size(80.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.2f))
+                        .padding(2.dp)
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = profile.fullName, style = MaterialTheme.typography.titleLarge)
-                Text(text = profile.role.name.lowercase().capitalize(), style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = profile.fullName,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Surface(
+                    color = Color.White.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Text(
+                        text = profile.role.name.lowercase().capitalize(),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(color = Color.White)
+                    )
+                }
             }
         }
 
-        HorizontalDivider()
+        Spacer(modifier = Modifier.height(16.dp))
 
         NavigationDrawerItem(
-            label = { Text("Home") },
+            label = { Text("Home", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 
                 onNavigate("home")
                 closeDrawer()
             },
             icon = { Icon(Icons.Default.Home, contentDescription = null) },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.primary)
         )
 
         if (profile.role == UserRole.PROVIDER) {
             NavigationDrawerItem(
-                label = { Text("My Services") },
+                label = { Text("My Services", fontWeight = FontWeight.SemiBold) },
                 selected = false,
                 onClick = { 
                     onNavigate("manage_services")
                     closeDrawer()
                 },
-                icon = { Icon(Icons.Default.Build, contentDescription = null) },
-                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                icon = { Icon(Icons.Default.Storefront, contentDescription = null) },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.primary)
             )
         }
 
         NavigationDrawerItem(
-            label = { Text("Edit Profile") },
+            label = { Text("Edit Profile", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 
                 onNavigate("edit_profile")
                 closeDrawer()
             },
-            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            icon = { Icon(Icons.Default.AccountCircle, contentDescription = null) },
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.primary)
         )
 
         NavigationDrawerItem(
-            label = { Text("Settings") },
+            label = { Text("Settings", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 
                 onNavigate("settings")
                 closeDrawer()
             },
             icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.primary)
         )
 
         Spacer(modifier = Modifier.weight(1f))
-        HorizontalDivider()
+        
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
 
         NavigationDrawerItem(
-            label = { Text("Sign Out") },
+            label = { Text("Sign Out", fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 
                 onSignOut()
                 closeDrawer()
             },
-            icon = { Icon(Icons.Default.ExitToApp, contentDescription = null) },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            icon = { Icon(Icons.Default.Logout, contentDescription = null) },
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.error)
         )
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
