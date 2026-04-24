@@ -2,6 +2,7 @@ package com.pabirul.digisewa
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
@@ -46,6 +47,22 @@ class MainActivity : ComponentActivity() {
 
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
+
+                // Global Back Navigation Handling
+                BackHandler(enabled = authState is AuthState.Authenticated) {
+                    when {
+                        drawerState.isOpen -> scope.launch { drawerState.close() }
+                        isEditingProfile -> isEditingProfile = false
+                        // Provider Navigation
+                        providerSubScreen == "add_edit_service" -> providerSubScreen = "manage_services"
+                        providerSubScreen == "manage_services" -> providerSubScreen = "dashboard"
+                        // Customer Navigation
+                        customerSubScreen == "detail" -> customerSubScreen = "listing"
+                        customerSubScreen == "listing" -> customerSubScreen = "home"
+                        // If at top level and back is pressed, let it exit (or handle with a prompt)
+                        else -> finish() 
+                    }
+                }
 
                 when (val state = authState) {
                     is AuthState.Loading -> {
@@ -206,12 +223,12 @@ class MainActivity : ComponentActivity() {
             return when (providerSubScreen) {
                 "dashboard" -> "DigiSewa"
                 "manage_services" -> "Manage Services"
-                else -> null // Hide TopAppBar for Add/Edit screen (it has its own)
+                else -> null 
             }
         } else {
             return when (customerSubScreen) {
                 "home" -> "DigiSewa"
-                else -> null // Hide TopAppBar for Listing/Detail screen (they have their own)
+                else -> null
             }
         }
     }

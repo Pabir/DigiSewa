@@ -27,6 +27,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.Service
 import java.io.ByteArrayOutputStream
@@ -48,7 +49,14 @@ fun AddEditServiceScreen(
     var mainImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val galleryBitmaps = remember { mutableStateListOf<Bitmap>() }
     
+    val galleryFromDb by viewModel.gallery.collectAsState()
     val state by viewModel.serviceState.collectAsState()
+
+    LaunchedEffect(service?.id) {
+        service?.id?.let {
+            viewModel.loadGallery(it)
+        }
+    }
 
     val mainImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -107,6 +115,13 @@ fun AddEditServiceScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
+                } else if (!service?.mainImageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = service?.mainImageUrl,
+                        contentDescription = "Main Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 } else {
                     Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxSize()) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -122,6 +137,16 @@ fun AddEditServiceScreen(
             // Gallery Preview
             Text("Gallery Photos", style = MaterialTheme.typography.titleMedium)
             LazyRow(modifier = Modifier.fillMaxWidth().height(100.dp)) {
+                // Existing Gallery from Database
+                items(galleryFromDb) { item ->
+                    AsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp).padding(4.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                // New Gallery Bitmaps selected by user
                 items(galleryBitmaps) { bitmap ->
                     Image(
                         bitmap = bitmap.asImageBitmap(),

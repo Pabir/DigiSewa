@@ -20,11 +20,15 @@ class ServiceViewModel(private val repository: ServiceRepository = ServiceReposi
     private val _services = MutableStateFlow<List<Service>>(emptyList())
     val services = _services.asStateFlow()
 
+    private val _gallery = MutableStateFlow<List<ServiceGallery>>(emptyList())
+    val gallery = _gallery.asStateFlow()
+
     private val _serviceState = MutableStateFlow<ServiceState>(ServiceState.Idle)
     val serviceState = _serviceState.asStateFlow()
 
     fun resetState() {
         _serviceState.value = ServiceState.Idle
+        _gallery.value = emptyList()
     }
 
     fun loadServices(providerId: String) {
@@ -33,6 +37,12 @@ class ServiceViewModel(private val repository: ServiceRepository = ServiceReposi
             val result = repository.getServicesByProvider(providerId)
             _services.value = result
             _serviceState.value = ServiceState.Success
+        }
+    }
+
+    fun loadGallery(serviceId: String) {
+        viewModelScope.launch {
+            _gallery.value = repository.getGalleryByService(serviceId)
         }
     }
 
