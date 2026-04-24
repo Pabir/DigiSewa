@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.ProviderDetails
 import com.pabirul.digisewa.UserRole
@@ -41,11 +42,11 @@ fun ProfileSetupScreen(
     var city by remember { mutableStateOf(profile.city ?: "") }
     
     // Provider specific
-    var bio by remember { mutableStateOf("") }
-    var experience by remember { mutableStateOf("") }
-    var perSessionFee by remember { mutableStateOf("") }
-    var workingHours by remember { mutableStateOf("9 AM - 6 PM") }
-    var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
+    var bio by remember { mutableStateOf(profile.providerDetails?.bio ?: "") }
+    var experience by remember { mutableStateOf(profile.providerDetails?.experienceYears?.toString() ?: "") }
+    var perSessionFee by remember { mutableStateOf(profile.providerDetails?.perSessionFee?.toString() ?: "") }
+    var workingHours by remember { mutableStateOf(profile.providerDetails?.workingHours ?: "9 AM - 6 PM") }
+    var selectedCategoryId by remember { mutableStateOf<Int?>(profile.providerDetails?.categoryId) }
     
     val categories by viewModel.categories.collectAsState()
     val setupState by viewModel.setupState.collectAsState()
@@ -78,7 +79,11 @@ fun ProfileSetupScreen(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Complete Your Profile", style = MaterialTheme.typography.headlineMedium)
+        val isFirstTime = profile.phoneNumber.isNullOrBlank()
+        Text(
+            text = if (isFirstTime) "Complete Your Profile" else "Edit Profile",
+            style = MaterialTheme.typography.headlineMedium
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
         Box(
@@ -91,6 +96,13 @@ fun ProfileSetupScreen(
             if (bitmap != null) {
                 Image(
                     bitmap = bitmap!!.asImageBitmap(),
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else if (!profile.avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = profile.avatarUrl,
                     contentDescription = "Profile Picture",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop

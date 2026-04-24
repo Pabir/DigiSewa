@@ -5,7 +5,9 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.serializer.KotlinXSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 object Supabase {
     val client = createSupabaseClient(
@@ -16,6 +18,12 @@ object Supabase {
         install(Auth)
         install(Realtime)
         install(Storage)
+        
+        defaultSerializer = KotlinXSerializer(Json {
+            ignoreUnknownKeys = true
+            coerceInputValues = true
+            encodeDefaults = true
+        })
     }
 }
 
@@ -35,7 +43,8 @@ data class Profile(
     val gender: String? = null,
     val address: String? = null,
     val city: String? = null,
-    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
+    @kotlinx.serialization.SerialName("provider_details") val providerDetails: ProviderDetails? = null
 )
 
 @Serializable
@@ -57,4 +66,37 @@ data class ProviderDetails(
     @kotlinx.serialization.SerialName("is_verified") val isVerified: Boolean = false,
     @kotlinx.serialization.SerialName("working_hours") val workingHours: String? = null,
     @kotlinx.serialization.SerialName("per_session_fee") val perSessionFee: Int? = null
+)
+
+@Serializable
+data class Service(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("provider_id") val providerId: String,
+    @kotlinx.serialization.SerialName("category_id") val categoryId: Int,
+    val title: String,
+    val description: String? = null,
+    @kotlinx.serialization.SerialName("base_price") val basePrice: Int,
+    @kotlinx.serialization.SerialName("duration_minutes") val durationMinutes: Int,
+    @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
+    @kotlinx.serialization.SerialName("is_active") val isActive: Boolean = true,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class ServiceGallery(
+    val id: Int? = null,
+    @kotlinx.serialization.SerialName("service_id") val serviceId: String,
+    @kotlinx.serialization.SerialName("image_url") val imageUrl: String,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class ServiceWithProvider(
+    val id: String,
+    val title: String,
+    val description: String? = null,
+    @kotlinx.serialization.SerialName("base_price") val basePrice: Int,
+    @kotlinx.serialization.SerialName("duration_minutes") val durationMinutes: Int,
+    @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
+    val provider: Profile
 )
