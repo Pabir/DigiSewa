@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pabirul.digisewa.ui.auth.*
@@ -108,7 +109,17 @@ class MainActivity : ComponentActivity() {
                                         val title = getScreenTitle(state.profile.role, providerSubScreen, customerSubScreen)
                                         if (title != null) {
                                             CenterAlignedTopAppBar(
-                                                title = { Text(title) },
+                                                title = {
+                                                    if (title == "DigiSewa") {
+                                                        androidx.compose.foundation.Image(
+                                                            painter = painterResource(id = R.drawable.ic_logo),
+                                                            contentDescription = "DigiSewa Logo",
+                                                            modifier = Modifier.height(32.dp)
+                                                        )
+                                                    } else {
+                                                        Text(title)
+                                                    }
+                                                },
                                                 navigationIcon = {
                                                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                                         Icon(Icons.Default.Menu, contentDescription = "Menu")

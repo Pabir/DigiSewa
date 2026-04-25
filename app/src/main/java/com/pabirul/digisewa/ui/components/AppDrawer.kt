@@ -14,10 +14,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pabirul.digisewa.Profile
+import com.pabirul.digisewa.R
 import com.pabirul.digisewa.UserRole
 
 @Composable
@@ -43,17 +45,29 @@ fun AppDrawer(
                 .padding(vertical = 48.dp, horizontal = 24.dp)
         ) {
             Column {
-                AsyncImage(
-                    model = profile.avatarUrl ?: "https://via.placeholder.com/150",
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f))
-                        .padding(2.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    AsyncImage(
+                        model = profile.avatarUrl ?: "https://via.placeholder.com/150",
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.2f))
+                            .padding(2.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    androidx.compose.foundation.Image(
+                        painter = painterResource(id = R.drawable.ic_logo),
+                        contentDescription = "DigiSewa Logo",
+                        modifier = Modifier.size(150.dp),
+                        colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
+                    )
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = profile.fullName,

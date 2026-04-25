@@ -25,10 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pabirul.digisewa.Profile
+import com.pabirul.digisewa.R
 import com.pabirul.digisewa.Service
 import java.io.ByteArrayOutputStream
 
@@ -125,7 +127,13 @@ fun AddEditServiceScreen(
                 } else {
                     Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxSize()) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                            androidx.compose.foundation.Image(
+                                painter = painterResource(id = R.drawable.ic_logo),
+                                contentDescription = null,
+                                modifier = Modifier.size(100.dp),
+                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text("Add Main Image")
                         }
                     }
@@ -161,7 +169,12 @@ fun AddEditServiceScreen(
                         modifier = Modifier.size(100.dp).padding(4.dp).clickable { galleryLauncher.launch("image/*") }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.AddAPhoto, contentDescription = null)
+                            androidx.compose.foundation.Image(
+                                painter = painterResource(id = R.drawable.ic_logo),
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                            )
                         }
                     }
                 }

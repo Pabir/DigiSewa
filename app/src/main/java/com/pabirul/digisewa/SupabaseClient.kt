@@ -1,5 +1,7 @@
 package com.pabirul.digisewa
 
+import android.content.Context
+import coil.ImageLoader
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.auth.Auth

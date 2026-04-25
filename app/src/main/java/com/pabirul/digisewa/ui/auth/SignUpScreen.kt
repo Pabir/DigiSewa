@@ -12,10 +12,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.pabirul.digisewa.R
 import com.pabirul.digisewa.UserRole
 
 @Composable
@@ -50,13 +52,12 @@ fun SignUpScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = "Join DigiSewa",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
+            androidx.compose.foundation.Image(
+                painter = painterResource(id = R.drawable.ic_logo),
+                contentDescription = "DigiSewa Logo",
+                modifier = Modifier.size(150.dp)
             )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Create your account to get started",
                 style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.outline)
