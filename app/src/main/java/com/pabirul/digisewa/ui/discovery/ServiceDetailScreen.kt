@@ -22,21 +22,45 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.pabirul.digisewa.Booking
 import com.pabirul.digisewa.ServiceWithProvider
+import com.pabirul.digisewa.ui.bookings.BookingRequestDialog
+import com.pabirul.digisewa.ui.bookings.BookingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServiceDetailScreen(
     serviceWithProvider: ServiceWithProvider,
     viewModel: DiscoveryViewModel,
+    bookingViewModel: BookingViewModel,
+    customerId: String,
     onBack: () -> Unit
 ) {
     val provider = serviceWithProvider.provider
     val details = provider.providerDetails
     val gallery by viewModel.gallery.collectAsState()
+    
+    var showBookingDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(serviceWithProvider.id) {
         viewModel.loadServiceDetails(serviceWithProvider.id)
+    }
+
+    if (showBookingDialog) {
+        BookingRequestDialog(
+            onDismiss = { showBookingDialog = false },
+            onConfirm = { scheduledAt ->
+                val booking = Booking(
+                    customerId = customerId,
+                    providerId = provider.id,
+                    serviceId = serviceWithProvider.id,
+                    scheduledAt = scheduledAt,
+                    totalPrice = serviceWithProvider.basePrice
+                )
+                bookingViewModel.requestService(booking)
+                showBookingDialog = false
+            }
+        )
     }
 
     Scaffold(
@@ -64,16 +88,16 @@ fun ServiceDetailScreen(
                         )
                     }
                     Button(
-                        onClick = { /* Contact Logic */ },
+                        onClick = { showBookingDialog = true },
                         modifier = Modifier
                             .height(56.dp)
                             .weight(1.5f),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
                     ) {
-                        Icon(Icons.Default.Call, contentDescription = null)
+                        Icon(Icons.Default.Schedule, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Contact Now", style = MaterialTheme.typography.titleMedium)
+                        Text("Book Now", style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }

@@ -49,6 +49,28 @@ data class Profile(
 )
 
 @Serializable
+data class ProfileWithDetails(
+    val id: String,
+    @kotlinx.serialization.SerialName("full_name") val fullName: String,
+    @kotlinx.serialization.SerialName("phone_number") val phoneNumber: String? = null,
+    val role: UserRole,
+    @kotlinx.serialization.SerialName("avatar_url") val avatarUrl: String? = null,
+    val gender: String? = null,
+    val address: String? = null,
+    val city: String? = null,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
+    @kotlinx.serialization.SerialName("provider_details") val providerDetails: ProviderDetails? = null,
+    @kotlinx.serialization.SerialName("private_profile") val privateProfile: PrivateProfile? = null
+)
+
+@Serializable
+data class PrivateProfile(
+    val id: String,
+    @kotlinx.serialization.SerialName("phone_number") val phoneNumber: String? = null,
+    @kotlinx.serialization.SerialName("full_address") val fullAddress: String? = null
+)
+
+@Serializable
 data class Category(
     val id: Int? = null,
     val name: String,
@@ -99,5 +121,41 @@ data class ServiceWithProvider(
     @kotlinx.serialization.SerialName("base_price") val basePrice: Int,
     @kotlinx.serialization.SerialName("duration_minutes") val durationMinutes: Int,
     @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
-    val provider: Profile
+    val provider: ProfileWithDetails
+)
+
+@Serializable
+enum class BookingStatus {
+    @kotlinx.serialization.SerialName("requested") REQUESTED,
+    @kotlinx.serialization.SerialName("confirmed") CONFIRMED,
+    @kotlinx.serialization.SerialName("paid") PAID,
+    @kotlinx.serialization.SerialName("completed") COMPLETED,
+    @kotlinx.serialization.SerialName("cancelled") CANCELLED
+}
+
+@Serializable
+data class Booking(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("customer_id") val customerId: String,
+    @kotlinx.serialization.SerialName("provider_id") val providerId: String,
+    @kotlinx.serialization.SerialName("service_id") val serviceId: String,
+    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String,
+    @kotlinx.serialization.SerialName("total_price") val totalPrice: Int,
+    val status: BookingStatus = BookingStatus.REQUESTED,
+    @kotlinx.serialization.SerialName("cancellation_fee") val cancellationFee: Int = 0,
+    @kotlinx.serialization.SerialName("refund_amount") val refundAmount: Int = 0,
+    @kotlinx.serialization.SerialName("confirmed_at") val confirmedAt: String? = null,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class BookingWithDetails(
+    val id: String,
+    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String,
+    @kotlinx.serialization.SerialName("total_price") val totalPrice: Int,
+    val status: BookingStatus,
+    @kotlinx.serialization.SerialName("confirmed_at") val confirmedAt: String? = null,
+    val service: Service,
+    val customer: ProfileWithDetails,
+    val provider: ProfileWithDetails
 )

@@ -68,6 +68,7 @@ fun AppDrawer(
                         colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White)
                     )
                 }
+
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = profile.fullName,
@@ -100,6 +101,19 @@ fun AppDrawer(
                 closeDrawer()
             },
             icon = { Icon(Icons.Default.Home, contentDescription = null) },
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.primary)
+        )
+
+        NavigationDrawerItem(
+            label = { Text(if (profile.role == UserRole.PROVIDER) "Booking Requests" else "My Bookings", fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { 
+                onNavigate("bookings")
+                closeDrawer()
+            },
+            icon = { Icon(Icons.Default.EventNote, contentDescription = null) },
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             shape = RoundedCornerShape(16.dp),
             colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.primary)

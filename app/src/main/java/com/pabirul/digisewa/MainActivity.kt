@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
                 // Navigation States
                 var providerSubScreen by remember { mutableStateOf("dashboard") }
                 var customerSubScreen by remember { mutableStateOf("home") }
+                var generalSubScreen by remember { mutableStateOf("") }
                 var isEditingProfile by remember { mutableStateOf(false) }
                 
                 var selectedServiceForEdit by remember { mutableStateOf<Service?>(null) }
@@ -54,6 +55,7 @@ class MainActivity : ComponentActivity() {
                     when {
                         drawerState.isOpen -> scope.launch { drawerState.close() }
                         isEditingProfile -> isEditingProfile = false
+                        generalSubScreen == "bookings" -> generalSubScreen = ""
                         // Provider Navigation
                         providerSubScreen == "add_edit_service" -> providerSubScreen = "manage_services"
                         providerSubScreen == "manage_services" -> providerSubScreen = "dashboard"
@@ -99,9 +101,11 @@ class MainActivity : ComponentActivity() {
                                                 "home" -> {
                                                     providerSubScreen = "dashboard"
                                                     customerSubScreen = "home"
+                                                    generalSubScreen = ""
                                                 }
                                                 "manage_services" -> providerSubScreen = "manage_services"
                                                 "edit_profile" -> isEditingProfile = true
+                                                "bookings" -> generalSubScreen = "bookings"
                                             }
                                         },
                                         onSignOut = { authViewModel.signOut() },
@@ -112,7 +116,12 @@ class MainActivity : ComponentActivity() {
                                 Scaffold(
                                     modifier = Modifier.fillMaxSize(),
                                     topBar = {
-                                        val title = getScreenTitle(state.profile.role, providerSubScreen, customerSubScreen)
+                                        val title = if (generalSubScreen == "bookings") {
+                                            if (state.profile.role == UserRole.PROVIDER) "Booking Requests" else "My Bookings"
+                                        } else {
+                                            getScreenTitle(state.profile.role, providerSubScreen, customerSubScreen)
+                                        }
+
                                         if (title != null) {
                                             CenterAlignedTopAppBar(
                                                 title = {
@@ -136,7 +145,14 @@ class MainActivity : ComponentActivity() {
                                     }
                                 ) { innerPadding ->
                                     Box(modifier = Modifier.padding(innerPadding)) {
-                                        if (state.profile.role == UserRole.PROVIDER) {
+                                        if (generalSubScreen == "bookings") {
+                                            val bookingViewModel: com.pabirul.digisewa.ui.bookings.BookingViewModel = viewModel()
+                                            com.pabirul.digisewa.ui.bookings.MyBookingsScreen(
+                                                profile = state.profile,
+                                                viewModel = bookingViewModel,
+                                                isProvider = state.profile.role == UserRole.PROVIDER
+                                            )
+                                        } else if (state.profile.role == UserRole.PROVIDER) {
                                             when (providerSubScreen) {
                                                 "manage_services" -> {
                                                     val serviceViewModel: ServiceViewModel = viewModel()
@@ -186,9 +202,12 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                 }
                                                 "detail" -> {
+                                                    val bookingViewModel: com.pabirul.digisewa.ui.bookings.BookingViewModel = viewModel()
                                                     ServiceDetailScreen(
                                                         serviceWithProvider = selectedServiceWithProvider!!,
                                                         viewModel = discoveryViewModel,
+                                                        bookingViewModel = bookingViewModel,
+                                                        customerId = state.profile.id,
                                                         onBack = { customerSubScreen = "listing" }
                                                     )
                                                 }
