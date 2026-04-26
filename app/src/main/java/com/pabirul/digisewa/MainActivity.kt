@@ -74,6 +74,12 @@ class MainActivity : ComponentActivity() {
                     is AuthState.Authenticated -> {
                         if (isProfileIncomplete(state.profile) || isEditingProfile) {
                             val profileViewModel: ProfileViewModel = viewModel()
+                            
+                            // Reset state when entering the setup screen to avoid loops
+                            LaunchedEffect(state.profile.id, isEditingProfile) {
+                                profileViewModel.resetState()
+                            }
+
                             ProfileSetupScreen(
                                 profile = state.profile,
                                 viewModel = profileViewModel,

@@ -24,6 +24,10 @@ class ProfileViewModel(private val repository: ProfileRepository = ProfileReposi
     private val _categories = MutableStateFlow<List<Category>>(emptyList())
     val categories = _categories.asStateFlow()
 
+    fun resetState() {
+        _setupState.value = ProfileSetupState.Idle
+    }
+
     init {
         loadCategories()
     }
