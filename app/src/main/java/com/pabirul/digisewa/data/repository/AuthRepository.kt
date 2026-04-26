@@ -1,6 +1,7 @@
 package com.pabirul.digisewa.data.repository
 
 import com.pabirul.digisewa.Profile
+import com.pabirul.digisewa.ProfileWithDetails
 import com.pabirul.digisewa.Supabase
 import com.pabirul.digisewa.UserRole
 import io.github.jan.supabase.auth.auth
@@ -64,7 +65,19 @@ class AuthRepository {
                 filter {
                     eq("id", userId)
                 }
-            }.decodeSingle<Profile>()
+            }.decodeSingle<ProfileWithDetails>().let {
+                Profile(
+                    id = it.id,
+                    fullName = it.fullName,
+                    phoneNumber = it.phoneNumber,
+                    role = it.role,
+                    avatarUrl = it.avatarUrl,
+                    gender = it.gender,
+                    address = it.address,
+                    city = it.city,
+                    createdAt = it.createdAt
+                )
+            }
         } catch (e: Exception) {
             null
         }

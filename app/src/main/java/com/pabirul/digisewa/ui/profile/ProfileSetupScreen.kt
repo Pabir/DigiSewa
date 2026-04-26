@@ -42,11 +42,11 @@ fun ProfileSetupScreen(
     var city by remember { mutableStateOf(profile.city ?: "") }
     
     // Provider specific
-    var bio by remember { mutableStateOf(profile.providerDetails?.bio ?: "") }
-    var experience by remember { mutableStateOf(profile.providerDetails?.experienceYears?.toString() ?: "") }
-    var perSessionFee by remember { mutableStateOf(profile.providerDetails?.perSessionFee?.toString() ?: "") }
-    var workingHours by remember { mutableStateOf(profile.providerDetails?.workingHours ?: "9 AM - 6 PM") }
-    var selectedCategoryId by remember { mutableStateOf<Int?>(profile.providerDetails?.categoryId) }
+    var bio by remember { mutableStateOf("") }
+    var experience by remember { mutableStateOf("") }
+    var perSessionFee by remember { mutableStateOf("") }
+    var workingHours by remember { mutableStateOf("9 AM - 6 PM") }
+    var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
     
     val categories by viewModel.categories.collectAsState()
     val setupState by viewModel.setupState.collectAsState()

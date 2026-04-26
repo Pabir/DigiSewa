@@ -1,7 +1,6 @@
 package com.pabirul.digisewa
 
 import android.content.Context
-import coil.ImageLoader
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.auth.Auth
@@ -37,6 +36,19 @@ enum class UserRole {
 
 @Serializable
 data class Profile(
+    val id: String,
+    @kotlinx.serialization.SerialName("full_name") val fullName: String,
+    @kotlinx.serialization.SerialName("phone_number") val phoneNumber: String? = null,
+    val role: UserRole,
+    @kotlinx.serialization.SerialName("avatar_url") val avatarUrl: String? = null,
+    val gender: String? = null,
+    val address: String? = null,
+    val city: String? = null,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class ProfileWithDetails(
     val id: String,
     @kotlinx.serialization.SerialName("full_name") val fullName: String,
     @kotlinx.serialization.SerialName("phone_number") val phoneNumber: String? = null,
@@ -100,5 +112,5 @@ data class ServiceWithProvider(
     @kotlinx.serialization.SerialName("base_price") val basePrice: Int,
     @kotlinx.serialization.SerialName("duration_minutes") val durationMinutes: Int,
     @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
-    val provider: Profile
+    val provider: ProfileWithDetails
 )
