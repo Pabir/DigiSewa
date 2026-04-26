@@ -148,14 +148,14 @@ fun ServiceDetailScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = serviceWithProvider.title,
+                                text = serviceWithProvider.title ?: "Untitled",
                                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
                                 Text(
-                                    text = " ${serviceWithProvider.durationMinutes} Minutes Session",
+                                    text = " ${serviceWithProvider.durationMinutes ?: 0} Minutes Session",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.outline
                                 )

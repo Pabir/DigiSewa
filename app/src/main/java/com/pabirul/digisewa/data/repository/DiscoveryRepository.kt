@@ -1,7 +1,6 @@
 package com.pabirul.digisewa.data.repository
 
 import com.pabirul.digisewa.Category
-import com.pabirul.digisewa.Service
 import com.pabirul.digisewa.ServiceGallery
 import com.pabirul.digisewa.ServiceWithProvider
 import com.pabirul.digisewa.Supabase

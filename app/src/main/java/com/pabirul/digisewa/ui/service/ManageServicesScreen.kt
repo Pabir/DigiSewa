@@ -69,7 +69,7 @@ fun ManageServicesScreen(
                         ServiceItem(
                             service = service,
                             onEdit = { onEditService(service) },
-                            onDelete = { viewModel.deleteService(service.id!!, profile.id) }
+                            onDelete = { service.id?.let { viewModel.deleteService(it, profile.id) } }
                         )
                     }
                 }
@@ -102,9 +102,9 @@ fun ServiceItem(service: Service, onEdit: () -> Unit, onDelete: () -> Unit) {
             Spacer(modifier = Modifier.width(16.dp))
             
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = service.title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                Text(text = service.title ?: "Untitled", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 Text(
-                    text = "₹${service.basePrice} | ${service.durationMinutes} min",
+                    text = "₹${service.basePrice ?: 0} | ${service.durationMinutes ?: 0} min",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )

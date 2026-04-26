@@ -26,12 +26,14 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.R
 import com.pabirul.digisewa.Service
+import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,6 +45,9 @@ fun AddEditServiceScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    
     var title by remember { mutableStateOf(service?.title ?: "") }
     var description by remember { mutableStateOf(service?.description ?: "") }
     var basePrice by remember { mutableStateOf(service?.basePrice?.toString() ?: "") }
@@ -77,15 +82,27 @@ fun AddEditServiceScreen(
     }
 
     LaunchedEffect(state) {
-        if (state is ServiceState.Success) {
-            onBack()
+        when (state) {
+            is ServiceState.Success -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Service saved successfully!")
+                    onBack()
+                }
+            }
+            is ServiceState.Error -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar("Error: ${(state as ServiceState.Error).message}")
+                }
+            }
+            else -> {}
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(if (service == null) "Add Service" else "Edit Service") },
+                title = { Text(if (service == null) "Add Service" else "Edit Service", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -145,7 +162,6 @@ fun AddEditServiceScreen(
             // Gallery Preview
             Text("Gallery Photos", style = MaterialTheme.typography.titleMedium)
             LazyRow(modifier = Modifier.fillMaxWidth().height(100.dp)) {
-                // Existing Gallery from Database
                 items(galleryFromDb) { item ->
                     AsyncImage(
                         model = item.imageUrl,
@@ -154,7 +170,6 @@ fun AddEditServiceScreen(
                         contentScale = ContentScale.Crop
                     )
                 }
-                // New Gallery Bitmaps selected by user
                 items(galleryBitmaps) { bitmap ->
                     Image(
                         bitmap = bitmap.asImageBitmap(),
@@ -223,20 +238,35 @@ fun AddEditServiceScreen(
 
             Button(
                 onClick = {
+                    if (title.isBlank()) {
+                        viewModel.setError("Please enter a service title")
+                        return@Button
+                    }
+                    
+                    val cleanPrice = basePrice.replace(Regex("[^0-9]"), "")
+                    val cleanDuration = duration.replace(Regex("[^0-9]"), "")
+                    
+                    val price = cleanPrice.toIntOrNull()
+                    if (price == null || price <= 0) {
+                        viewModel.setError("Please enter a valid price")
+                        return@Button
+                    }
+
                     val mainImageBytes = mainImageBitmap?.let { bitmapToBytes(it) }
                     val galleryBytes = galleryBitmaps.map { bitmapToBytes(it) }
                     
                     val newService = Service(
                         id = service?.id,
                         providerId = profile.id,
-                        categoryId = 1, // Defaulting to Physiotherapy for pilot
+                        categoryId = profile.providerDetails?.categoryId ?: 1,
                         title = title,
                         description = description,
-                        basePrice = basePrice.toIntOrNull() ?: 0,
-                        durationMinutes = duration.toIntOrNull() ?: 60,
+                        basePrice = price,
+                        durationMinutes = cleanDuration.toIntOrNull() ?: 60,
                         mainImageUrl = service?.mainImageUrl
                     )
                     
+                    android.util.Log.d("AddEditService", "Attempting to save: $newService")
                     viewModel.saveService(newService, mainImageBytes, galleryBytes)
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -247,14 +277,6 @@ fun AddEditServiceScreen(
                 } else {
                     Text("Save Service")
                 }
-            }
-            
-            if (state is ServiceState.Error) {
-                Text(
-                    text = (state as ServiceState.Error).message,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
             }
         }
     }

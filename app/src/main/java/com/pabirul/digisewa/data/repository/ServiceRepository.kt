@@ -1,5 +1,6 @@
 package com.pabirul.digisewa.data.repository
 
+import android.util.Log
 import com.pabirul.digisewa.Service
 import com.pabirul.digisewa.ServiceGallery
 import com.pabirul.digisewa.Supabase
@@ -18,25 +19,33 @@ class ServiceRepository {
                 }
             }.decodeList<Service>()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("ServiceRepo", "Error fetching services", e)
             emptyList()
         }
     }
 
     suspend fun createService(service: Service): Result<Service> {
         return try {
+            Log.d("ServiceRepo", "Creating service: $service")
+            
+            // Reverting to direct object insert. 
+            // encodeDefaults = false in SupabaseClient ensures null IDs aren't sent.
             val response = postgrest.from("services").insert(service) {
                 select()
             }.decodeSingle<Service>()
+            
+            Log.d("ServiceRepo", "Service successfully created with ID: ${response.id}")
             Result.success(response)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("ServiceRepo", "CRITICAL ERROR creating service", e)
             Result.failure(e)
         }
     }
 
     suspend fun updateService(service: Service): Result<Unit> {
         return try {
+            Log.d("ServiceRepo", "Updating service: ${service.id}")
+            
             postgrest.from("services").update(service) {
                 filter {
                     eq("id", service.id!!)
@@ -44,7 +53,7 @@ class ServiceRepository {
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("ServiceRepo", "Error updating service", e)
             Result.failure(e)
         }
     }
@@ -58,7 +67,7 @@ class ServiceRepository {
             }
             Result.success(bucket.publicUrl(path))
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("ServiceRepo", "Error uploading image", e)
             Result.failure(e)
         }
     }
@@ -68,7 +77,7 @@ class ServiceRepository {
             postgrest.from("service_gallery").insert(ServiceGallery(serviceId = serviceId, imageUrl = imageUrl))
             Result.success(Unit)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("ServiceRepo", "Error adding gallery image", e)
             Result.failure(e)
         }
     }
@@ -81,7 +90,7 @@ class ServiceRepository {
                 }
             }.decodeList<ServiceGallery>()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("ServiceRepo", "Error fetching gallery", e)
             emptyList()
         }
     }
@@ -95,7 +104,7 @@ class ServiceRepository {
             }
             Result.success(Unit)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("ServiceRepo", "Error deleting service", e)
             Result.failure(e)
         }
     }

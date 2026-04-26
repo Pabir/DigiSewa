@@ -2,7 +2,6 @@ package com.pabirul.digisewa.data.repository
 
 import com.pabirul.digisewa.Category
 import com.pabirul.digisewa.Profile
-import com.pabirul.digisewa.ProfileWithDetails
 import com.pabirul.digisewa.ProviderDetails
 import com.pabirul.digisewa.Supabase
 import io.github.jan.supabase.postgrest.postgrest

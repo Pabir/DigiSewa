@@ -1,7 +1,6 @@
 package com.pabirul.digisewa.data.repository
 
 import com.pabirul.digisewa.Profile
-import com.pabirul.digisewa.ProfileWithDetails
 import com.pabirul.digisewa.Supabase
 import com.pabirul.digisewa.UserRole
 import io.github.jan.supabase.auth.auth
@@ -21,13 +20,14 @@ class AuthRepository {
             
             val userId = auth.currentUserOrNull()?.id ?: return Result.failure(Exception("User ID not found after signup"))
             
-            val profile = Profile(
-                id = userId,
-                fullName = fullName,
-                role = role
+            // Use a map to avoid "column not found" error for providerDetails
+            val profileData = mapOf(
+                "id" to userId,
+                "full_name" to fullName,
+                "role" to role.name.lowercase()
             )
             
-            postgrest.from("profiles").insert(profile)
+            postgrest.from("profiles").insert(profileData)
             Result.success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -61,24 +61,15 @@ class AuthRepository {
     suspend fun getCurrentProfile(): Profile? {
         val userId = auth.currentUserOrNull()?.id ?: return null
         return try {
-            postgrest.from("profiles").select {
+            // Join with provider_details to ensure we have categoryId, bio, etc.
+            val columns = io.github.jan.supabase.postgrest.query.Columns.raw("*, provider_details(*)")
+            postgrest.from("profiles").select(columns) {
                 filter {
                     eq("id", userId)
                 }
-            }.decodeSingle<ProfileWithDetails>().let {
-                Profile(
-                    id = it.id,
-                    fullName = it.fullName,
-                    phoneNumber = it.phoneNumber,
-                    role = it.role,
-                    avatarUrl = it.avatarUrl,
-                    gender = it.gender,
-                    address = it.address,
-                    city = it.city,
-                    createdAt = it.createdAt
-                )
-            }
+            }.decodeSingle<Profile>()
         } catch (e: Exception) {
+            e.printStackTrace()
             null
         }
     }

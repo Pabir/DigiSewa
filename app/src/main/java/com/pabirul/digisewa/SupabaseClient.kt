@@ -23,7 +23,7 @@ object Supabase {
         defaultSerializer = KotlinXSerializer(Json {
             ignoreUnknownKeys = true
             coerceInputValues = true
-            encodeDefaults = true
+            encodeDefaults = false
         })
     }
 }
@@ -36,19 +36,6 @@ enum class UserRole {
 
 @Serializable
 data class Profile(
-    val id: String,
-    @kotlinx.serialization.SerialName("full_name") val fullName: String,
-    @kotlinx.serialization.SerialName("phone_number") val phoneNumber: String? = null,
-    val role: UserRole,
-    @kotlinx.serialization.SerialName("avatar_url") val avatarUrl: String? = null,
-    val gender: String? = null,
-    val address: String? = null,
-    val city: String? = null,
-    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
-)
-
-@Serializable
-data class ProfileWithDetails(
     val id: String,
     @kotlinx.serialization.SerialName("full_name") val fullName: String,
     @kotlinx.serialization.SerialName("phone_number") val phoneNumber: String? = null,
@@ -85,14 +72,14 @@ data class ProviderDetails(
 @Serializable
 data class Service(
     val id: String? = null,
-    @kotlinx.serialization.SerialName("provider_id") val providerId: String,
-    @kotlinx.serialization.SerialName("category_id") val categoryId: Int,
-    val title: String,
+    @kotlinx.serialization.SerialName("provider_id") val providerId: String? = null,
+    @kotlinx.serialization.SerialName("category_id") val categoryId: Int? = null,
+    val title: String? = null,
     val description: String? = null,
-    @kotlinx.serialization.SerialName("base_price") val basePrice: Int,
-    @kotlinx.serialization.SerialName("duration_minutes") val durationMinutes: Int,
+    @kotlinx.serialization.SerialName("base_price") val basePrice: Int? = null,
+    @kotlinx.serialization.SerialName("duration_minutes") val durationMinutes: Int? = null,
     @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
-    @kotlinx.serialization.SerialName("is_active") val isActive: Boolean = true,
+    @kotlinx.serialization.SerialName("is_active") val isActive: Boolean? = null,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
 )
 
@@ -112,5 +99,5 @@ data class ServiceWithProvider(
     @kotlinx.serialization.SerialName("base_price") val basePrice: Int,
     @kotlinx.serialization.SerialName("duration_minutes") val durationMinutes: Int,
     @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
-    val provider: ProfileWithDetails
+    val provider: Profile
 )

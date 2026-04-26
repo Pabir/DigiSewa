@@ -26,6 +26,10 @@ class ServiceViewModel(private val repository: ServiceRepository = ServiceReposi
     private val _serviceState = MutableStateFlow<ServiceState>(ServiceState.Idle)
     val serviceState = _serviceState.asStateFlow()
 
+    fun setError(message: String) {
+        _serviceState.value = ServiceState.Error(message)
+    }
+
     fun resetState() {
         _serviceState.value = ServiceState.Idle
         _gallery.value = emptyList()
@@ -53,46 +57,62 @@ class ServiceViewModel(private val repository: ServiceRepository = ServiceReposi
     ) {
         viewModelScope.launch {
             _serviceState.value = ServiceState.Loading
+            android.util.Log.d("ServiceVM", "Starting saveService for: ${service.title}")
             
             val isUpdating = service.id != null
-            var finalService = service
+            val providerId = service.providerId ?: ""
             
             // 1. Create or Update the service record
             val serviceResult = if (isUpdating) {
+                android.util.Log.d("ServiceVM", "Step 1: Updating existing service")
                 repository.updateService(service).map { service }
             } else {
+                android.util.Log.d("ServiceVM", "Step 1: Creating new service")
                 repository.createService(service)
             }
             
             serviceResult.onSuccess { createdService ->
+                android.util.Log.d("ServiceVM", "Step 1 Success: Service ID is ${createdService.id}")
                 val serviceId = createdService.id!!
                 var mainImageUrl = createdService.mainImageUrl
                 
                 // 2. Upload main image if provided
                 if (mainImageBytes != null) {
+                    android.util.Log.d("ServiceVM", "Step 2: Uploading main image")
                     val uploadResult = repository.uploadServiceImage(
-                        service.providerId, serviceId, "main.jpg", mainImageBytes
+                        providerId, serviceId, "main_${System.currentTimeMillis()}.jpg", mainImageBytes
                     )
                     uploadResult.onSuccess {
+                        android.util.Log.d("ServiceVM", "Step 2 Success: URL $it")
                         mainImageUrl = it
                         // Update service with the new image URL
-                        repository.updateService(createdService.copy(mainImageUrl = mainImageUrl))
+                        val updateResult = repository.updateService(createdService.copy(mainImageUrl = mainImageUrl))
+                        if (updateResult.isFailure) {
+                            android.util.Log.e("ServiceVM", "Step 2 Error: Failed to update service with URL", updateResult.exceptionOrNull())
+                        }
+                    }.onFailure {
+                        android.util.Log.e("ServiceVM", "Step 2 Error: Image upload failed", it)
                     }
                 }
                 
                 // 3. Upload gallery images
-                galleryImages.forEachIndexed { index, bytes ->
-                    val uploadResult = repository.uploadServiceImage(
-                        service.providerId, serviceId, "gallery_$index.jpg", bytes
-                    )
-                    uploadResult.onSuccess {
-                        repository.addGalleryImage(serviceId, it)
+                if (galleryImages.isNotEmpty()) {
+                    android.util.Log.d("ServiceVM", "Step 3: Uploading ${galleryImages.size} gallery images")
+                    galleryImages.forEachIndexed { index, bytes ->
+                        val uploadResult = repository.uploadServiceImage(
+                            providerId, serviceId, "gallery_${index}_${System.currentTimeMillis()}.jpg", bytes
+                        )
+                        uploadResult.onSuccess {
+                            repository.addGalleryImage(serviceId, it)
+                        }
                     }
                 }
                 
+                android.util.Log.d("ServiceVM", "All Steps Completed. Refreshing list.")
                 _serviceState.value = ServiceState.Success
-                loadServices(service.providerId)
+                loadServices(providerId)
             }.onFailure {
+                android.util.Log.e("ServiceVM", "Step 1 Error: Base service creation failed", it)
                 _serviceState.value = ServiceState.Error(it.message ?: "Failed to save service")
             }
         }

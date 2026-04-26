@@ -131,7 +131,7 @@ fun ServiceCard(serviceWithProvider: ServiceWithProvider, onClick: () -> Unit) {
             
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = serviceWithProvider.title,
+                    text = serviceWithProvider.title ?: "Untitled",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
                 
@@ -164,7 +164,7 @@ fun ServiceCard(serviceWithProvider: ServiceWithProvider, onClick: () -> Unit) {
                         tint = MaterialTheme.colorScheme.outline
                     )
                     Text(
-                        text = " ${serviceWithProvider.durationMinutes} mins session",
+                        text = " ${serviceWithProvider.durationMinutes ?: 0} mins session",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
