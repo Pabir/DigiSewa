@@ -24,6 +24,33 @@ class BookingViewModel(private val repository: BookingRepository = BookingReposi
     private val _state = MutableStateFlow<BookingState>(BookingState.Idle)
     val state = _state.asStateFlow()
 
+    private val _unavailableSlots = MutableStateFlow<List<String>>(emptyList())
+    val unavailableSlots = _unavailableSlots.asStateFlow()
+
+    private val _loadingSlots = MutableStateFlow(false)
+    val loadingSlots = _loadingSlots.asStateFlow()
+
+    fun loadUnavailableSlots(providerId: String, date: String) {
+        viewModelScope.launch {
+            if (date.isEmpty()) {
+                _unavailableSlots.value = emptyList()
+                return@launch
+            }
+            android.util.Log.e("BookingVM", "Fetching slots for provider: $providerId on date: $date")
+            _loadingSlots.value = true
+            try {
+                val slots = repository.getUnavailableSlots(providerId, date)
+                android.util.Log.e("BookingVM", "Received ${slots.size} slots from repository")
+                _unavailableSlots.value = slots
+            } catch (e: Exception) {
+                android.util.Log.e("BookingVM", "Error in loadUnavailableSlots", e)
+                _unavailableSlots.value = emptyList()
+            } finally {
+                _loadingSlots.value = false
+            }
+        }
+    }
+
     fun loadBookings(userId: String, isProvider: Boolean) {
         viewModelScope.launch {
             _state.value = BookingState.Loading

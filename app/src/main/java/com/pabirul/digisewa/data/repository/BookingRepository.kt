@@ -8,22 +8,43 @@ import com.pabirul.digisewa.Supabase
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class BookingSlot(
+    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String
+)
+
 class BookingRepository {
     private val postgrest = Supabase.client.postgrest
 
+    private fun parseIso(dateStr: String): java.time.Instant {
+        val cleaned = dateStr.replace(" ", "T")
+        val withZ = if (!cleaned.endsWith("Z") && !cleaned.contains("+")) "${cleaned}Z" else cleaned
+        
+        // Handle +00 (Supabase default) vs Z
+        val normalized = withZ.replace(Regex("\\+\\d{2}$"), "Z")
+        return java.time.Instant.parse(normalized)
+    }
+
     suspend fun createBooking(booking: Booking): Result<Unit> {
         return try {
-            // Check if slot is already occupied by an active booking
+            val requestedTime = parseIso(booking.scheduledAt)
+            val startTime = requestedTime.minusSeconds(2 * 3600).toString()
+            val endTime = requestedTime.plusSeconds(2 * 3600).toString()
+
+            // Check if provider has any active booking within the 4-hour window (2h before and 2h after)
             val existing = postgrest.from("bookings").select {
                 filter {
-                    eq("service_id", booking.serviceId)
-                    eq("scheduled_at", booking.scheduledAt)
+                    eq("provider_id", booking.providerId)
                     neq("status", "cancelled")
+                    gte("scheduled_at", startTime)
+                    lte("scheduled_at", endTime)
                 }
             }.decodeList<Booking>()
 
             if (existing.isNotEmpty()) {
-                return Result.failure(Exception("This slot is already booked or requested. Please choose another time."))
+                return Result.failure(Exception("This provider is unavailable around this time (2h buffer required). Please choose another slot."))
             }
 
             postgrest.from("bookings").insert(booking)
@@ -33,6 +54,7 @@ class BookingRepository {
             Result.failure(e)
         }
     }
+
 
     suspend fun confirmBooking(bookingId: String): Result<Unit> {
         return try {
@@ -112,6 +134,46 @@ class BookingRepository {
         } catch (e: Exception) {
             Log.e("BookingRepo", "Error cancelling booking", e)
             Result.failure(e)
+        }
+    }
+
+    suspend fun getUnavailableSlots(providerId: String, date: String): List<String> {
+        return try {
+            android.util.Log.e("BookingRepo", "--- DEEP DEBUG START ---")
+            android.util.Log.e("BookingRepo", "ID we are looking for: '$providerId'")
+
+            // TEST 1: Fetch ABSOLUTELY EVERYTHING from the bookings table to see if RLS is blocking us
+            val debugResponse = postgrest.from("bookings").select(io.github.jan.supabase.postgrest.query.Columns.raw("id, provider_id, status, scheduled_at"))
+            val allData = debugResponse.decodeList<kotlinx.serialization.json.JsonObject>()
+            android.util.Log.e("BookingRepo", "GLOBAL TABLE COUNT: ${allData.size}")
+            
+            allData.forEach { row ->
+                android.util.Log.e("BookingRepo", "ROW IN DB: id=${row["id"]} | provider=${row["provider_id"]} | status=${row["status"]} | time=${row["scheduled_at"]}")
+            }
+
+            // TEST 2: The actual query we need
+            val response = postgrest.from("bookings").select(io.github.jan.supabase.postgrest.query.Columns.raw("scheduled_at")) {
+                filter {
+                    eq("provider_id", providerId)
+                    neq("status", "cancelled")
+                }
+            }
+            
+            val allSlots = response.decodeList<BookingSlot>()
+            android.util.Log.e("BookingRepo", "PROVIDER SPECIFIC COUNT: ${allSlots.size}")
+            
+            val daySlots = allSlots.filter { slot ->
+                val isMatch = slot.scheduledAt.contains(date) || 
+                             (slot.scheduledAt.contains("Apr") && date.contains("04"))
+                isMatch
+            }
+            
+            android.util.Log.e("BookingRepo", "FINAL MATCHED SLOTS: ${daySlots.size}")
+            android.util.Log.e("BookingRepo", "--- DEEP DEBUG END ---")
+            daySlots.map { it.scheduledAt }
+        } catch (e: Exception) {
+            android.util.Log.e("BookingRepo", "FATAL ERROR in getUnavailableSlots", e)
+            emptyList()
         }
     }
 }

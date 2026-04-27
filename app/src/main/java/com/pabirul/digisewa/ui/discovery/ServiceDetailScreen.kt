@@ -39,6 +39,8 @@ fun ServiceDetailScreen(
     val provider = serviceWithProvider.provider
     val details = provider.providerDetails
     val gallery by viewModel.gallery.collectAsState()
+    val unavailableSlots by bookingViewModel.unavailableSlots.collectAsState()
+    val loadingSlots by bookingViewModel.loadingSlots.collectAsState()
     
     var showBookingDialog by remember { mutableStateOf(false) }
 
@@ -47,7 +49,17 @@ fun ServiceDetailScreen(
     }
 
     if (showBookingDialog) {
+        // Clear slots when dialog opens to ensure fresh fetch
+        LaunchedEffect(showBookingDialog) {
+            bookingViewModel.loadUnavailableSlots(provider.id, "") 
+        }
+
         BookingRequestDialog(
+            unavailableSlots = unavailableSlots,
+            isLoading = loadingSlots,
+            onDateSelected = { date ->
+                bookingViewModel.loadUnavailableSlots(provider.id, date)
+            },
             onDismiss = { showBookingDialog = false },
             onConfirm = { scheduledAt ->
                 val booking = Booking(
