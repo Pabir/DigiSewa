@@ -47,8 +47,22 @@ fun BookingRequestDialog(
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
     
-    var selectedDate by remember { mutableStateOf("") }
+    var selectedDate by remember { mutableStateOf("") } // ALWAYS YYYY-MM-DD (English)
     var selectedTimeSlot by remember { mutableStateOf("") }
+
+    // Formatter for localized display ONLY
+    val displayDate = remember(selectedDate) {
+        if (selectedDate.isEmpty()) ""
+        else {
+            try {
+                // Parse the English-stored date
+                val date = java.time.LocalDate.parse(selectedDate)
+                // Format it using the device's current locale for display
+                val formatter = java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+                date.format(formatter)
+            } catch (e: Exception) { selectedDate }
+        }
+    }
 
     // For now, simulating location selection (e.g. user's current city center)
     // Medinipur: 22.4257, 87.3199
@@ -156,7 +170,8 @@ fun BookingRequestDialog(
     val datePickerDialog = DatePickerDialog(
         context,
         { _, year, month, day ->
-            val date = String.format("%04d-%02d-%02d", year, month + 1, day)
+            // Logic ALWAYS uses US Locale to prevent Bengali/Hindi digits from breaking DB/Logic
+            val date = String.format(Locale.US, "%04d-%02d-%02d", year, month + 1, day)
             selectedDate = date
             selectedTimeSlot = "" // Reset time when date changes
             onDateSelected(date)
@@ -178,7 +193,7 @@ fun BookingRequestDialog(
                 ) {
                     Icon(Icons.Default.DateRange, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (selectedDate.isEmpty()) stringResource(R.string.select_date) else selectedDate)
+                    Text(if (selectedDate.isEmpty()) stringResource(R.string.select_date) else displayDate)
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
