@@ -21,6 +21,10 @@ import androidx.compose.ui.unit.dp
 import com.pabirul.digisewa.Category
 import com.pabirul.digisewa.Profile
 
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.ui.res.stringResource
+import com.pabirul.digisewa.R
+
 @Composable
 fun CustomerHomeScreen(
     profile: Profile,
@@ -39,7 +43,7 @@ fun CustomerHomeScreen(
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    text = "Hello, ${profile.fullName.split(" ")[0]}!",
+                    text = "${stringResource(R.string.home)}, ${profile.fullName.split(" ")[0]}!",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         color = Color.White,
                         fontWeight = FontWeight.Bold
@@ -85,6 +89,19 @@ fun CustomerHomeScreen(
 fun CategoryCard(category: Category, onClick: () -> Unit) {
     val icon = getIconForCategory(category.name)
     val color = getColorForCategory(category.name)
+    
+    // Determine localized name based on app locale
+    val locales = AppCompatDelegate.getApplicationLocales()
+    val currentLanguage = if (locales.isEmpty) "en" else locales.toLanguageTags()
+    
+    val displayName = when {
+        currentLanguage.contains("bn", ignoreCase = true) -> category.nameBn ?: category.name
+        currentLanguage.contains("hi", ignoreCase = true) -> category.nameHi ?: category.name
+        else -> category.name
+    }
+
+    // DEBUG LOG
+    android.util.Log.e("Localization", "Current Lang: $currentLanguage | Display Name: $displayName | Raw BN: ${category.nameBn}")
 
     Card(
         modifier = Modifier
@@ -116,7 +133,7 @@ fun CategoryCard(category: Category, onClick: () -> Unit) {
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = category.name,
+                text = displayName,
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                 maxLines = 2

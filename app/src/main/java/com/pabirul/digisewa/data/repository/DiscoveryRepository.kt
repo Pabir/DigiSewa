@@ -12,7 +12,8 @@ class DiscoveryRepository {
 
     suspend fun getCategories(): List<Category> {
         return try {
-            postgrest.from("categories").select().decodeList<Category>()
+            val columns = Columns.raw("id, name, name_bn, name_hi, description, icon_url")
+            postgrest.from("categories").select(columns).decodeList<Category>()
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
