@@ -1,7 +1,7 @@
 package com.pabirul.digisewa
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -26,7 +26,7 @@ import com.pabirul.digisewa.ui.service.ServiceViewModel
 import com.pabirul.digisewa.ui.theme.DigiSewaTheme
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -103,9 +103,16 @@ class MainActivity : ComponentActivity() {
                                                     customerSubScreen = "home"
                                                     generalSubScreen = ""
                                                 }
-                                                "manage_services" -> providerSubScreen = "manage_services"
-                                                "edit_profile" -> isEditingProfile = true
+                                                "manage_services" -> {
+                                                    providerSubScreen = "manage_services"
+                                                    generalSubScreen = ""
+                                                }
+                                                "edit_profile" -> {
+                                                    isEditingProfile = true
+                                                    generalSubScreen = ""
+                                                }
                                                 "bookings" -> generalSubScreen = "bookings"
+                                                "settings" -> generalSubScreen = "settings"
                                             }
                                         },
                                         onSignOut = { authViewModel.signOut() },
@@ -152,6 +159,8 @@ class MainActivity : ComponentActivity() {
                                                 viewModel = bookingViewModel,
                                                 isProvider = state.profile.role == UserRole.PROVIDER
                                             )
+                                        } else if (generalSubScreen == "settings") {
+                                            com.pabirul.digisewa.ui.settings.SettingsScreen()
                                         } else if (state.profile.role == UserRole.PROVIDER) {
                                             when (providerSubScreen) {
                                                 "manage_services" -> {

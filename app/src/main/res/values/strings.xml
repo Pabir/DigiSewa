@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">DigiSewa</string>
+    <string name="home">Home</string>
+    <string name="my_bookings">My Bookings</string>
+    <string name="booking_requests">Booking Requests</string>
+    <string name="my_services">My Services</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="settings">Settings</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="language">Language</string>
+    <string name="select_language">Select Language</string>
+    <string name="english">English</string>
+    <string name="bengali">Bengali</string>
+    <string name="hindi">Hindi</string>
+    <string name="book_now">Book Now</string>
+    <string name="confirm_booking">Confirm Booking</string>
 </resources>

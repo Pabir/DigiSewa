@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">ডিজিসেবা</string>
+    <string name="home">হোম</string>
+    <string name="my_bookings">আমার বুকিং</string>
+    <string name="booking_requests">বুকিং অনুরোধ</string>
+    <string name="my_services">আমার পরিষেবাগুলি</string>
+    <string name="edit_profile">প্রোফাইল সম্পাদনা</string>
+    <string name="settings">সেটিংস</string>
+    <string name="sign_out">সাইন আউট</string>
+    <string name="language">ভাষা</string>
+    <string name="select_language">ভাষা নির্বাচন করুন</string>
+    <string name="english">ইংরেজি</string>
+    <string name="bengali">বাংলা</string>
+    <string name="hindi">হিন্দি</string>
+    <string name="book_now">বুক করুন</string>
+    <string name="confirm_booking">বুকিং নিশ্চিত করুন</string>
+</resources>

@@ -22,6 +22,8 @@ import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.R
 import com.pabirul.digisewa.UserRole
 
+import androidx.compose.ui.res.stringResource
+
 @Composable
 fun AppDrawer(
     profile: Profile,
@@ -94,7 +96,7 @@ fun AppDrawer(
         Spacer(modifier = Modifier.height(16.dp))
 
         NavigationDrawerItem(
-            label = { Text("Home", fontWeight = FontWeight.SemiBold) },
+            label = { Text(stringResource(R.string.home), fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 
                 onNavigate("home")
@@ -107,7 +109,7 @@ fun AppDrawer(
         )
 
         NavigationDrawerItem(
-            label = { Text(if (profile.role == UserRole.PROVIDER) "Booking Requests" else "My Bookings", fontWeight = FontWeight.SemiBold) },
+            label = { Text(if (profile.role == UserRole.PROVIDER) stringResource(R.string.booking_requests) else stringResource(R.string.my_bookings), fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 
                 onNavigate("bookings")
@@ -121,7 +123,7 @@ fun AppDrawer(
 
         if (profile.role == UserRole.PROVIDER) {
             NavigationDrawerItem(
-                label = { Text("My Services", fontWeight = FontWeight.SemiBold) },
+                label = { Text(stringResource(R.string.my_services), fontWeight = FontWeight.SemiBold) },
                 selected = false,
                 onClick = { 
                     onNavigate("manage_services")
@@ -135,7 +137,7 @@ fun AppDrawer(
         }
 
         NavigationDrawerItem(
-            label = { Text("Edit Profile", fontWeight = FontWeight.SemiBold) },
+            label = { Text(stringResource(R.string.edit_profile), fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 
                 onNavigate("edit_profile")
@@ -148,7 +150,7 @@ fun AppDrawer(
         )
 
         NavigationDrawerItem(
-            label = { Text("Settings", fontWeight = FontWeight.SemiBold) },
+            label = { Text(stringResource(R.string.settings), fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 
                 onNavigate("settings")
@@ -165,7 +167,7 @@ fun AppDrawer(
         HorizontalDivider(modifier = Modifier.padding(horizontal = 24.dp))
 
         NavigationDrawerItem(
-            label = { Text("Sign Out", fontWeight = FontWeight.SemiBold) },
+            label = { Text(stringResource(R.string.sign_out), fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 
                 onSignOut()

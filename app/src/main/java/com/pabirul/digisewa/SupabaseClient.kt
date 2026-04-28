@@ -92,6 +92,8 @@ data class PrivateProfile(
 data class Category(
     val id: Int? = null,
     val name: String,
+    @kotlinx.serialization.SerialName("name_bn") val nameBn: String? = null,
+    @kotlinx.serialization.SerialName("name_hi") val nameHi: String? = null,
     val description: String? = null,
     @kotlinx.serialization.SerialName("icon_url") val iconUrl: String? = null
 )
