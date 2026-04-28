@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import com.pabirul.digisewa.data.repository.BookingSlot
+
 sealed class BookingState {
     object Idle : BookingState()
     object Loading : BookingState()
@@ -24,7 +26,7 @@ class BookingViewModel(private val repository: BookingRepository = BookingReposi
     private val _state = MutableStateFlow<BookingState>(BookingState.Idle)
     val state = _state.asStateFlow()
 
-    private val _unavailableSlots = MutableStateFlow<List<String>>(emptyList())
+    private val _unavailableSlots = MutableStateFlow<List<BookingSlot>>(emptyList())
     val unavailableSlots = _unavailableSlots.asStateFlow()
 
     private val _loadingSlots = MutableStateFlow(false)

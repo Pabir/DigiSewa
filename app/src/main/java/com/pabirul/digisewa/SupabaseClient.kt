@@ -44,6 +44,12 @@ data class Profile(
     val gender: String? = null,
     val address: String? = null,
     val city: String? = null,
+    val vtc: String? = null,
+    @kotlinx.serialization.SerialName("post_office") val postOffice: String? = null,
+    @kotlinx.serialization.SerialName("police_station") val policeStation: String? = null,
+    val district: String? = null,
+    val state: String? = null,
+    @kotlinx.serialization.SerialName("pin_code") val pinCode: String? = null,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
     @kotlinx.serialization.SerialName("provider_details") val providerDetails: ProviderDetails? = null
 )
@@ -58,6 +64,12 @@ data class ProfileWithDetails(
     val gender: String? = null,
     val address: String? = null,
     val city: String? = null,
+    val vtc: String? = null,
+    @kotlinx.serialization.SerialName("post_office") val postOffice: String? = null,
+    @kotlinx.serialization.SerialName("police_station") val policeStation: String? = null,
+    val district: String? = null,
+    val state: String? = null,
+    @kotlinx.serialization.SerialName("pin_code") val pinCode: String? = null,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
     @kotlinx.serialization.SerialName("provider_details") val providerDetails: ProviderDetails? = null,
     @kotlinx.serialization.SerialName("private_profile") val privateProfile: PrivateProfile? = null
@@ -67,7 +79,13 @@ data class ProfileWithDetails(
 data class PrivateProfile(
     val id: String,
     @kotlinx.serialization.SerialName("phone_number") val phoneNumber: String? = null,
-    @kotlinx.serialization.SerialName("full_address") val fullAddress: String? = null
+    @kotlinx.serialization.SerialName("full_address") val fullAddress: String? = null,
+    val vtc: String? = null,
+    @kotlinx.serialization.SerialName("post_office") val postOffice: String? = null,
+    @kotlinx.serialization.SerialName("police_station") val policeStation: String? = null,
+    val district: String? = null,
+    val state: String? = null,
+    @kotlinx.serialization.SerialName("pin_code") val pinCode: String? = null
 )
 
 @Serializable
@@ -145,7 +163,10 @@ data class Booking(
     @kotlinx.serialization.SerialName("cancellation_fee") val cancellationFee: Int = 0,
     @kotlinx.serialization.SerialName("refund_amount") val refundAmount: Int = 0,
     @kotlinx.serialization.SerialName("confirmed_at") val confirmedAt: String? = null,
-    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    @kotlinx.serialization.SerialName("service_location_name") val serviceLocationName: String? = null
 )
 
 @Serializable

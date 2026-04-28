@@ -29,13 +29,17 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.ui.Alignment
 import java.util.Locale
 
+import com.pabirul.digisewa.data.repository.BookingSlot
+import kotlin.math.*
+
 @Composable
 fun BookingRequestDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-    unavailableSlots: List<String> = emptyList(),
+    onConfirm: (String, Double, Double, String) -> Unit, // Updated to include location
+    unavailableSlots: List<BookingSlot> = emptyList(),
     onDateSelected: (String) -> Unit = {},
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    serviceDurationMinutes: Int = 60 // Default duration for the new booking
 ) {
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
@@ -43,10 +47,33 @@ fun BookingRequestDialog(
     var selectedDate by remember { mutableStateOf("") }
     var selectedTimeSlot by remember { mutableStateOf("") }
 
+    // For now, simulating location selection (e.g. user's current city center)
+    // Medinipur: 22.4257, 87.3199
+    // Bauria: 22.4497, 88.1883
+    var customerLat by remember { mutableStateOf(22.4497) } // Bauria Lat (Simulated)
+    var customerLng by remember { mutableStateOf(88.1883) } // Bauria Lng (Simulated)
+    var locationName by remember { mutableStateOf("Bauria, West Bengal") }
+
     // SIMPLE LOG TO CHECK IF DIALOG IS EVEN RUNNING
     LaunchedEffect(Unit) {
         android.util.Log.e("BookingDialog", "!!! DIALOG OPENED !!!")
         android.util.Log.e("BookingDialog", "Current unavailableSlots count: ${unavailableSlots.size}")
+    }
+
+    // Helper: Haversine distance in km
+    fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2).pow(2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return r * c
+    }
+
+    // Helper: Estimate travel time in minutes (avg speed 30km/h)
+    fun estimateTravelTime(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Int {
+        val distance = calculateDistance(lat1, lon1, lat2, lon2)
+        return ((distance / 30.0) * 60.0).toInt().coerceAtLeast(15) // Min 15 mins travel
     }
 
     // Generate time slots from 8 AM to 8 PM
@@ -59,27 +86,63 @@ fun BookingRequestDialog(
         slots
     }
 
-    // Filter slots based on unavailability and 2h buffer
-    val availableSlots = remember(selectedDate, unavailableSlots) {
+    // Filter slots based on unavailability and dynamic Travel + Service Duration
+    val availableSlots = remember(selectedDate, unavailableSlots, customerLat, customerLng) {
         android.util.Log.e("BookingDialog", "Re-calculating slots. Count: ${unavailableSlots.size}")
         if (selectedDate.isEmpty()) emptyMap<String, Boolean>()
         else {
             allTimeSlots.associateWith { timeStr ->
                 try {
-                    val requested = Instant.parse("${selectedDate}T${timeStr}Z")
-                    val conflictSlot = unavailableSlots.find { bookedStr ->
+                    val requestedStart = Instant.parse("${selectedDate}T${timeStr}Z")
+                    val requestedEnd = requestedStart.plus(Duration.ofMinutes(serviceDurationMinutes.toLong()))
+                    
+                    val conflictSlot = unavailableSlots.find { bookedSlot ->
                         try {
-                            val cleaned = bookedStr.replace(" ", "T")
+                            val cleaned = bookedSlot.scheduledAt.replace(" ", "T")
                             val withZ = if (!cleaned.endsWith("Z") && !cleaned.contains("+")) "${cleaned}Z" else cleaned
                             val normalized = withZ.replace(Regex("\\+\\d{2}$"), "Z")
-                            val booked = Instant.parse(normalized)
                             
-                            val diffMinutes = Duration.between(requested, booked).abs().toMinutes()
-                            diffMinutes < 120 // 2 hours buffer
+                            val bookedStart = Instant.parse(normalized)
+                            val bookedDuration = bookedSlot.service?.durationMinutes ?: 60
+                            val bookedEnd = bookedStart.plus(Duration.ofMinutes(bookedDuration.toLong()))
+                            
+                            // Get travel time between Customer A and Customer B
+                            val travelMinutes = if (bookedSlot.lat != null && bookedSlot.lng != null) {
+                                estimateTravelTime(customerLat, customerLng, bookedSlot.lat, bookedSlot.lng)
+                            } else {
+                                60 // Fallback to 1 hour if location missing
+                            }
+
+                            // 1. INCOMING CHECK: Existing (A) is BEFORE New (B)
+                            // Provider travels FROM A to B.
+                            // Must finish A + Travel and arrive before B starts.
+                            if (bookedStart.isBefore(requestedStart)) {
+                                val arrivalAtB = bookedEnd.plus(Duration.ofMinutes(travelMinutes.toLong()))
+                                if (arrivalAtB.isAfter(requestedStart)) {
+                                    android.util.Log.e("BookingDialog", "INCOMING CONFLICT: A ends $bookedEnd, needs ${travelMinutes}m travel. Arrives at B at $arrivalAtB. B starts at $requestedStart.")
+                                    return@find true
+                                }
+                            }
+                            
+                            // 2. OUTGOING CHECK: Existing (A) is AFTER New (B)
+                            // Provider travels FROM B to A.
+                            // Must finish B + Travel and arrive before A starts.
+                            if (bookedStart.isAfter(requestedStart)) {
+                                val arrivalAtA = requestedEnd.plus(Duration.ofMinutes(travelMinutes.toLong()))
+                                if (arrivalAtA.isAfter(bookedStart)) {
+                                    android.util.Log.e("BookingDialog", "OUTGOING CONFLICT: B ends $requestedEnd, needs ${travelMinutes}m travel. Arrives at A at $arrivalAtA. A starts at $bookedStart.")
+                                    return@find true
+                                }
+                            }
+                            
+                            // 3. EXACT OVERLAP
+                            if (bookedStart == requestedStart) return@find true
+
+                            false
                         } catch (e: Exception) { false }
                     }
                     if (conflictSlot != null) {
-                        android.util.Log.e("BookingDialog", "CONFLICT found for $timeStr with $conflictSlot")
+                        android.util.Log.e("BookingDialog", "FINAL CONFLICT found for $timeStr with ${conflictSlot.scheduledAt}")
                     }
                     conflictSlot == null
                 } catch (e: Exception) { true }
@@ -191,7 +254,7 @@ fun BookingRequestDialog(
             Button(
                 onClick = {
                     if (selectedDate.isNotEmpty() && selectedTimeSlot.isNotEmpty()) {
-                        onConfirm("${selectedDate}T${selectedTimeSlot}Z")
+                        onConfirm("${selectedDate}T${selectedTimeSlot}Z", customerLat, customerLng, locationName)
                     }
                 },
                 enabled = selectedDate.isNotEmpty() && selectedTimeSlot.isNotEmpty()

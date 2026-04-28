@@ -8,11 +8,16 @@ import com.pabirul.digisewa.Supabase
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 
+import com.pabirul.digisewa.Service
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class BookingSlot(
-    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String
+    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    @kotlinx.serialization.SerialName("service_id") val serviceId: String? = null,
+    val service: Service? = null
 )
 
 class BookingRepository {
@@ -137,22 +142,13 @@ class BookingRepository {
         }
     }
 
-    suspend fun getUnavailableSlots(providerId: String, date: String): List<String> {
+    suspend fun getUnavailableSlots(providerId: String, date: String): List<BookingSlot> {
         return try {
             android.util.Log.e("BookingRepo", "--- DEEP DEBUG START ---")
             android.util.Log.e("BookingRepo", "ID we are looking for: '$providerId'")
 
-            // TEST 1: Fetch ABSOLUTELY EVERYTHING from the bookings table to see if RLS is blocking us
-            val debugResponse = postgrest.from("bookings").select(io.github.jan.supabase.postgrest.query.Columns.raw("id, provider_id, status, scheduled_at"))
-            val allData = debugResponse.decodeList<kotlinx.serialization.json.JsonObject>()
-            android.util.Log.e("BookingRepo", "GLOBAL TABLE COUNT: ${allData.size}")
-            
-            allData.forEach { row ->
-                android.util.Log.e("BookingRepo", "ROW IN DB: id=${row["id"]} | provider=${row["provider_id"]} | status=${row["status"]} | time=${row["scheduled_at"]}")
-            }
-
-            // TEST 2: The actual query we need
-            val response = postgrest.from("bookings").select(io.github.jan.supabase.postgrest.query.Columns.raw("scheduled_at")) {
+            // Fetch bookings with service details (to get duration) and location
+            val response = postgrest.from("bookings").select(io.github.jan.supabase.postgrest.query.Columns.raw("scheduled_at, lat, lng, service_id, service:services(duration_minutes)")) {
                 filter {
                     eq("provider_id", providerId)
                     neq("status", "cancelled")
@@ -163,14 +159,13 @@ class BookingRepository {
             android.util.Log.e("BookingRepo", "PROVIDER SPECIFIC COUNT: ${allSlots.size}")
             
             val daySlots = allSlots.filter { slot ->
-                val isMatch = slot.scheduledAt.contains(date) || 
-                             (slot.scheduledAt.contains("Apr") && date.contains("04"))
-                isMatch
+                slot.scheduledAt.contains(date) || 
+                (slot.scheduledAt.contains("Apr") && date.contains("04"))
             }
             
             android.util.Log.e("BookingRepo", "FINAL MATCHED SLOTS: ${daySlots.size}")
             android.util.Log.e("BookingRepo", "--- DEEP DEBUG END ---")
-            daySlots.map { it.scheduledAt }
+            daySlots
         } catch (e: Exception) {
             android.util.Log.e("BookingRepo", "FATAL ERROR in getUnavailableSlots", e)
             emptyList()

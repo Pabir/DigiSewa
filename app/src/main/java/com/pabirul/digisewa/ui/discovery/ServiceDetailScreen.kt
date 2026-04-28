@@ -57,17 +57,21 @@ fun ServiceDetailScreen(
         BookingRequestDialog(
             unavailableSlots = unavailableSlots,
             isLoading = loadingSlots,
+            serviceDurationMinutes = serviceWithProvider.durationMinutes,
             onDateSelected = { date ->
                 bookingViewModel.loadUnavailableSlots(provider.id, date)
             },
             onDismiss = { showBookingDialog = false },
-            onConfirm = { scheduledAt ->
+            onConfirm = { scheduledAt, lat, lng, locName ->
                 val booking = Booking(
                     customerId = customerId,
                     providerId = provider.id,
                     serviceId = serviceWithProvider.id,
                     scheduledAt = scheduledAt,
-                    totalPrice = serviceWithProvider.basePrice
+                    totalPrice = serviceWithProvider.basePrice,
+                    lat = lat,
+                    lng = lng,
+                    serviceLocationName = locName
                 )
                 bookingViewModel.requestService(booking)
                 showBookingDialog = false

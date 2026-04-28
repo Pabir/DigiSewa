@@ -40,6 +40,12 @@ fun ProfileSetupScreen(
     var gender by remember { mutableStateOf(profile.gender ?: "Male") }
     var address by remember { mutableStateOf(profile.address ?: "") }
     var city by remember { mutableStateOf(profile.city ?: "") }
+    var vtc by remember { mutableStateOf(profile.vtc ?: "") }
+    var postOffice by remember { mutableStateOf(profile.postOffice ?: "") }
+    var policeStation by remember { mutableStateOf(profile.policeStation ?: "") }
+    var district by remember { mutableStateOf(profile.district ?: "") }
+    var state by remember { mutableStateOf(profile.state ?: "") }
+    var pinCode by remember { mutableStateOf(profile.pinCode ?: "") }
     
     // Provider specific
     var bio by remember { mutableStateOf("") }
@@ -157,6 +163,60 @@ fun ProfileSetupScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = vtc,
+            onValueChange = { vtc = it },
+            label = { Text("VTC (Village/Town/City)") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = postOffice,
+            onValueChange = { postOffice = it },
+            label = { Text("Post Office") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = policeStation,
+            onValueChange = { policeStation = it },
+            label = { Text("Police Station") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = district,
+            onValueChange = { district = it },
+            label = { Text("District") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = state,
+            onValueChange = { state = it },
+            label = { Text("State") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = pinCode,
+            onValueChange = { pinCode = it },
+            label = { Text("PIN Code") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
         if (profile.role == UserRole.PROVIDER) {
             Spacer(modifier = Modifier.height(24.dp))
             HorizontalDivider()
@@ -246,7 +306,13 @@ fun ProfileSetupScreen(
                     phoneNumber = phoneNumber,
                     gender = gender,
                     address = address,
-                    city = city
+                    city = city,
+                    vtc = vtc,
+                    postOffice = postOffice,
+                    policeStation = policeStation,
+                    district = district,
+                    state = state,
+                    pinCode = pinCode
                 )
                 
                 val providerDetails = if (profile.role == UserRole.PROVIDER) {
