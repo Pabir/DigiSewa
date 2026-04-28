@@ -14,4 +14,20 @@
     <string name="hindi">হিন্দি</string>
     <string name="book_now">বুক করুন</string>
     <string name="confirm_booking">বুকিং নিশ্চিত করুন</string>
+    <string name="hello">হ্যালো</string>
+    <string name="service_need_prompt">আজ আপনার কি পরিষেবা প্রয়োজন?</string>
+    <string name="explore_categories">ক্যাটাগরিগুলি দেখুন</string>
+    <string name="about_service">এই পরিষেবা সম্পর্কে</string>
+    <string name="the_professional">পেশাদার</string>
+    <string name="total_price">মোট মূল্য</string>
+    <string name="session">সেশন</string>
+    <string name="experience">অভিজ্ঞতা</string>
+    <string name="years_experience">%1$d বছরের অভিজ্ঞতা</string>
+    <string name="minutes_session">%1$d মিনিটের সেশন</string>
+    <string name="no_description">কোনো বর্ণনা দেওয়া নেই।</string>
+    <string name="verified">যাচাইকৃত</string>
+    <string name="select_appointment_slot">অ্যাপয়েন্টমেন্ট স্লট নির্বাচন করুন</string>
+    <string name="available_times_buffer">উপলব্ধ সময় (২ ঘন্টার বাফার সহ):</string>
+    <string name="select_date">তারিখ নির্বাচন করুন</string>
+    <string name="booked">বুকড</string>
 </resources>

@@ -32,6 +32,9 @@ import java.util.Locale
 import com.pabirul.digisewa.data.repository.BookingSlot
 import kotlin.math.*
 
+import androidx.compose.ui.res.stringResource
+import com.pabirul.digisewa.R
+
 @Composable
 fun BookingRequestDialog(
     onDismiss: () -> Unit,
@@ -165,7 +168,7 @@ fun BookingRequestDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select Appointment Slot", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.select_appointment_slot), fontWeight = FontWeight.Bold) },
         text = {
             Column(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
                 OutlinedButton(
@@ -175,14 +178,14 @@ fun BookingRequestDialog(
                 ) {
                     Icon(Icons.Default.DateRange, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (selectedDate.isEmpty()) "Select Date" else selectedDate)
+                    Text(if (selectedDate.isEmpty()) stringResource(R.string.select_date) else selectedDate)
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (selectedDate.isNotEmpty()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Available Times (2h buffer enforced):", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(R.string.available_times_buffer), style = MaterialTheme.typography.labelMedium)
                         if (isLoading) {
                             Spacer(modifier = Modifier.width(8.dp))
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -237,7 +240,7 @@ fun BookingRequestDialog(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
                                     if (!isAvailable) {
-                                        Text("Booked", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                                        Text(stringResource(R.string.booked), color = Color.Red, style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                             }
@@ -245,7 +248,7 @@ fun BookingRequestDialog(
                     }
                 } else {
                     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        Text("Please select a date first", color = Color.Gray)
+                        Text(stringResource(R.string.select_date), color = Color.Gray)
                     }
                 }
             }
@@ -259,7 +262,7 @@ fun BookingRequestDialog(
                 },
                 enabled = selectedDate.isNotEmpty() && selectedTimeSlot.isNotEmpty()
             ) {
-                Text("Confirm Booking")
+                Text(stringResource(R.string.confirm_booking))
             }
         },
         dismissButton = {

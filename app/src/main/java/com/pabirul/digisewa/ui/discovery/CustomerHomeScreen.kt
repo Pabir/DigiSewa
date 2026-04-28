@@ -43,7 +43,7 @@ fun CustomerHomeScreen(
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    text = "${stringResource(R.string.home)}, ${profile.fullName.split(" ")[0]}!",
+                    text = "${stringResource(R.string.hello)}, ${profile.fullName.split(" ")[0]}!",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         color = Color.White,
                         fontWeight = FontWeight.Bold
@@ -51,7 +51,7 @@ fun CustomerHomeScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "What service do you need today?",
+                    text = stringResource(R.string.service_need_prompt),
                     style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
                 )
             }
@@ -60,7 +60,7 @@ fun CustomerHomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Explore Categories",
+            text = stringResource(R.string.explore_categories),
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )

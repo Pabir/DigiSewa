@@ -14,4 +14,20 @@
     <string name="hindi">Hindi</string>
     <string name="book_now">Book Now</string>
     <string name="confirm_booking">Confirm Booking</string>
+    <string name="hello">Hello</string>
+    <string name="service_need_prompt">What service do you need today?</string>
+    <string name="explore_categories">Explore Categories</string>
+    <string name="about_service">About this service</string>
+    <string name="the_professional">The Professional</string>
+    <string name="total_price">Total Price</string>
+    <string name="session">Session</string>
+    <string name="experience">Experience</string>
+    <string name="years_experience">%1$d Years Experience</string>
+    <string name="minutes_session">%1$d Minutes Session</string>
+    <string name="no_description">No description provided.</string>
+    <string name="verified">VERIFIED</string>
+    <string name="select_appointment_slot">Select Appointment Slot</string>
+    <string name="available_times_buffer">Available Times (2h buffer enforced):</string>
+    <string name="select_date">Select Date</string>
+    <string name="booked">Booked</string>
 </resources>

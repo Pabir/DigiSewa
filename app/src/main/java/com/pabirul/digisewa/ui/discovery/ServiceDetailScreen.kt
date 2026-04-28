@@ -27,6 +27,9 @@ import com.pabirul.digisewa.ServiceWithProvider
 import com.pabirul.digisewa.ui.bookings.BookingRequestDialog
 import com.pabirul.digisewa.ui.bookings.BookingViewModel
 
+import androidx.compose.ui.res.stringResource
+import com.pabirul.digisewa.R
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServiceDetailScreen(
@@ -94,7 +97,7 @@ fun ServiceDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "Total Price", style = MaterialTheme.typography.bodySmall)
+                        Text(text = stringResource(R.string.total_price), style = MaterialTheme.typography.bodySmall)
                         Text(
                             text = "₹${serviceWithProvider.basePrice}",
                             style = MaterialTheme.typography.headlineSmall.copy(
@@ -113,7 +116,7 @@ fun ServiceDetailScreen(
                     ) {
                         Icon(Icons.Default.Schedule, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Book Now", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.book_now), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
@@ -195,7 +198,7 @@ fun ServiceDetailScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
                                 Text(
-                                    text = " ${serviceWithProvider.durationMinutes ?: 0} Minutes Session",
+                                    text = " ${stringResource(R.string.minutes_session, serviceWithProvider.durationMinutes ?: 0)}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.outline
                                 )
@@ -205,10 +208,10 @@ fun ServiceDetailScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    Text(text = "About this service", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                    Text(text = stringResource(R.string.about_service), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = serviceWithProvider.description ?: "No description provided.",
+                        text = serviceWithProvider.description ?: stringResource(R.string.no_description),
                         style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
@@ -218,7 +221,7 @@ fun ServiceDetailScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     // Provider Profile Section
-                    Text(text = "The Professional", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                    Text(text = stringResource(R.string.the_professional), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Card(
@@ -236,7 +239,7 @@ fun ServiceDetailScreen(
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
                                 Text(text = provider.fullName, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                                Text(text = "${details?.experienceYears ?: 0} Years Experience", style = MaterialTheme.typography.bodyMedium)
+                                Text(text = stringResource(R.string.years_experience, details?.experienceYears ?: 0), style = MaterialTheme.typography.bodyMedium)
                                 if (details?.isVerified == true) {
                                     Surface(
                                         color = MaterialTheme.colorScheme.secondary,
@@ -244,7 +247,7 @@ fun ServiceDetailScreen(
                                         modifier = Modifier.padding(top = 4.dp)
                                     ) {
                                         Text(
-                                            text = "VERIFIED",
+                                            text = stringResource(R.string.verified),
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = Color.White)
                                         )

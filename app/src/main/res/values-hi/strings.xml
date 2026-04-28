@@ -14,4 +14,20 @@
     <string name="hindi">हिंदी</string>
     <string name="book_now">अभी बुक करें</string>
     <string name="confirm_booking">बुकिंग की पुष्टि करें</string>
+    <string name="hello">नमस्ते</string>
+    <string name="service_need_prompt">आज आपको किस सेवा की आवश्यकता है?</string>
+    <string name="explore_categories">श्रेणियां देखें</string>
+    <string name="about_service">इस सेवा के बारे में</string>
+    <string name="the_professional">पेशेवर</string>
+    <string name="total_price">कुल मूल्य</string>
+    <string name="session">सत्र</string>
+    <string name="experience">अनुभव</string>
+    <string name="years_experience">%1$d वर्षों का अनुभव</string>
+    <string name="minutes_session">%1$d मिनट का सत्र</string>
+    <string name="no_description">कोई विवरण प्रदान नहीं किया गया।</string>
+    <string name="verified">सत्यापित</string>
+    <string name="select_appointment_slot">अपॉइंटमेंट स्लॉट चुनें</string>
+    <string name="available_times_buffer">उपलब्ध समय (2 घंटे का बफर अनिवार्य):</string>
+    <string name="select_date">तारीख चुनें</string>
+    <string name="booked">बुक किया गया</string>
 </resources>
