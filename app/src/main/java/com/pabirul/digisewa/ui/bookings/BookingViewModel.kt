@@ -38,14 +38,10 @@ class BookingViewModel(private val repository: BookingRepository = BookingReposi
                 _unavailableSlots.value = emptyList()
                 return@launch
             }
-            android.util.Log.e("BookingVM", "Fetching slots for provider: $providerId on date: $date")
             _loadingSlots.value = true
             try {
-                val slots = repository.getUnavailableSlots(providerId, date)
-                android.util.Log.e("BookingVM", "Received ${slots.size} slots from repository")
-                _unavailableSlots.value = slots
+                _unavailableSlots.value = repository.getUnavailableSlots(providerId, date)
             } catch (e: Exception) {
-                android.util.Log.e("BookingVM", "Error in loadUnavailableSlots", e)
                 _unavailableSlots.value = emptyList()
             } finally {
                 _loadingSlots.value = false

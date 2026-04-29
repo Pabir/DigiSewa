@@ -26,23 +26,22 @@ import com.pabirul.digisewa.Booking
 import com.pabirul.digisewa.ServiceWithProvider
 import com.pabirul.digisewa.ui.bookings.BookingRequestDialog
 import com.pabirul.digisewa.ui.bookings.BookingViewModel
-
 import androidx.compose.ui.res.stringResource
 import com.pabirul.digisewa.R
-
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.CheckCircle
+import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.ui.bookings.BookingState
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServiceDetailScreen(
     serviceWithProvider: ServiceWithProvider,
     viewModel: DiscoveryViewModel,
     bookingViewModel: BookingViewModel,
     customerId: String,
+    customerProfile: Profile? = null,
     onBack: () -> Unit,
-    onNavigateToBookings: () -> Unit // New callback
+    onNavigateToBookings: () -> Unit
 ) {
     val provider = serviceWithProvider.provider
     val details = provider.providerDetails
@@ -58,7 +57,6 @@ fun ServiceDetailScreen(
         viewModel.loadServiceDetails(serviceWithProvider.id)
     }
 
-    // React to booking success
     LaunchedEffect(bookingState) {
         if (bookingState is BookingState.Success) {
             showSuccessDialog = true
@@ -67,16 +65,11 @@ fun ServiceDetailScreen(
     }
 
     if (showBookingDialog) {
-        // ... (existing dialog logic)
-        // Clear slots when dialog opens to ensure fresh fetch
-        LaunchedEffect(showBookingDialog) {
-            bookingViewModel.loadUnavailableSlots(provider.id, "") 
-        }
-
         BookingRequestDialog(
             unavailableSlots = unavailableSlots,
             isLoading = loadingSlots,
             serviceDurationMinutes = serviceWithProvider.durationMinutes,
+            customerProfile = customerProfile,
             onDateSelected = { date ->
                 bookingViewModel.loadUnavailableSlots(provider.id, date)
             },
@@ -126,53 +119,14 @@ fun ServiceDetailScreen(
         )
     }
 
-    Scaffold(
-        bottomBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                tonalElevation = 8.dp,
-                shadowElevation = 16.dp,
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .navigationBarsPadding(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = stringResource(R.string.total_price), style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            text = "₹${serviceWithProvider.basePrice}",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                    }
-                    Button(
-                        onClick = { showBookingDialog = true },
-                        modifier = Modifier
-                            .height(56.dp)
-                            .weight(1.5f),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                    ) {
-                        Icon(Icons.Default.Schedule, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.book_now), style = MaterialTheme.typography.titleMedium)
-                    }
-                }
-            }
-        }
-    ) { padding ->
+    // SIMPLIFIED LAYOUT: No nested Scaffold to avoid padding/depth issues
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(
             modifier = Modifier
-                .padding(bottom = padding.calculateBottomPadding())
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // Header with Back Button and Gallery
+            // Header with Gallery
             Box(modifier = Modifier.fillMaxWidth().height(350.dp)) {
                 if (gallery.isEmpty()) {
                     AsyncImage(
@@ -220,106 +174,133 @@ fun ServiceDetailScreen(
             }
 
             // Content
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .offset(y = (-32).dp),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                Column(modifier = Modifier.padding(24.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = serviceWithProvider.title ?: "Untitled",
-                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
-                                Text(
-                                    text = " ${stringResource(R.string.minutes_session, serviceWithProvider.durationMinutes ?: 0)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    Text(text = stringResource(R.string.about_service), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-                    Spacer(modifier = Modifier.height(8.dp))
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = serviceWithProvider.title ?: "Untitled",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
                     Text(
-                        text = serviceWithProvider.description ?: stringResource(R.string.no_description),
-                        style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        text = " ${stringResource(R.string.minutes_session, serviceWithProvider.durationMinutes ?: 0)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.outline
                     )
+                }
 
-                    Spacer(modifier = Modifier.height(32.dp))
-                    HorizontalDivider()
-                    Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(text = stringResource(R.string.about_service), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = serviceWithProvider.description ?: stringResource(R.string.no_description),
+                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
 
-                    // Provider Profile Section
-                    Text(text = stringResource(R.string.the_professional), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            AsyncImage(
-                                model = provider.avatarUrl ?: "https://via.placeholder.com/100?text=User",
-                                contentDescription = null,
-                                modifier = Modifier.size(70.dp).clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(text = provider.fullName, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                                Text(text = stringResource(R.string.years_experience, details?.experienceYears ?: 0), style = MaterialTheme.typography.bodyMedium)
-                                if (details?.isVerified == true) {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.secondary,
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.verified),
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = Color.White)
-                                        )
-                                    }
+                Spacer(modifier = Modifier.height(32.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Provider Profile Section
+                Text(text = stringResource(R.string.the_professional), style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        AsyncImage(
+                            model = provider.avatarUrl ?: "https://via.placeholder.com/100?text=User",
+                            contentDescription = null,
+                            modifier = Modifier.size(70.dp).clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(text = provider.fullName, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                            Text(text = stringResource(R.string.years_experience, details?.experienceYears ?: 0), style = MaterialTheme.typography.bodyMedium)
+                            if (details?.isVerified == true) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.padding(top = 4.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.verified),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = Color.White)
+                                    )
                                 }
                             }
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    if (!details?.bio.isNullOrBlank()) {
-                        Text(
-                            text = details!!.bio!!,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                if (!details?.bio.isNullOrBlank()) {
+                    Text(
+                        text = details!!.bio!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "${provider.address ?: ""}, ${provider.city ?: ""}", style = MaterialTheme.typography.bodyMedium)
+                }
+
+                Spacer(modifier = Modifier.height(100.dp)) // Extra space for bottom bar
+            }
+        }
+
+        // Bottom Bar Overlay
+        Surface(
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+            tonalElevation = 8.dp,
+            shadowElevation = 16.dp,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .navigationBarsPadding(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = stringResource(R.string.total_price), style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = "₹${serviceWithProvider.basePrice}",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "${provider.address}, ${provider.city}", style = MaterialTheme.typography.bodyMedium)
-                    }
-
-                    Spacer(modifier = Modifier.height(32.dp))
+                    )
+                }
+                Button(
+                    onClick = { 
+                        showBookingDialog = true
+                        bookingViewModel.loadUnavailableSlots(provider.id, "")
+                    },
+                    modifier = Modifier
+                        .height(56.dp)
+                        .weight(1.5f),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                ) {
+                    Icon(Icons.Default.Schedule, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.book_now), style = MaterialTheme.typography.titleMedium)
                 }
             }
         }

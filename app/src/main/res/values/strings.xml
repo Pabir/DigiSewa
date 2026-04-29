@@ -36,4 +36,23 @@
     <string name="booking_success_title">Request Sent Successfully!</string>
     <string name="booking_success_message">Your service request has been sent to the provider. You can track the status in your bookings.</string>
     <string name="close">Close</string>
+    <string name="where_service_prompt">Where do you need the service?</string>
+    <string name="use_home_address">Use Home Address</string>
+    <string name="use_current_location">Use Current Location</string>
+    <string name="pick_on_map">Pick on Map</string>
+    <string name="no_address_saved">No address saved</string>
+    <string name="selected_location">Selected: %1$s</string>
+    <string name="next_select_time">Next: Select Time</string>
+    <string name="back">Back</string>
+    <string name="manual_address">Enter Address Manually</string>
+    <string name="address_name">Address Name (e.g. Home, Venue)</string>
+    <string name="vtc_label">Village/Town/City</string>
+    <string name="post_office_label">Post Office</string>
+    <string name="police_station_label">Police Station</string>
+    <string name="district_label">District</string>
+    <string name="state_label">State</string>
+    <string name="pincode_label">Pincode</string>
+    <string name="confirm_address">Confirm Address</string>
+    <string name="pick_location_title">Pick Location</string>
+    <string name="map_instruction">Drag the map to position the pin on your exact location</string>
 </resources>

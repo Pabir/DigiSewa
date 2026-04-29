@@ -36,4 +36,23 @@
     <string name="booking_success_title">अनुरोध सफलतापूर्वक भेजा गया!</string>
     <string name="booking_success_message">आपका सेवा अनुरोध प्रदाता को भेज दिया गया है। आप अपनी बुकिंग में स्थिति को ट्रैक कर सकते हैं।</string>
     <string name="close">बंद करें</string>
+    <string name="where_service_prompt">आपको सेवा की आवश्यकता कहाँ है?</string>
+    <string name="use_home_address">घर के पते का उपयोग करें</string>
+    <string name="use_current_location">वर्तमान स्थान का उपयोग करें</string>
+    <string name="pick_on_map">मैप पर चुनें</string>
+    <string name="no_address_saved">कोई पता सहेजा नहीं गया है</string>
+    <string name="selected_location">चयनित: %1$s</string>
+    <string name="next_select_time">अगला: समय चुनें</string>
+    <string name="back">पीछे</string>
+    <string name="manual_address">मैन्युअल रूप से पता भरें</string>
+    <string name="address_name">पते का नाम (जैसे: घर, आयोजन स्थल)</string>
+    <string name="vtc_label">गाँव/शहर</string>
+    <string name="post_office_label">डाकघर</string>
+    <string name="police_station_label">पुलिस स्टेशन</string>
+    <string name="district_label">जिला</string>
+    <string name="state_label">राज्य</string>
+    <string name="pincode_label">पिनकोड</string>
+    <string name="confirm_address">पता सुनिश्चित करें</string>
+    <string name="pick_location_title">स्थान चुनें</string>
+    <string name="map_instruction">अपने सटीक स्थान पर पिन रखने के लिए मैप को ड्रैग करें</string>
 </resources>

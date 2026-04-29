@@ -36,4 +36,23 @@
     <string name="booking_success_title">অনুরোধ সফলভাবে পাঠানো হয়েছে!</string>
     <string name="booking_success_message">আপনার পরিষেবার অনুরোধটি পেশাদারের কাছে পাঠানো হয়েছে। আপনি আপনার বুকিং লিস্টে স্ট্যাটাস ট্র্যাক করতে পারেন।</string>
     <string name="close">বন্ধ করুন</string>
+    <string name="where_service_prompt">আপনার পরিষেবা কোথায় প্রয়োজন?</string>
+    <string name="use_home_address">বাড়ির ঠিকানা ব্যবহার করুন</string>
+    <string name="use_current_location">বর্তমান অবস্থান ব্যবহার করুন</string>
+    <string name="pick_on_map">ম্যাপ থেকে বেছে নিন</string>
+    <string name="no_address_saved">কোনো ঠিকানা সংরক্ষিত নেই</string>
+    <string name="selected_location">নির্বাচিত: %1$s</string>
+    <string name="next_select_time">পরবর্তী: সময় নির্বাচন করুন</string>
+    <string name="back">পিছনে</string>
+    <string name="manual_address">ম্যানুয়ালি ঠিকানা লিখুন</string>
+    <string name="address_name">ঠিকানার নাম (যেমন: বাড়ি, অনুষ্ঠানস্থল)</string>
+    <string name="vtc_label">গ্রাম/শহর/পৌরসভা</string>
+    <string name="post_office_label">ডাকঘর</string>
+    <string name="police_station_label">থানা</string>
+    <string name="district_label">জেলা</string>
+    <string name="state_label">রাজ্য</string>
+    <string name="pincode_label">পিনকোড</string>
+    <string name="confirm_address">ঠিকানা নিশ্চিত করুন</string>
+    <string name="pick_location_title">স্থান নির্বাচন করুন</string>
+    <string name="map_instruction">আপনার সঠিক অবস্থানে পিনটি বসাতে ম্যাপটি ড্র্যাগ করুন</string>
 </resources>

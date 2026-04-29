@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pabirul.digisewa.ui.auth.*
@@ -68,6 +69,8 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 when (val state = authState) {
+                    is AuthState.Idle -> {
+                    }
                     is AuthState.Loading -> {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator()
@@ -121,10 +124,10 @@ class MainActivity : AppCompatActivity() {
                                 }
                             ) {
                                 Scaffold(
-                                    modifier = Modifier.fillMaxSize(),
+                                    modifier = Modifier.fillMaxWidth(),
                                     topBar = {
                                         val title = if (generalSubScreen == "bookings") {
-                                            if (state.profile.role == UserRole.PROVIDER) "Booking Requests" else "My Bookings"
+                                            if (state.profile.role == UserRole.PROVIDER) stringResource(R.string.booking_requests) else stringResource(R.string.my_bookings)
                                         } else {
                                             getScreenTitle(state.profile.role, providerSubScreen, customerSubScreen)
                                         }
@@ -217,6 +220,7 @@ class MainActivity : AppCompatActivity() {
                                                         viewModel = discoveryViewModel,
                                                         bookingViewModel = bookingViewModel,
                                                         customerId = state.profile.id,
+                                                        customerProfile = state.profile,
                                                         onBack = { customerSubScreen = "listing" },
                                                         onNavigateToBookings = {
                                                             generalSubScreen = "bookings"
@@ -240,7 +244,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     }
-                    else -> {
+                    is AuthState.Unauthenticated -> {
                         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                             Box(modifier = Modifier.padding(innerPadding)) {
                                 if (currentAuthScreen == "login") {
@@ -255,6 +259,11 @@ class MainActivity : AppCompatActivity() {
                                     )
                                 }
                             }
+                        }
+                    }
+                    is AuthState.Error -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(text = "Error: ${state.message}")
                         }
                     }
                 }

@@ -150,9 +150,6 @@ class BookingRepository {
 
     suspend fun getUnavailableSlots(providerId: String, date: String): List<BookingSlot> {
         return try {
-            android.util.Log.e("BookingRepo", "--- DEEP DEBUG START ---")
-            android.util.Log.e("BookingRepo", "ID we are looking for: '$providerId'")
-
             // Fetch bookings with service details (to get duration) and location
             val response = postgrest.from("bookings").select(io.github.jan.supabase.postgrest.query.Columns.raw("scheduled_at, lat, lng, service_id, service:services(duration_minutes)")) {
                 filter {
@@ -162,18 +159,15 @@ class BookingRepository {
             }
             
             val allSlots = response.decodeList<BookingSlot>()
-            android.util.Log.e("BookingRepo", "PROVIDER SPECIFIC COUNT: ${allSlots.size}")
             
             val daySlots = allSlots.filter { slot ->
                 slot.scheduledAt.contains(date) || 
                 (slot.scheduledAt.contains("Apr") && date.contains("04"))
             }
             
-            android.util.Log.e("BookingRepo", "FINAL MATCHED SLOTS: ${daySlots.size}")
-            android.util.Log.e("BookingRepo", "--- DEEP DEBUG END ---")
             daySlots
         } catch (e: Exception) {
-            android.util.Log.e("BookingRepo", "FATAL ERROR in getUnavailableSlots", e)
+            Log.e("BookingRepo", "Error in getUnavailableSlots", e)
             emptyList()
         }
     }
