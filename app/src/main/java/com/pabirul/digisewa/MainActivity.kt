@@ -217,7 +217,10 @@ class MainActivity : AppCompatActivity() {
                                                         viewModel = discoveryViewModel,
                                                         bookingViewModel = bookingViewModel,
                                                         customerId = state.profile.id,
-                                                        onBack = { customerSubScreen = "listing" }
+                                                        onBack = { customerSubScreen = "listing" },
+                                                        onNavigateToBookings = {
+                                                            generalSubScreen = "bookings"
+                                                        }
                                                     )
                                                 }
                                                 else -> {

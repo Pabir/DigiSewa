@@ -30,4 +30,7 @@
     <string name="available_times_buffer">उपलब्ध समय (2 घंटे का बफर अनिवार्य):</string>
     <string name="select_date">तारीख चुनें</string>
     <string name="booked">बुक किया गया</string>
+    <string name="booking_success_title">अनुरोध सफलतापूर्वक भेजा गया!</string>
+    <string name="booking_success_message">आपका सेवा अनुरोध प्रदाता को भेज दिया गया है। आप अपनी बुकिंग में स्थिति को ट्रैक कर सकते हैं।</string>
+    <string name="close">बंद करें</string>
 </resources>

@@ -30,6 +30,10 @@ import com.pabirul.digisewa.ui.bookings.BookingViewModel
 import androidx.compose.ui.res.stringResource
 import com.pabirul.digisewa.R
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material.icons.filled.CheckCircle
+import com.pabirul.digisewa.ui.bookings.BookingState
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServiceDetailScreen(
@@ -37,21 +41,33 @@ fun ServiceDetailScreen(
     viewModel: DiscoveryViewModel,
     bookingViewModel: BookingViewModel,
     customerId: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToBookings: () -> Unit // New callback
 ) {
     val provider = serviceWithProvider.provider
     val details = provider.providerDetails
     val gallery by viewModel.gallery.collectAsState()
     val unavailableSlots by bookingViewModel.unavailableSlots.collectAsState()
     val loadingSlots by bookingViewModel.loadingSlots.collectAsState()
+    val bookingState by bookingViewModel.state.collectAsState()
     
     var showBookingDialog by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(serviceWithProvider.id) {
         viewModel.loadServiceDetails(serviceWithProvider.id)
     }
 
+    // React to booking success
+    LaunchedEffect(bookingState) {
+        if (bookingState is BookingState.Success) {
+            showSuccessDialog = true
+            bookingViewModel.resetState()
+        }
+    }
+
     if (showBookingDialog) {
+        // ... (existing dialog logic)
         // Clear slots when dialog opens to ensure fresh fetch
         LaunchedEffect(showBookingDialog) {
             bookingViewModel.loadUnavailableSlots(provider.id, "") 
@@ -78,6 +94,34 @@ fun ServiceDetailScreen(
                 )
                 bookingViewModel.requestService(booking)
                 showBookingDialog = false
+            }
+        )
+    }
+
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessDialog = false },
+            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(48.dp)) },
+            title = { Text(stringResource(R.string.booking_success_title), fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) },
+            text = { Text(stringResource(R.string.booking_success_message), textAlign = TextAlign.Center) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSuccessDialog = false
+                        onNavigateToBookings()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.my_bookings))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showSuccessDialog = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.close))
+                }
             }
         )
     }
