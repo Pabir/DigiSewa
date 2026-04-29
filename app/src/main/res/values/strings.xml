@@ -30,6 +30,9 @@
     <string name="available_times_buffer">Available Times (2h buffer enforced):</string>
     <string name="select_date">Select Date</string>
     <string name="booked">Booked</string>
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="pay">Pay ₹%1$d</string>
     <string name="booking_success_title">Request Sent Successfully!</string>
     <string name="booking_success_message">Your service request has been sent to the provider. You can track the status in your bookings.</string>
     <string name="close">Close</string>

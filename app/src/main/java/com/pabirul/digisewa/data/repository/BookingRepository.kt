@@ -119,20 +119,26 @@ class BookingRepository {
 
     suspend fun cancelBooking(bookingId: String, totalPrice: Int, isPaid: Boolean): Result<Unit> {
         return try {
-            val updateData = mutableMapOf<String, Any>(
-                "status" to BookingStatus.CANCELLED.name.lowercase()
-            )
+            val statusStr = BookingStatus.CANCELLED.name.lowercase()
             
             if (isPaid) {
                 val fee = (totalPrice * 0.1).toInt()
                 val refund = totalPrice - fee
-                updateData["cancellation_fee"] = fee
-                updateData["refund_amount"] = refund
-            }
+                
+                // Use a concrete Map with explicit types to avoid 'Any' serialization issues
+                val updateData = mapOf(
+                    "status" to statusStr,
+                    "cancellation_fee" to fee.toString(),
+                    "refund_amount" to refund.toString()
+                )
 
-            postgrest.from("bookings").update(updateData) {
-                filter {
-                    eq("id", bookingId)
+                postgrest.from("bookings").update(updateData) {
+                    filter { eq("id", bookingId) }
+                }
+            } else {
+                // Simpler update if not paid
+                postgrest.from("bookings").update(mapOf("status" to statusStr)) {
+                    filter { eq("id", bookingId) }
                 }
             }
             Result.success(Unit)

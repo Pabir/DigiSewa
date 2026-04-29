@@ -30,6 +30,9 @@
     <string name="available_times_buffer">উপলব্ধ সময় (২ ঘন্টার বাফার সহ):</string>
     <string name="select_date">তারিখ নির্বাচন করুন</string>
     <string name="booked">বুকড</string>
+    <string name="cancel">বাতিল করুন</string>
+    <string name="confirm">নিশ্চিত করুন</string>
+    <string name="pay">পেমেন্ট করুন ₹%1$d</string>
     <string name="booking_success_title">অনুরোধ সফলভাবে পাঠানো হয়েছে!</string>
     <string name="booking_success_message">আপনার পরিষেবার অনুরোধটি পেশাদারের কাছে পাঠানো হয়েছে। আপনি আপনার বুকিং লিস্টে স্ট্যাটাস ট্র্যাক করতে পারেন।</string>
     <string name="close">বন্ধ করুন</string>

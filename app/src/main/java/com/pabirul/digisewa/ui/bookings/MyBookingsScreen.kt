@@ -14,10 +14,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.pabirul.digisewa.BookingStatus
 import com.pabirul.digisewa.BookingWithDetails
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.UserRole
+import com.pabirul.digisewa.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -87,6 +89,32 @@ fun BookingItem(
     onPay: () -> Unit,
     onCancel: () -> Unit
 ) {
+    var showCancelDialog by remember { mutableStateOf(false) }
+
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text(stringResource(R.string.cancel)) },
+            text = { Text("Are you sure you want to cancel this booking request?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCancelDialog = false
+                        onCancel()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) {
+                    Text("No")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -162,14 +190,27 @@ fun BookingItem(
 
             // Actions
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (!isProvider && (booking.status == BookingStatus.REQUESTED || booking.status == BookingStatus.CONFIRMED || booking.status == BookingStatus.PAID)) {
+                // Provider can cancel a request
+                if (isProvider && booking.status == BookingStatus.REQUESTED) {
                     OutlinedButton(
-                        onClick = onCancel,
+                        onClick = { showCancelDialog = true },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+
+                // Customer can cancel
+                if (!isProvider && (booking.status == BookingStatus.REQUESTED || booking.status == BookingStatus.CONFIRMED || booking.status == BookingStatus.PAID)) {
+                    OutlinedButton(
+                        onClick = { showCancelDialog = true },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(stringResource(R.string.cancel))
                     }
                 }
 
@@ -179,7 +220,7 @@ fun BookingItem(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Confirm")
+                        Text(stringResource(R.string.confirm))
                     }
                 }
 
@@ -190,7 +231,7 @@ fun BookingItem(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Pay ₹${booking.totalPrice}")
+                        Text(stringResource(R.string.pay, booking.totalPrice))
                     }
                 }
             }
