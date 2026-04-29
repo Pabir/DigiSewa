@@ -105,12 +105,17 @@ fun BookingRequestDialog(
 
     // Filter slots based on unavailability and dynamic Travel + Service Duration
     val availableSlots = remember(selectedDate, unavailableSlots, customerLat, customerLng) {
+        val now = Instant.now()
         android.util.Log.e("BookingDialog", "Re-calculating slots. Count: ${unavailableSlots.size}")
         if (selectedDate.isEmpty()) emptyMap<String, Boolean>()
         else {
             allTimeSlots.associateWith { timeStr ->
                 try {
                     val requestedStart = Instant.parse("${selectedDate}T${timeStr}Z")
+                    
+                    // 0. PAST TIME CHECK: Slot is before "Now"
+                    if (requestedStart.isBefore(now)) return@associateWith false
+
                     val requestedEnd = requestedStart.plus(Duration.ofMinutes(serviceDurationMinutes.toLong()))
                     
                     val conflictSlot = unavailableSlots.find { bookedSlot ->
@@ -215,17 +220,46 @@ fun BookingRequestDialog(
                         modifier = Modifier.weight(1f)
                     ) {
                         items(allTimeSlots) { time ->
-                            val isAvailable = availableSlots[time] ?: true
+                            val isSlotInPast = try {
+                                val slotDateTime = java.time.LocalDateTime.parse("${selectedDate}T${time}")
+                                val currentDateTime = java.time.LocalDateTime.now()
+                                slotDateTime.isBefore(currentDateTime)
+                            } catch (e: Exception) { false }
+
+                            val isBooked = unavailableSlots.any { bookedSlot ->
+                                // Re-run small conflict check for visual color logic
+                                try {
+                                    val requestedStart = Instant.parse("${selectedDate}T${time}Z")
+                                    val requestedEnd = requestedStart.plus(Duration.ofMinutes(serviceDurationMinutes.toLong()))
+                                    val cleaned = bookedSlot.scheduledAt.replace(" ", "T")
+                                    val normalized = (if (!cleaned.endsWith("Z") && !cleaned.contains("+")) "${cleaned}Z" else cleaned).replace(Regex("\\+\\d{2}$"), "Z")
+                                    val bookedStart = Instant.parse(normalized)
+                                    val bookedDuration = bookedSlot.service?.durationMinutes ?: 60
+                                    val bookedEnd = bookedStart.plus(Duration.ofMinutes(bookedDuration.toLong()))
+                                    
+                                    val travelMin = if (bookedSlot.lat != null && bookedSlot.lng != null) {
+                                        estimateTravelTime(customerLat, customerLng, bookedSlot.lat, bookedSlot.lng)
+                                    } else 60
+
+                                    (bookedStart == requestedStart) ||
+                                    (bookedStart.isBefore(requestedStart) && bookedEnd.plus(Duration.ofMinutes(travelMin.toLong())).isAfter(requestedStart)) ||
+                                    (bookedStart.isAfter(requestedStart) && requestedEnd.plus(Duration.ofMinutes(travelMin.toLong())).isAfter(bookedStart))
+                                } catch (e: Exception) { false }
+                            }
+
+                            val isAvailable = !isLoading && !isSlotInPast && !isBooked
                             val isSelected = selectedTimeSlot == time
                             
                             val backgroundColor = when {
-                                !isAvailable -> Color.Red.copy(alpha = 0.2f) // Changed from Gray for higher visibility
+                                isSlotInPast -> Color.Gray.copy(alpha = 0.15f)
+                                isBooked -> Color.Red.copy(alpha = 0.4f) // Increased intensity
                                 isSelected -> MaterialTheme.colorScheme.primary
                                 else -> Color.Transparent
                             }
                             
                             val contentColor = when {
-                                !isAvailable -> Color.Red
+                                isSlotInPast -> Color.LightGray
+                                isBooked -> Color.Red
                                 isSelected -> Color.White
                                 else -> MaterialTheme.colorScheme.onSurface
                             }
@@ -236,7 +270,8 @@ fun BookingRequestDialog(
                                     .background(backgroundColor)
                                     .border(
                                         width = 1.dp,
-                                        color = if (!isAvailable) Color.Red.copy(alpha = 0.5f) 
+                                        color = if (isSlotInPast) Color.Gray.copy(alpha = 0.2f)
+                                                else if (isBooked) Color.Red.copy(alpha = 0.6f)
                                                 else if (isSelected) MaterialTheme.colorScheme.primary 
                                                 else Color.Gray.copy(alpha = 0.5f),
                                         shape = RoundedCornerShape(8.dp)
@@ -254,7 +289,7 @@ fun BookingRequestDialog(
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
-                                    if (!isAvailable) {
+                                    if (isBooked) {
                                         Text(stringResource(R.string.booked), color = Color.Red, style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
@@ -269,13 +304,18 @@ fun BookingRequestDialog(
             }
         },
         confirmButton = {
+            val isSelectionValid = selectedDate.isNotEmpty() && 
+                                   selectedTimeSlot.isNotEmpty() && 
+                                   (availableSlots[selectedTimeSlot] == true) && 
+                                   !isLoading
+
             Button(
                 onClick = {
-                    if (selectedDate.isNotEmpty() && selectedTimeSlot.isNotEmpty()) {
+                    if (isSelectionValid) {
                         onConfirm("${selectedDate}T${selectedTimeSlot}Z", customerLat, customerLng, locationName)
                     }
                 },
-                enabled = selectedDate.isNotEmpty() && selectedTimeSlot.isNotEmpty()
+                enabled = isSelectionValid
             ) {
                 Text(stringResource(R.string.confirm_booking))
             }
