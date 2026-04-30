@@ -9,6 +9,10 @@ import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.serializer.KotlinXSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 
 object Supabase {
     val client = createSupabaseClient(
@@ -174,11 +178,38 @@ data class Booking(
 @Serializable
 data class BookingWithDetails(
     val id: String,
-    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String,
-    @kotlinx.serialization.SerialName("total_price") val totalPrice: Int,
-    val status: BookingStatus,
+    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String = "",
+    @kotlinx.serialization.SerialName("total_price") val totalPrice: Int = 0,
+    val status: BookingStatus = BookingStatus.REQUESTED,
     @kotlinx.serialization.SerialName("confirmed_at") val confirmedAt: String? = null,
-    val service: Service,
-    val customer: ProfileWithDetails,
-    val provider: ProfileWithDetails
+    val service: Service? = null,
+    val customer: ProfileWithDetails? = null,
+    val provider: ProfileWithDetails? = null,
+    @kotlinx.serialization.SerialName("reviews") val reviewsRaw: JsonElement? = null
+) {
+    val review: Review? get() = try {
+        reviewsRaw?.let { raw ->
+            when {
+                raw is kotlinx.serialization.json.JsonArray -> {
+                    if (raw.isNotEmpty()) Json.decodeFromJsonElement<Review>(raw[0]) else null
+                }
+                raw is kotlinx.serialization.json.JsonObject -> {
+                    Json.decodeFromJsonElement<Review>(raw)
+                }
+                else -> null
+            }
+        }
+    } catch (e: Exception) { null }
+}
+
+@Serializable
+data class Review(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("booking_id") val bookingId: String? = null,
+    @kotlinx.serialization.SerialName("customer_id") val customerId: String? = null,
+    @kotlinx.serialization.SerialName("provider_id") val providerId: String? = null,
+    @kotlinx.serialization.SerialName("service_id") val serviceId: String? = null,
+    val rating: Int = 5,
+    val comment: String? = null,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
 )

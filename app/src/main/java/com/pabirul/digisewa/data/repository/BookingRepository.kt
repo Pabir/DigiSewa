@@ -81,25 +81,28 @@ class BookingRepository {
         }
     }
 
-    suspend fun getBookingsForUser(userId: String, isProvider: Boolean): List<BookingWithDetails> {
+    suspend fun getBookingsForUser(userId: String, isProvider: Boolean): Result<List<BookingWithDetails>> {
         return try {
             val filterColumn = if (isProvider) "provider_id" else "customer_id"
             val columns = Columns.raw("""
                 *,
                 service:services(*),
-                customer:profiles!customer_id(*, private_profile:private_profiles(*)),
-                provider:profiles!provider_id(*)
+                customer:profiles!customer_id(*),
+                provider:profiles!provider_id(*),
+                reviews:reviews(*)
             """.trimIndent())
             
-            postgrest.from("bookings").select(columns) {
+            val response = postgrest.from("bookings").select(columns) {
                 filter {
                     eq(filterColumn, userId)
                 }
                 order("scheduled_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
-            }.decodeList<BookingWithDetails>()
+            }
+            
+            Result.success(response.decodeList<BookingWithDetails>())
         } catch (e: Exception) {
-            Log.e("BookingRepo", "Error fetching bookings", e)
-            emptyList()
+            Log.e("BookingRepo", "Error fetching bookings: ${e.message}", e)
+            Result.failure(e)
         }
     }
 
@@ -169,6 +172,16 @@ class BookingRepository {
         } catch (e: Exception) {
             Log.e("BookingRepo", "Error in getUnavailableSlots", e)
             emptyList()
+        }
+    }
+
+    suspend fun submitReview(review: com.pabirul.digisewa.Review): Result<Unit> {
+        return try {
+            postgrest.from("reviews").insert(review)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("BookingRepo", "Error submitting review", e)
+            Result.failure(e)
         }
     }
 }

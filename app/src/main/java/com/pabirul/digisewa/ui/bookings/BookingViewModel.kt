@@ -52,8 +52,13 @@ class BookingViewModel(private val repository: BookingRepository = BookingReposi
     fun loadBookings(userId: String, isProvider: Boolean) {
         viewModelScope.launch {
             _state.value = BookingState.Loading
-            _bookings.value = repository.getBookingsForUser(userId, isProvider)
-            _state.value = BookingState.Idle
+            val result = repository.getBookingsForUser(userId, isProvider)
+            result.onSuccess {
+                _bookings.value = it
+                _state.value = BookingState.Idle
+            }.onFailure {
+                _state.value = BookingState.Error(it.message ?: "Failed to load bookings")
+            }
         }
     }
 
@@ -101,6 +106,18 @@ class BookingViewModel(private val repository: BookingRepository = BookingReposi
                 loadBookings(userId, false)
             }.onFailure {
                 _state.value = BookingState.Error(it.message ?: "Failed to complete service")
+            }
+        }
+    }
+
+    fun submitReview(review: com.pabirul.digisewa.Review, userId: String, isProvider: Boolean) {
+        viewModelScope.launch {
+            _state.value = BookingState.Loading
+            val result = repository.submitReview(review)
+            result.onSuccess {
+                loadBookings(userId, isProvider)
+            }.onFailure {
+                _state.value = BookingState.Error(it.message ?: "Failed to submit review")
             }
         }
     }

@@ -27,6 +27,9 @@ class DiscoveryViewModel(private val repository: DiscoveryRepository = Discovery
     private val _gallery = MutableStateFlow<List<ServiceGallery>>(emptyList())
     val gallery = _gallery.asStateFlow()
 
+    private val _reviews = MutableStateFlow<List<com.pabirul.digisewa.Review>>(emptyList())
+    val reviews = _reviews.asStateFlow()
+
     private val _state = MutableStateFlow<DiscoveryState>(DiscoveryState.Idle)
     val state = _state.asStateFlow()
 
@@ -59,6 +62,7 @@ class DiscoveryViewModel(private val repository: DiscoveryRepository = Discovery
         viewModelScope.launch {
             _state.value = DiscoveryState.Loading
             _gallery.value = repository.getServiceGallery(serviceId)
+            _reviews.value = repository.getServiceReviews(serviceId)
             _state.value = DiscoveryState.Success
         }
     }

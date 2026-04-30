@@ -58,4 +58,8 @@
     <string name="complete_service">Complete Service</string>
     <string name="confirm_completion_title">Confirm Completion</string>
     <string name="confirm_completion_msg">Are you sure the service has been completed satisfactorily?</string>
+    <string name="rate_service">Rate Service</string>
+    <string name="how_was_your_experience">How was your experience?</string>
+    <string name="share_details_optional">Share more details (optional)</string>
+    <string name="submit_review">Submit Review</string>
 </resources>

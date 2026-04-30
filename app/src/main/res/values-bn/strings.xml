@@ -58,4 +58,8 @@
     <string name="complete_service">পরিষেবা সম্পন্ন করুন</string>
     <string name="confirm_completion_title">সম্পন্ন নিশ্চিত করুন</string>
     <string name="confirm_completion_msg">আপনি কি নিশ্চিত যে পরিষেবাটি সন্তোষজনকভাবে সম্পন্ন হয়েছে?</string>
+    <string name="rate_service">রেটিং দিন</string>
+    <string name="how_was_your_experience">আপনার অভিজ্ঞতা কেমন ছিল?</string>
+    <string name="share_details_optional">আরও বিস্তারিত জানান (ঐচ্ছিক)</string>
+    <string name="submit_review">রিভিউ জমা দিন</string>
 </resources>

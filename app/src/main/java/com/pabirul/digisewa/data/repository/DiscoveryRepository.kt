@@ -52,4 +52,17 @@ class DiscoveryRepository {
             emptyList()
         }
     }
+
+    suspend fun getServiceReviews(serviceId: String): List<com.pabirul.digisewa.Review> {
+        return try {
+            postgrest.from("reviews").select {
+                filter {
+                    eq("service_id", serviceId)
+                }
+            }.decodeList<com.pabirul.digisewa.Review>()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
 }

@@ -58,4 +58,8 @@
     <string name="complete_service">सेवा पूर्ण करें</string>
     <string name="confirm_completion_title">पूर्णता की पुष्टि करें</string>
     <string name="confirm_completion_msg">क्या आप सुनिश्चित हैं कि सेवा संतोषजनक ढंग से पूरी हो गई है?</string>
+    <string name="rate_service">रेटिंग दें</string>
+    <string name="how_was_your_experience">आपका अनुभव कैसा रहा?</string>
+    <string name="share_details_optional">अधिक विवरण साझा करें (वैकल्पिक)</string>
+    <string name="submit_review">समीक्षा सबमिट करें</string>
 </resources>

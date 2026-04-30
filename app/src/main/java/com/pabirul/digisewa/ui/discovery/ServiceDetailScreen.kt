@@ -30,6 +30,8 @@ import androidx.compose.ui.res.stringResource
 import com.pabirul.digisewa.R
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarOutline
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.ui.bookings.BookingState
 
@@ -46,6 +48,7 @@ fun ServiceDetailScreen(
     val provider = serviceWithProvider.provider
     val details = provider.providerDetails
     val gallery by viewModel.gallery.collectAsState()
+    val reviews by viewModel.reviews.collectAsState()
     val unavailableSlots by bookingViewModel.unavailableSlots.collectAsState()
     val loadingSlots by bookingViewModel.loadingSlots.collectAsState()
     val bookingState by bookingViewModel.state.collectAsState()
@@ -260,6 +263,20 @@ fun ServiceDetailScreen(
                     Text(text = "${provider.address ?: ""}, ${provider.city ?: ""}", style = MaterialTheme.typography.bodyMedium)
                 }
 
+                if (reviews.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Text(
+                        text = "Reviews (${reviews.size})",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    reviews.forEach { review ->
+                        ReviewItem(review)
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(100.dp)) // Extra space for bottom bar
             }
         }
@@ -302,6 +319,47 @@ fun ServiceDetailScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(stringResource(R.string.book_now), style = MaterialTheme.typography.titleMedium)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ReviewItem(review: com.pabirul.digisewa.Review) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row {
+                    repeat(5) { index ->
+                        Icon(
+                            imageVector = if (index < review.rating) Icons.Default.Star else Icons.Default.StarOutline,
+                            contentDescription = null,
+                            tint = if (index < review.rating) Color(0xFFFFB300) else Color.Gray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = review.createdAt?.split("T")?.get(0) ?: "",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+            if (!review.comment.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = review.comment,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
             }
         }
     }
