@@ -205,11 +205,11 @@ data class BookingWithDetails(
 @Serializable
 data class Review(
     val id: String? = null,
-    @kotlinx.serialization.SerialName("booking_id") val bookingId: String? = null,
-    @kotlinx.serialization.SerialName("customer_id") val customerId: String? = null,
-    @kotlinx.serialization.SerialName("provider_id") val providerId: String? = null,
-    @kotlinx.serialization.SerialName("service_id") val serviceId: String? = null,
-    val rating: Int = 5,
+    @kotlinx.serialization.SerialName("booking_id") val bookingId: String,
+    @kotlinx.serialization.SerialName("customer_id") val customerId: String,
+    @kotlinx.serialization.SerialName("provider_id") val providerId: String,
+    @kotlinx.serialization.SerialName("service_id") val serviceId: String,
+    val rating: Int,
     val comment: String? = null,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
 )

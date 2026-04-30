@@ -110,8 +110,8 @@ fun BookingItem(
                 onSubmitReview(
                     Review(
                         bookingId = booking.id,
-                        customerId = booking.customer?.id,
-                        providerId = booking.provider?.id,
+                        customerId = booking.customer?.id ?: "",
+                        providerId = booking.provider?.id ?: "",
                         serviceId = booking.service?.id ?: "",
                         rating = rating,
                         comment = comment
