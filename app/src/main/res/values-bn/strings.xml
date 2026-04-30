@@ -55,4 +55,7 @@
     <string name="confirm_address">ঠিকানা নিশ্চিত করুন</string>
     <string name="pick_location_title">স্থান নির্বাচন করুন</string>
     <string name="map_instruction">আপনার সঠিক অবস্থানে পিনটি বসাতে ম্যাপটি ড্র্যাগ করুন</string>
+    <string name="complete_service">পরিষেবা সম্পন্ন করুন</string>
+    <string name="confirm_completion_title">সম্পন্ন নিশ্চিত করুন</string>
+    <string name="confirm_completion_msg">আপনি কি নিশ্চিত যে পরিষেবাটি সন্তোষজনকভাবে সম্পন্ন হয়েছে?</string>
 </resources>

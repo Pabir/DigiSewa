@@ -93,6 +93,18 @@ class BookingViewModel(private val repository: BookingRepository = BookingReposi
         }
     }
 
+    fun completeBooking(bookingId: String, userId: String) {
+        viewModelScope.launch {
+            _state.value = BookingState.Loading
+            val result = repository.updateBookingStatus(bookingId, BookingStatus.COMPLETED)
+            result.onSuccess {
+                loadBookings(userId, false)
+            }.onFailure {
+                _state.value = BookingState.Error(it.message ?: "Failed to complete service")
+            }
+        }
+    }
+
     fun cancelBooking(booking: BookingWithDetails, userId: String) {
         viewModelScope.launch {
             _state.value = BookingState.Loading

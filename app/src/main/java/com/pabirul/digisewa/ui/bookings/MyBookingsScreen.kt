@@ -68,6 +68,7 @@ fun MyBookingsScreen(
                             isProvider = isProvider,
                             onConfirm = { viewModel.confirmBooking(booking.id, profile.id) },
                             onPay = { viewModel.payForBooking(booking.id, profile.id) },
+                            onComplete = { viewModel.completeBooking(booking.id, profile.id) },
                             onCancel = { viewModel.cancelBooking(booking, profile.id) }
                         )
                     }
@@ -87,9 +88,11 @@ fun BookingItem(
     isProvider: Boolean,
     onConfirm: () -> Unit,
     onPay: () -> Unit,
+    onComplete: () -> Unit,
     onCancel: () -> Unit
 ) {
     var showCancelDialog by remember { mutableStateOf(false) }
+    var showCompleteDialog by remember { mutableStateOf(false) }
 
     if (showCancelDialog) {
         AlertDialog(
@@ -110,6 +113,29 @@ fun BookingItem(
             dismissButton = {
                 TextButton(onClick = { showCancelDialog = false }) {
                     Text("No")
+                }
+            }
+        )
+    }
+
+    if (showCompleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showCompleteDialog = false },
+            title = { Text(stringResource(R.string.confirm_completion_title)) },
+            text = { Text(stringResource(R.string.confirm_completion_msg)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCompleteDialog = false
+                        onComplete()
+                    }
+                ) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCompleteDialog = false }) {
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -232,6 +258,17 @@ fun BookingItem(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(stringResource(R.string.pay, booking.totalPrice))
+                    }
+                }
+
+                if (!isProvider && booking.status == BookingStatus.PAID) {
+                    Button(
+                        onClick = { showCompleteDialog = true },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(stringResource(R.string.complete_service))
                     }
                 }
             }
