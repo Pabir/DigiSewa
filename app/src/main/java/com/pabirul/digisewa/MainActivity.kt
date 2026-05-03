@@ -25,11 +25,21 @@ import com.pabirul.digisewa.ui.service.AddEditServiceScreen
 import com.pabirul.digisewa.ui.service.ManageServicesScreen
 import com.pabirul.digisewa.ui.service.ServiceViewModel
 import com.pabirul.digisewa.ui.theme.DigiSewaTheme
+import com.google.android.gms.ads.MobileAds
+import com.pabirul.digisewa.ui.components.AdMobHelper
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize Mobile Ads SDK
+        MobileAds.initialize(this) {
+            // Preload Interstitial and Rewarded ads
+            AdMobHelper.loadInterstitial(this)
+            AdMobHelper.loadRewardedAd(this)
+        }
+
         enableEdgeToEdge()
         setContent {
             DigiSewaTheme {

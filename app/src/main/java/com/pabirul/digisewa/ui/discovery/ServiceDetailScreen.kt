@@ -34,6 +34,9 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarOutline
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.ui.bookings.BookingState
+import com.pabirul.digisewa.ui.components.AdMobHelper
+import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
 
 @Composable
 fun ServiceDetailScreen(
@@ -45,6 +48,7 @@ fun ServiceDetailScreen(
     onBack: () -> Unit,
     onNavigateToBookings: () -> Unit
 ) {
+    val context = LocalContext.current
     val provider = serviceWithProvider.provider
     val details = provider.providerDetails
     val gallery by viewModel.gallery.collectAsState()
@@ -64,6 +68,11 @@ fun ServiceDetailScreen(
         if (bookingState is BookingState.Success) {
             showSuccessDialog = true
             bookingViewModel.resetState()
+            
+            // Show Interstitial Ad after a successful booking request
+            if (context is Activity) {
+                AdMobHelper.showInterstitial(context)
+            }
         }
     }
 

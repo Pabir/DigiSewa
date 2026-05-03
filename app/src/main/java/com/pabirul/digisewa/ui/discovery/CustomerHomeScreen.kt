@@ -24,6 +24,7 @@ import com.pabirul.digisewa.Profile
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.ui.res.stringResource
 import com.pabirul.digisewa.R
+import com.pabirul.digisewa.ui.components.AdMobBanner
 
 @Composable
 fun CustomerHomeScreen(
@@ -34,51 +35,57 @@ fun CustomerHomeScreen(
     val categories by viewModel.categories.collectAsState()
     val state by viewModel.state.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Welcome Header
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.primary,
-            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Text(
-                    text = "${stringResource(R.string.hello)}, ${profile.fullName.split(" ")[0]}!",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.service_need_prompt),
-                    style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
-                )
-            }
+    Scaffold(
+        bottomBar = {
+            AdMobBanner()
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = stringResource(R.string.explore_categories),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
-        if (state is DiscoveryState.Loading && categories.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Welcome Header
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
             ) {
-                items(categories) { category ->
-                    CategoryCard(category = category, onClick = { onCategoryClick(category) })
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(
+                        text = "${stringResource(R.string.hello)}, ${profile.fullName.split(" ")[0]}!",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.service_need_prompt),
+                        style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(R.string.explore_categories),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            if (state is DiscoveryState.Loading && categories.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(categories) { category ->
+                        CategoryCard(category = category, onClick = { onCategoryClick(category) })
+                    }
                 }
             }
         }

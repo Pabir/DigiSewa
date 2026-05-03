@@ -30,6 +30,7 @@ import java.time.Duration
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.OutlinedTextField
+import com.pabirul.digisewa.ui.components.AdMobBanner
 
 @Composable
 fun MyBookingsScreen(
@@ -56,7 +57,10 @@ fun MyBookingsScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            AdMobBanner()
+        }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (bookings.isEmpty() && state is BookingState.Idle) {

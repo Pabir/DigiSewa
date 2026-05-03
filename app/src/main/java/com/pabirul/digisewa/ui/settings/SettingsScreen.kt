@@ -16,6 +16,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import com.pabirul.digisewa.R
+import com.pabirul.digisewa.ui.components.AdMobHelper
+import android.app.Activity
+import android.widget.Toast
+import androidx.compose.material.icons.filled.CardGiftcard
+import androidx.compose.material.icons.filled.PlayArrow
 
 @Composable
 fun SettingsScreen() {
@@ -32,6 +37,57 @@ fun SettingsScreen() {
         Spacer(modifier = Modifier.height(24.dp))
 
         LanguageSelectionSection()
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        RewardsSection()
+    }
+}
+
+@Composable
+fun RewardsSection() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CardGiftcard, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Bonus Rewards",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Support DigiSewa by watching a short video ad and earn points.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    if (context is Activity) {
+                        AdMobHelper.showRewardedAd(context) { rewardAmount ->
+                            Toast.makeText(context, "You earned $rewardAmount bonus points!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Watch Ad & Earn")
+            }
+        }
     }
 }
 
