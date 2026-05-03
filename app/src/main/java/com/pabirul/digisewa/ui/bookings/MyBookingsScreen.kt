@@ -39,6 +39,7 @@ fun MyBookingsScreen(
 ) {
     val bookings by viewModel.bookings.collectAsState()
     val state by viewModel.state.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -73,7 +74,6 @@ fun MyBookingsScreen(
                             booking = booking,
                             isProvider = isProvider,
                             onConfirm = { viewModel.confirmBooking(booking.id, profile.id) },
-                            onPay = { viewModel.payForBooking(booking.id, profile.id) },
                             onComplete = { viewModel.completeBooking(booking.id, profile.id) },
                             onCancel = { viewModel.cancelBooking(booking, profile.id) },
                             onSubmitReview = { review -> viewModel.submitReview(review, profile.id, isProvider) }
@@ -94,7 +94,6 @@ fun BookingItem(
     booking: BookingWithDetails,
     isProvider: Boolean,
     onConfirm: () -> Unit,
-    onPay: () -> Unit,
     onComplete: () -> Unit,
     onCancel: () -> Unit,
     onSubmitReview: (Review) -> Unit
@@ -202,12 +201,6 @@ fun BookingItem(
             HorizontalDivider(modifier = Modifier.alpha(0.1f))
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Timer for Confirmed Status
-            if (booking.status == BookingStatus.CONFIRMED && booking.confirmedAt != null) {
-                PaymentTimer(confirmedAt = booking.confirmedAt)
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
             // User Info
             val otherUser = if (isProvider) booking.customer else booking.provider
             if (otherUser != null) {
@@ -221,22 +214,23 @@ fun BookingItem(
                 }
             }
 
-            // Reveal sensitive info only if PAID/COMPLETED
-            if (isProvider && (booking.status == BookingStatus.PAID || booking.status == BookingStatus.COMPLETED)) {
+            // Reveal sensitive info only if CONFIRMED/COMPLETED
+            if (booking.status == BookingStatus.CONFIRMED || booking.status == BookingStatus.PAID || booking.status == BookingStatus.COMPLETED) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
+                        val displayUser = if (isProvider) booking.customer else booking.provider
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text(text = " ${booking.customer?.privateProfile?.phoneNumber ?: "N/A"}", style = MaterialTheme.typography.bodySmall)
+                            Text(text = " ${displayUser?.privateProfile?.phoneNumber ?: "N/A"}", style = MaterialTheme.typography.bodySmall)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text(text = " ${booking.customer?.privateProfile?.fullAddress ?: "N/A"}", style = MaterialTheme.typography.bodySmall)
+                            Text(text = " ${displayUser?.privateProfile?.fullAddress ?: "N/A"}", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
@@ -259,7 +253,7 @@ fun BookingItem(
                 }
 
                 // Customer can cancel
-                if (!isProvider && (booking.status == BookingStatus.REQUESTED || booking.status == BookingStatus.CONFIRMED || booking.status == BookingStatus.PAID)) {
+                if (!isProvider && (booking.status == BookingStatus.REQUESTED || booking.status == BookingStatus.CONFIRMED)) {
                     OutlinedButton(
                         onClick = { showCancelDialog = true },
                         modifier = Modifier.weight(1f),
@@ -280,18 +274,7 @@ fun BookingItem(
                     }
                 }
 
-                if (!isProvider && booking.status == BookingStatus.CONFIRMED) {
-                    Button(
-                        onClick = onPay,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(stringResource(R.string.pay, booking.totalPrice))
-                    }
-                }
-
-                if (!isProvider && booking.status == BookingStatus.PAID) {
+                if (!isProvider && (booking.status == BookingStatus.CONFIRMED || booking.status == BookingStatus.PAID)) {
                     Button(
                         onClick = { showCompleteDialog = true },
                         modifier = Modifier.weight(1f),

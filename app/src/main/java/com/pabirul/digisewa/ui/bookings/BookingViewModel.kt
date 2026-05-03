@@ -122,6 +122,29 @@ class BookingViewModel(private val repository: BookingRepository = BookingReposi
         }
     }
 
+    fun markAsVerified(bookingId: String) {
+        viewModelScope.launch {
+            repository.markAsVerified(bookingId)
+            loadBookings("", false) // Reload for admin
+        }
+    }
+
+    fun markAsPaidToProvider(bookingId: String) {
+        viewModelScope.launch {
+            repository.markAsPaidToProvider(bookingId)
+            loadBookings("", false) // Reload for admin
+        }
+    }
+
+    fun triggerPayoutRelease(bookingId: String) {
+        // Mock success since payment logic is removed
+        loadBookings("", false)
+    }
+
+    fun getRazorpayOrderId(bookingId: String): String? {
+        return null
+    }
+
     fun cancelBooking(booking: BookingWithDetails, userId: String) {
         viewModelScope.launch {
             _state.value = BookingState.Loading

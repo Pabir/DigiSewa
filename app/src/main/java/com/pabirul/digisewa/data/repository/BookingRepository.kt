@@ -7,9 +7,14 @@ import com.pabirul.digisewa.BookingWithDetails
 import com.pabirul.digisewa.Supabase
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.functions.functions
 
 import com.pabirul.digisewa.Service
+import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 @Serializable
 data class BookingSlot(
@@ -22,6 +27,7 @@ data class BookingSlot(
 
 class BookingRepository {
     private val postgrest = Supabase.client.postgrest
+    private val functions = Supabase.client.functions
 
     private fun parseIso(dateStr: String): java.time.Instant {
         val cleaned = dateStr.replace(" ", "T")
@@ -52,7 +58,16 @@ class BookingRepository {
                 return Result.failure(Exception("This provider is unavailable around this time (2h buffer required). Please choose another slot."))
             }
 
-            postgrest.from("bookings").insert(booking)
+            // Calculate platform fee and payout amount (15% commission)
+            val platformFee = (booking.totalPrice * 0.15).toInt()
+            val payoutAmount = booking.totalPrice - platformFee
+            
+            val bookingWithFees = booking.copy(
+                platformFee = platformFee,
+                payoutAmount = payoutAmount
+            )
+
+            postgrest.from("bookings").insert(bookingWithFees)
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("BookingRepo", "Error creating booking", e)
@@ -87,14 +102,16 @@ class BookingRepository {
             val columns = Columns.raw("""
                 *,
                 service:services(*),
-                customer:profiles!customer_id(*),
-                provider:profiles!provider_id(*),
+                customer:profiles!customer_id(*, private_profile:private_profiles(*)),
+                provider:profiles!provider_id(*, private_profile:private_profiles(*)),
                 reviews:reviews(*)
             """.trimIndent())
             
             val response = postgrest.from("bookings").select(columns) {
-                filter {
-                    eq(filterColumn, userId)
+                if (userId.isNotEmpty()) {
+                    filter {
+                        eq(filterColumn, userId)
+                    }
                 }
                 order("scheduled_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
             }
@@ -108,14 +125,35 @@ class BookingRepository {
 
     suspend fun updateBookingStatus(bookingId: String, status: BookingStatus): Result<Unit> {
         return try {
-            postgrest.from("bookings").update(mapOf("status" to status.name.lowercase())) {
-                filter {
-                    eq("id", bookingId)
-                }
+            val statusStr = status.name.lowercase()
+            postgrest.from("bookings").update(mapOf("status" to statusStr)) {
+                filter { eq("id", bookingId) }
             }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("BookingRepo", "Error updating status", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun markAsVerified(bookingId: String): Result<Unit> {
+        return try {
+            postgrest.from("bookings").update(mapOf("is_verified_by_call" to true)) {
+                filter { eq("id", bookingId) }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun markAsPaidToProvider(bookingId: String): Result<Unit> {
+        return try {
+            postgrest.from("bookings").update(mapOf("payout_status" to "paid")) {
+                filter { eq("id", bookingId) }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }

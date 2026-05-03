@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.functions.Functions
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.serializer.KotlinXSerializer
@@ -21,6 +22,7 @@ object Supabase {
     ) {
         install(Postgrest)
         install(Auth)
+        install(Functions)
         install(Realtime)
         install(Storage)
         
@@ -35,7 +37,8 @@ object Supabase {
 @Serializable
 enum class UserRole {
     @kotlinx.serialization.SerialName("customer") CUSTOMER,
-    @kotlinx.serialization.SerialName("provider") PROVIDER
+    @kotlinx.serialization.SerialName("provider") PROVIDER,
+    @kotlinx.serialization.SerialName("admin") ADMIN
 }
 
 @Serializable
@@ -112,7 +115,11 @@ data class ProviderDetails(
     @kotlinx.serialization.SerialName("location_lng") val locationLng: Double? = null,
     @kotlinx.serialization.SerialName("is_verified") val isVerified: Boolean = false,
     @kotlinx.serialization.SerialName("working_hours") val workingHours: String? = null,
-    @kotlinx.serialization.SerialName("per_session_fee") val perSessionFee: Int? = null
+    @kotlinx.serialization.SerialName("per_session_fee") val perSessionFee: Int? = null,
+    @kotlinx.serialization.SerialName("bank_account_number") val bankAccountNumber: String? = null,
+    @kotlinx.serialization.SerialName("bank_ifsc") val bankIfsc: String? = null,
+    @kotlinx.serialization.SerialName("bank_account_name") val bankAccountName: String? = null,
+    @kotlinx.serialization.SerialName("razorpay_account_id") val razorpayAccountId: String? = null
 )
 
 @Serializable
@@ -172,7 +179,12 @@ data class Booking(
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
     val lat: Double? = null,
     val lng: Double? = null,
-    @kotlinx.serialization.SerialName("service_location_name") val serviceLocationName: String? = null
+    @kotlinx.serialization.SerialName("service_location_name") val serviceLocationName: String? = null,
+    @kotlinx.serialization.SerialName("payment_id") val paymentId: String? = null,
+    @kotlinx.serialization.SerialName("platform_fee") val platformFee: Int = 0,
+    @kotlinx.serialization.SerialName("payout_amount") val payoutAmount: Int = 0,
+    @kotlinx.serialization.SerialName("is_verified_by_call") val isVerifiedByCall: Boolean = false,
+    @kotlinx.serialization.SerialName("payout_status") val payoutStatus: String = "pending"
 )
 
 @Serializable
@@ -185,6 +197,11 @@ data class BookingWithDetails(
     val service: Service? = null,
     val customer: ProfileWithDetails? = null,
     val provider: ProfileWithDetails? = null,
+    @kotlinx.serialization.SerialName("payment_id") val paymentId: String? = null,
+    @kotlinx.serialization.SerialName("platform_fee") val platformFee: Int = 0,
+    @kotlinx.serialization.SerialName("payout_amount") val payoutAmount: Int = 0,
+    @kotlinx.serialization.SerialName("is_verified_by_call") val isVerifiedByCall: Boolean = false,
+    @kotlinx.serialization.SerialName("payout_status") val payoutStatus: String = "pending",
     @kotlinx.serialization.SerialName("reviews") val reviewsRaw: JsonElement? = null
 ) {
     val review: Review? get() = try {

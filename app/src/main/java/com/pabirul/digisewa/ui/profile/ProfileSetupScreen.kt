@@ -52,6 +52,9 @@ fun ProfileSetupScreen(
     var experience by remember { mutableStateOf("") }
     var perSessionFee by remember { mutableStateOf("") }
     var workingHours by remember { mutableStateOf("9 AM - 6 PM") }
+    var bankAccountNumber by remember { mutableStateOf("") }
+    var bankIfsc by remember { mutableStateOf("") }
+    var bankAccountName by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
     
     val categories by viewModel.categories.collectAsState()
@@ -290,6 +293,39 @@ fun ProfileSetupScreen(
                 label = { Text("Working Hours") },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Payout Bank Details", style = MaterialTheme.typography.titleLarge)
+            Text("Needed for automated payouts via Razorpay Route", style = MaterialTheme.typography.bodySmall)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = bankAccountName,
+                onValueChange = { bankAccountName = it },
+                label = { Text("Account Holder Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = bankAccountNumber,
+                onValueChange = { bankAccountNumber = it },
+                label = { Text("Bank Account Number") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = bankIfsc,
+                onValueChange = { bankIfsc = it },
+                label = { Text("Bank IFSC Code") },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -322,7 +358,10 @@ fun ProfileSetupScreen(
                         bio = bio,
                         experienceYears = experience.toIntOrNull(),
                         perSessionFee = perSessionFee.toIntOrNull(),
-                        workingHours = workingHours
+                        workingHours = workingHours,
+                        bankAccountName = bankAccountName,
+                        bankAccountNumber = bankAccountNumber,
+                        bankIfsc = bankIfsc
                     )
                 } else null
                 
