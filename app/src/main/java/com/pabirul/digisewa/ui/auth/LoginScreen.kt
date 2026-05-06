@@ -111,6 +111,17 @@ fun LoginScreen(
                             Text("Login", style = MaterialTheme.typography.titleMedium)
                         }
                     }
+
+                    if (authState is AuthState.Error) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Wrong Login Details Provided",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
 
@@ -120,15 +131,6 @@ fun LoginScreen(
                 Text(
                     "Don't have an account? Sign Up",
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
-                )
-            }
-
-            if (authState is AuthState.Error) {
-                Text(
-                    text = (authState as AuthState.Error).message,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 16.dp),
-                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }

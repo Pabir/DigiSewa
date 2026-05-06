@@ -254,7 +254,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     }
-                    is AuthState.Unauthenticated -> {
+                    is AuthState.Unauthenticated, is AuthState.Error -> {
                         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                             Box(modifier = Modifier.padding(innerPadding)) {
                                 if (currentAuthScreen == "login") {
@@ -269,11 +269,6 @@ class MainActivity : AppCompatActivity() {
                                     )
                                 }
                             }
-                        }
-                    }
-                    is AuthState.Error -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(text = "Error: ${state.message}")
                         }
                     }
                 }
