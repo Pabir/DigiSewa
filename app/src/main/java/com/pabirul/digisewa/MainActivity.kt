@@ -27,12 +27,16 @@ import com.pabirul.digisewa.ui.service.ServiceViewModel
 import com.pabirul.digisewa.ui.theme.DigiSewaTheme
 import com.google.android.gms.ads.MobileAds
 import com.pabirul.digisewa.ui.components.AdMobHelper
+import io.github.jan.supabase.auth.handleDeeplinks
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Handle Supabase Deep Links
+        Supabase.client.handleDeeplinks(intent)
+
         // Initialize Mobile Ads SDK
         MobileAds.initialize(this) {
             // Preload Interstitial and Rewarded ads
@@ -254,10 +258,17 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                     }
-                    is AuthState.Unauthenticated, is AuthState.Error -> {
+                    is AuthState.Unauthenticated, is AuthState.Error, is AuthState.VerificationSent -> {
                         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                             Box(modifier = Modifier.padding(innerPadding)) {
-                                if (currentAuthScreen == "login") {
+                                val state = authState
+                                if (state is AuthState.VerificationSent) {
+                                    VerifyOtpScreen(
+                                        email = state.email,
+                                        viewModel = authViewModel,
+                                        onBack = { authViewModel.signOut() }
+                                    )
+                                } else if (currentAuthScreen == "login") {
                                     LoginScreen(
                                         viewModel = authViewModel,
                                         onNavigateToSignUp = { currentAuthScreen = "signup" }

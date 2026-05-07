@@ -14,6 +14,7 @@ sealed class AuthState {
     object Loading : AuthState()
     data class Authenticated(val profile: Profile) : AuthState()
     data class Error(val message: String) : AuthState()
+    data class VerificationSent(val email: String) : AuthState()
     object Unauthenticated : AuthState()
 }
 
@@ -42,7 +43,13 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
             _authState.value = AuthState.Loading
             val result = repository.signUp(email, password, fullName, role)
             result.onSuccess {
-                checkSession()
+                // With email verification enabled, we won't get a profile immediately
+                val profile = repository.getCurrentProfile()
+                if (profile != null) {
+                    _authState.value = AuthState.Authenticated(profile)
+                } else {
+                    _authState.value = AuthState.VerificationSent(email)
+                }
             }.onFailure {
                 _authState.value = AuthState.Error(it.message ?: "Sign up failed")
             }
@@ -56,7 +63,12 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
             result.onSuccess {
                 checkSession()
             }.onFailure {
-                _authState.value = AuthState.Error(it.message ?: "Sign in failed")
+                val message = it.message ?: "Sign in failed"
+                if (message.contains("Email not confirmed", ignoreCase = true)) {
+                    _authState.value = AuthState.VerificationSent(email)
+                } else {
+                    _authState.value = AuthState.Error(message)
+                }
             }
         }
     }
@@ -70,5 +82,19 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
 
     fun refreshProfile() {
         checkSession()
+    }
+
+    fun verifyOtp(email: String, token: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            val result = repository.verifyEmailOtp(email, token)
+            result.onSuccess {
+                checkSession()
+            }.onFailure {
+                _authState.value = AuthState.Error(it.message ?: "OTP Verification failed")
+                // Keep the VerificationSent state so user can retry, but maybe with an error
+                // Actually, let's keep it simple for now
+            }
+        }
     }
 }
