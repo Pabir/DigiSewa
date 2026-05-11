@@ -43,13 +43,8 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
             _authState.value = AuthState.Loading
             val result = repository.signUp(email, password, fullName, role)
             result.onSuccess {
-                // With email verification enabled, we won't get a profile immediately
-                val profile = repository.getCurrentProfile()
-                if (profile != null) {
-                    _authState.value = AuthState.Authenticated(profile)
-                } else {
-                    _authState.value = AuthState.VerificationSent(email)
-                }
+                // Since email confirmation is enabled, always go to OTP screen
+                _authState.value = AuthState.VerificationSent(email)
             }.onFailure {
                 _authState.value = AuthState.Error(it.message ?: "Sign up failed")
             }

@@ -18,6 +18,21 @@ class ProfileRepository {
                     eq("id", profile.id)
                 }
             }
+            
+            // Sync sensitive data to private_profiles for the contact reveal feature
+            val privateData = mapOf(
+                "id" to profile.id,
+                "phone_number" to profile.phoneNumber,
+                "full_address" to profile.address,
+                "vtc" to profile.vtc,
+                "post_office" to profile.postOffice,
+                "police_station" to profile.policeStation,
+                "district" to profile.district,
+                "state" to profile.state,
+                "pin_code" to profile.pinCode
+            )
+            postgrest.from("private_profiles").upsert(privateData)
+
             Result.success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()

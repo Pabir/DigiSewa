@@ -22,8 +22,8 @@ class AuthRepository {
             }
             
             // In Supabase-kt v3, signUpWith returns an User? or AuthResponse
-            // Let's get the ID safely
-            val userId = response?.id ?: auth.currentUserOrNull()?.id 
+            // Let's get the ID safely from the new user response ONLY
+            val userId = response?.id
                 ?: return Result.failure(Exception("Signup successful but User ID not yet available. Please check your email for OTP."))
             
             val profileData = mapOf(

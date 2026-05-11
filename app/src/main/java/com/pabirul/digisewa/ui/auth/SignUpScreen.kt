@@ -1,6 +1,7 @@
 package com.pabirul.digisewa.ui.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,8 +30,49 @@ fun SignUpScreen(
     var password by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var role by remember { mutableStateOf(UserRole.CUSTOMER) }
+    var agreedToTerms by remember { mutableStateOf(false) }
+    var showTermsDialog by remember { mutableStateOf(false) }
     
     val authState by viewModel.authState.collectAsState()
+
+    if (showTermsDialog) {
+        AlertDialog(
+            onDismissRequest = { showTermsDialog = false },
+            title = { Text("Terms & Conditions") },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(
+                        text = "For Customers:",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = "1. Book only if you genuinely intend to use the service.\n" +
+                               "2. You are obligated to pay the full agreed amount to the provider upon completion of the service.\n" +
+                               "3. Ensure a safe environment for the provider.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "For Service Providers:",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = "1. Once you confirm a booking, you are bound to provide the service at the scheduled time.\n" +
+                               "2. You must not overcharge the customer beyond the amount listed in the app.\n" +
+                               "3. Professional behavior and respect are mandatory at all times.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTermsDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
 
     val gradientBrush = Brush.verticalGradient(
         colors = listOf(
@@ -127,7 +169,31 @@ fun SignUpScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().clickable { agreedToTerms = !agreedToTerms }
+                    ) {
+                        Checkbox(
+                            checked = agreedToTerms,
+                            onCheckedChange = { agreedToTerms = it }
+                        )
+                        Text(
+                            text = "I agree to the ",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "Terms & Conditions",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.clickable { showTermsDialog = true }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
                         onClick = { viewModel.signUp(email, password, fullName, role) },
@@ -136,7 +202,7 @@ fun SignUpScreen(
                             .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
-                        enabled = authState !is AuthState.Loading
+                        enabled = authState !is AuthState.Loading && agreedToTerms
                     ) {
                         if (authState is AuthState.Loading) {
                             CircularProgressIndicator(color = Color.White, size = 24.dp)
