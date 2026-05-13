@@ -28,6 +28,14 @@ import com.pabirul.digisewa.ProviderDetails
 import com.pabirul.digisewa.UserRole
 import java.io.ByteArrayOutputStream
 
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileSetupScreen(
@@ -46,6 +54,9 @@ fun ProfileSetupScreen(
     var district by remember { mutableStateOf(profile.district ?: "") }
     var state by remember { mutableStateOf(profile.state ?: "") }
     var pinCode by remember { mutableStateOf(profile.pinCode ?: "") }
+    
+    // UI states
+    var showFullScreenImage by remember { mutableStateOf(false) }
     
     // Provider specific
     var bio by remember { mutableStateOf("") }
@@ -97,33 +108,106 @@ fun ProfileSetupScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .clickable { launcher.launch("image/*") },
-            contentAlignment = Alignment.Center
+            modifier = Modifier.size(140.dp),
+            contentAlignment = Alignment.BottomEnd
         ) {
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap!!.asImageBitmap(),
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .clickable { 
+                        if (bitmap != null || !profile.avatarUrl.isNullOrBlank()) {
+                            showFullScreenImage = true
+                        } else {
+                            launcher.launch("image/*")
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap!!.asImageBitmap(),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (!profile.avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = profile.avatarUrl,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Edit Floating Button
+            SmallFloatingActionButton(
+                onClick = { launcher.launch("image/*") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = CircleShape,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = androidx.compose.material.icons.Icons.Default.Edit,
+                    contentDescription = "Edit Profile Picture",
+                    modifier = Modifier.size(20.dp)
                 )
-            } else if (!profile.avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = profile.avatarUrl,
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
+            }
+        }
+
+        // Full Screen Viewer Dialog
+        if (showFullScreenImage) {
+            Dialog(
+                onDismissRequest = { showFullScreenImage = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.Black.copy(alpha = 0.9f)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("Tap to upload photo")
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        IconButton(
+                            onClick = { showFullScreenImage = false },
+                            modifier = Modifier.align(Alignment.TopStart).padding(16.dp)
+                        ) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = Color.White
+                            )
+                        }
+                        
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap!!.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize().padding(16.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            AsyncImage(
+                                model = profile.avatarUrl,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize().padding(16.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
                     }
                 }
             }

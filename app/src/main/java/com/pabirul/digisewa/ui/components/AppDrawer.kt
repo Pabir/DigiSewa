@@ -7,7 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,6 +17,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.clickable
 import coil.compose.AsyncImage
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.R
@@ -31,6 +34,40 @@ fun AppDrawer(
     onSignOut: () -> Unit,
     closeDrawer: () -> Unit
 ) {
+    var showFullScreenImage by remember { mutableStateOf(false) }
+
+    if (showFullScreenImage && !profile.avatarUrl.isNullOrBlank()) {
+        Dialog(
+            onDismissRequest = { showFullScreenImage = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color.Black.copy(alpha = 0.9f)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    IconButton(
+                        onClick = { showFullScreenImage = false },
+                        modifier = Modifier.align(Alignment.TopStart).padding(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.White
+                        )
+                    }
+                    
+                    AsyncImage(
+                        model = profile.avatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+        }
+    }
+
     ModalDrawerSheet(
         drawerContainerColor = MaterialTheme.colorScheme.surface,
         drawerShape = RoundedCornerShape(topEnd = 32.dp, bottomEnd = 32.dp)
@@ -59,7 +96,12 @@ fun AppDrawer(
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.2f))
                             .padding(2.dp)
-                            .clip(CircleShape),
+                            .clip(CircleShape)
+                            .clickable { 
+                                if (!profile.avatarUrl.isNullOrBlank()) {
+                                    showFullScreenImage = true
+                                }
+                            },
                         contentScale = ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.width(16.dp))
