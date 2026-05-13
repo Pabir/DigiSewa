@@ -21,6 +21,7 @@ import com.pabirul.digisewa.ui.components.AppDrawer
 import com.pabirul.digisewa.ui.discovery.*
 import com.pabirul.digisewa.ui.profile.ProfileSetupScreen
 import com.pabirul.digisewa.ui.profile.ProfileViewModel
+import com.pabirul.digisewa.ui.requirements.*
 import com.pabirul.digisewa.ui.service.AddEditServiceScreen
 import com.pabirul.digisewa.ui.service.ManageServicesScreen
 import com.pabirul.digisewa.ui.service.ServiceViewModel
@@ -49,6 +50,7 @@ class MainActivity : AppCompatActivity() {
             DigiSewaTheme {
                 val authViewModel: AuthViewModel = viewModel()
                 val authState by authViewModel.authState.collectAsState()
+                val requirementViewModel: RequirementViewModel = viewModel()
                 
                 var currentAuthScreen by remember { mutableStateOf("login") }
                 
@@ -61,6 +63,7 @@ class MainActivity : AppCompatActivity() {
                 var selectedServiceForEdit by remember { mutableStateOf<Service?>(null) }
                 var selectedCategory by remember { mutableStateOf<Category?>(null) }
                 var selectedServiceWithProvider by remember { mutableStateOf<ServiceWithProvider?>(null) }
+                var selectedRequirement by remember { mutableStateOf<RequirementWithDetails?>(null) }
 
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
@@ -72,9 +75,14 @@ class MainActivity : AppCompatActivity() {
                         isEditingProfile -> isEditingProfile = false
                         generalSubScreen == "bookings" -> generalSubScreen = ""
                         // Provider Navigation
+                        providerSubScreen == "requirement_detail" -> providerSubScreen = "lead_feed"
+                        providerSubScreen == "lead_feed" -> providerSubScreen = "dashboard"
                         providerSubScreen == "add_edit_service" -> providerSubScreen = "manage_services"
                         providerSubScreen == "manage_services" -> providerSubScreen = "dashboard"
                         // Customer Navigation
+                        customerSubScreen == "requirement_detail" -> customerSubScreen = "my_requirements"
+                        customerSubScreen == "my_requirements" -> customerSubScreen = "home"
+                        customerSubScreen == "post_requirement" -> customerSubScreen = "home"
                         customerSubScreen == "detail" -> customerSubScreen = "listing"
                         customerSubScreen == "listing" -> customerSubScreen = "home"
                         // If at top level and back is pressed, let it exit (or handle with a prompt)
@@ -118,6 +126,19 @@ class MainActivity : AppCompatActivity() {
                                                 "home" -> {
                                                     providerSubScreen = "dashboard"
                                                     customerSubScreen = "home"
+                                                    generalSubScreen = ""
+                                                }
+                                                "requirements" -> {
+                                                    if (state.profile.role == UserRole.PROVIDER) {
+                                                        providerSubScreen = "lead_feed"
+                                                    } else {
+                                                        customerSubScreen = "my_requirements"
+                                                    }
+                                                    generalSubScreen = ""
+                                                }
+                                                "post_requirement" -> {
+                                                    requirementViewModel.resetState()
+                                                    customerSubScreen = "post_requirement"
                                                     generalSubScreen = ""
                                                 }
                                                 "manage_services" -> {
@@ -180,6 +201,26 @@ class MainActivity : AppCompatActivity() {
                                             com.pabirul.digisewa.ui.settings.SettingsScreen()
                                         } else if (state.profile.role == UserRole.PROVIDER) {
                                             when (providerSubScreen) {
+                                                "lead_feed" -> {
+                                                    LeadFeedScreen(
+                                                        profile = state.profile,
+                                                        viewModel = requirementViewModel,
+                                                        onRequirementClick = {
+                                                            selectedRequirement = it
+                                                            providerSubScreen = "requirement_detail"
+                                                        }
+                                                    )
+                                                }
+                                                "requirement_detail" -> {
+                                                    val bookingViewModel: com.pabirul.digisewa.ui.bookings.BookingViewModel = viewModel()
+                                                    RequirementDetailScreen(
+                                                        requirement = selectedRequirement!!,
+                                                        profile = state.profile,
+                                                        viewModel = requirementViewModel,
+                                                        bookingViewModel = bookingViewModel,
+                                                        onBack = { providerSubScreen = "lead_feed" }
+                                                    )
+                                                }
                                                 "manage_services" -> {
                                                     val serviceViewModel: ServiceViewModel = viewModel()
                                                     ManageServicesScreen(
@@ -215,7 +256,41 @@ class MainActivity : AppCompatActivity() {
                                         } else {
                                             // Customer Flow
                                             val discoveryViewModel: DiscoveryViewModel = viewModel()
+                                            
+                                            // Lead Feed for providers if needed (already handled above but ensuring consistency)
+
                                             when (customerSubScreen) {
+                                                "post_requirement" -> {
+                                                    val categories by discoveryViewModel.categories.collectAsState()
+                                                    PostRequirementScreen(
+                                                        profile = state.profile,
+                                                        categories = categories,
+                                                        viewModel = requirementViewModel,
+                                                        onSuccess = {
+                                                            customerSubScreen = "my_requirements"
+                                                        }
+                                                    )
+                                                }
+                                                "my_requirements" -> {
+                                                    MyRequirementsScreen(
+                                                        profile = state.profile,
+                                                        viewModel = requirementViewModel,
+                                                        onRequirementClick = {
+                                                            selectedRequirement = it
+                                                            customerSubScreen = "requirement_detail"
+                                                        }
+                                                    )
+                                                }
+                                                "requirement_detail" -> {
+                                                    val bookingViewModel: com.pabirul.digisewa.ui.bookings.BookingViewModel = viewModel()
+                                                    RequirementDetailScreen(
+                                                        requirement = selectedRequirement!!,
+                                                        profile = state.profile,
+                                                        viewModel = requirementViewModel,
+                                                        bookingViewModel = bookingViewModel,
+                                                        onBack = { customerSubScreen = "my_requirements" }
+                                                    )
+                                                }
                                                 "listing" -> {
                                                     ServiceListingScreen(
                                                         category = selectedCategory!!,
@@ -296,11 +371,16 @@ class MainActivity : AppCompatActivity() {
             return when (providerSubScreen) {
                 "dashboard" -> "DigiSewa"
                 "manage_services" -> "Manage Services"
+                "lead_feed" -> "Lead Feed"
+                "requirement_detail" -> "Requirement Detail"
                 else -> null 
             }
         } else {
             return when (customerSubScreen) {
                 "home" -> "DigiSewa"
+                "post_requirement" -> "Post a Requirement"
+                "my_requirements" -> "My Requirements"
+                "requirement_detail" -> "Requirement Detail"
                 else -> null
             }
         }

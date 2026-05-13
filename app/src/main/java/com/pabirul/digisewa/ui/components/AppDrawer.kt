@@ -151,6 +151,34 @@ fun AppDrawer(
         )
 
         NavigationDrawerItem(
+            label = { Text(if (profile.role == UserRole.PROVIDER) stringResource(R.string.lead_feed) else stringResource(R.string.my_requirements), fontWeight = FontWeight.SemiBold) },
+            selected = false,
+            onClick = { 
+                onNavigate("requirements")
+                closeDrawer()
+            },
+            icon = { Icon(Icons.Default.ListAlt, contentDescription = null) },
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.primary)
+        )
+
+        if (profile.role == UserRole.CUSTOMER) {
+            NavigationDrawerItem(
+                label = { Text(stringResource(R.string.post_requirement), fontWeight = FontWeight.SemiBold) },
+                selected = false,
+                onClick = { 
+                    onNavigate("post_requirement")
+                    closeDrawer()
+                },
+                icon = { Icon(Icons.Default.AddBox, contentDescription = null) },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.primary)
+            )
+        }
+
+        NavigationDrawerItem(
             label = { Text(if (profile.role == UserRole.PROVIDER) stringResource(R.string.booking_requests) else stringResource(R.string.my_bookings), fontWeight = FontWeight.SemiBold) },
             selected = false,
             onClick = { 

@@ -165,6 +165,90 @@ enum class BookingStatus {
 }
 
 @Serializable
+enum class RequirementStatus {
+    @kotlinx.serialization.SerialName("open") OPEN,
+    @kotlinx.serialization.SerialName("closed") CLOSED,
+    @kotlinx.serialization.SerialName("completed") COMPLETED
+}
+
+@Serializable
+enum class ResponseStatus {
+    @kotlinx.serialization.SerialName("pending") PENDING,
+    @kotlinx.serialization.SerialName("accepted") ACCEPTED,
+    @kotlinx.serialization.SerialName("rejected") REJECTED
+}
+
+@Serializable
+data class Requirement(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("customer_id") val customerId: String,
+    @kotlinx.serialization.SerialName("category_id") val categoryId: Int,
+    val description: String,
+    val budget: Int? = null,
+    @kotlinx.serialization.SerialName("location_name") val locationName: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String? = null,
+    val status: RequirementStatus = RequirementStatus.OPEN,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class RequirementPhoto(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("requirement_id") val requirementId: String,
+    @kotlinx.serialization.SerialName("image_url") val imageUrl: String
+)
+
+@Serializable
+data class RequirementResponse(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("requirement_id") val requirementId: String,
+    @kotlinx.serialization.SerialName("provider_id") val providerId: String,
+    @kotlinx.serialization.SerialName("service_id") val serviceId: String? = null,
+    @kotlinx.serialization.SerialName("quote_amount") val quoteAmount: Int,
+    val message: String? = null,
+    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String? = null,
+    val status: ResponseStatus = ResponseStatus.PENDING,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class RequirementWithDetails(
+    val id: String,
+    @kotlinx.serialization.SerialName("customer_id") val customerId: String,
+    @kotlinx.serialization.SerialName("category_id") val categoryId: Int,
+    val description: String,
+    val budget: Int? = null,
+    @kotlinx.serialization.SerialName("location_name") val locationName: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String? = null,
+    val status: RequirementStatus,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String,
+    val category: Category? = null,
+    val customer: Profile? = null,
+    @kotlinx.serialization.SerialName("requirement_photos") val photos: List<RequirementPhoto> = emptyList(),
+    @kotlinx.serialization.SerialName("requirement_responses") val responses: List<RequirementResponseWithProvider> = emptyList()
+)
+
+@Serializable
+data class RequirementResponseWithProvider(
+    val id: String,
+    @kotlinx.serialization.SerialName("requirement_id") val requirementId: String,
+    @kotlinx.serialization.SerialName("provider_id") val providerId: String,
+    @kotlinx.serialization.SerialName("service_id") val serviceId: String? = null,
+    @kotlinx.serialization.SerialName("quote_amount") val quoteAmount: Int,
+    val message: String? = null,
+    @kotlinx.serialization.SerialName("scheduled_at") val scheduledAt: String? = null,
+    val status: ResponseStatus,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String,
+    val provider: ProfileWithDetails? = null,
+    val service: Service? = null,
+    val requirement: Requirement? = null
+)
+
+@Serializable
 data class Booking(
     val id: String? = null,
     @kotlinx.serialization.SerialName("customer_id") val customerId: String,

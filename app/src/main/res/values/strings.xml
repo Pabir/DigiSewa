@@ -62,4 +62,24 @@
     <string name="how_was_your_experience">How was your experience?</string>
     <string name="share_details_optional">Share more details (optional)</string>
     <string name="submit_review">Submit Review</string>
+
+    <!-- Post a Requirement -->
+    <string name="post_requirement">Post a Requirement</string>
+    <string name="requirement_category">Requirement Category</string>
+    <string name="requirement_description">Describe what you need</string>
+    <string name="requirement_budget">Estimated Budget (Optional)</string>
+    <string name="add_photos">Add Photos</string>
+    <string name="post_now">Post Now</string>
+    <string name="my_requirements">My Requirements</string>
+    <string name="lead_feed">Lead Feed</string>
+    <string name="send_quote">Send Quote</string>
+    <string name="quote_amount">Quote Amount</string>
+    <string name="quote_message">Your Message to Customer</string>
+    <string name="submit_quote">Submit Quote</string>
+    <string name="accept">Accept</string>
+    <string name="reject">Reject</string>
+    <string name="no_requirements_yet">No requirements posted yet.</string>
+    <string name="no_leads_yet">No leads available in your category yet.</string>
+    <string name="responses">Responses</string>
+    <string name="budget_label">Budget: ₹%1$d</string>
 </resources>
