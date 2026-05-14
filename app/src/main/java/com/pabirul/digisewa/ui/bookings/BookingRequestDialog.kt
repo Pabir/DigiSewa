@@ -140,12 +140,14 @@ fun BookingRequestDialog(
         slots
     }
 
-    val availableSlots = remember(selectedDate, unavailableSlots, customerLat, customerLng) {
+    val availableSlots = remember(selectedDate, unavailableSlots) {
         val now = Instant.now()
         if (selectedDate.isEmpty()) emptyMap<String, Boolean>()
         else {
             allTimeSlots.associateWith { timeStr ->
                 try {
+                    // 1. Requested Slot Time (Local selected date + time slot)
+                    // Note: selectedDate is "YYYY-MM-DD", timeStr is "HH:mm:ss"
                     val requestedStart = Instant.parse("${selectedDate}T${timeStr}Z")
                     if (requestedStart.isBefore(now)) return@associateWith false
 
@@ -153,30 +155,30 @@ fun BookingRequestDialog(
                     
                     val conflictSlot = unavailableSlots.find { bookedSlot ->
                         try {
-                            val cleaned = bookedSlot.scheduledAt.replace(" ", "T")
-                            val normalized = (if (!cleaned.endsWith("Z") && !cleaned.contains("+")) "${cleaned}Z" else cleaned).replace(Regex("\\+\\d{2}$"), "Z")
+                            // 2. Booked Slot Time
+                            val dbTime = bookedSlot.scheduledAt
+                                .replace(" ", "T")
+                                .replace(Regex("\\+.*$"), "Z")
                             
-                            val bookedStart = Instant.parse(normalized)
+                            val bookedStart = Instant.parse(dbTime)
+                            
+                            // DATE CHECK: Only check conflicts for bookings on the SAME UTC day
+                            val bookedDay = bookedStart.toString().substring(0, 10)
+                            if (bookedDay != selectedDate) return@find false
+
                             val bookedDuration = bookedSlot.service?.durationMinutes ?: 60
                             val bookedEnd = bookedStart.plus(Duration.ofMinutes(bookedDuration.toLong()))
                             
-                            val travelMinutes = if (bookedSlot.lat != null && bookedSlot.lng != null) {
-                                estimateTravelTime(customerLat, customerLng, bookedSlot.lat, bookedSlot.lng)
-                            } else 60
+                            // 3. Travel Time Buffer (2 hours)
+                            val buffer = Duration.ofHours(2)
 
-                            if (bookedStart.isBefore(requestedStart)) {
-                                val arrivalAtB = bookedEnd.plus(Duration.ofMinutes(travelMinutes.toLong()))
-                                if (arrivalAtB.isAfter(requestedStart)) return@find true
-                            }
+                            // Conflict Logic
+                            val conflictStart = bookedStart.minus(buffer)
+                            val conflictEnd = bookedEnd.plus(buffer)
                             
-                            if (bookedStart.isAfter(requestedStart)) {
-                                val arrivalAtA = requestedEnd.plus(Duration.ofMinutes(travelMinutes.toLong()))
-                                if (arrivalAtA.isAfter(bookedStart)) return@find true
-                            }
+                            val hasConflict = requestedStart.isBefore(conflictEnd) && requestedEnd.isAfter(conflictStart)
                             
-                            if (bookedStart == requestedStart) return@find true
-
-                            false
+                            hasConflict
                         } catch (e: Exception) { false }
                     }
                     conflictSlot == null
@@ -388,27 +390,10 @@ fun BookingRequestDialog(
                                 
                                 val isSlotInPast = slotDateTime?.isBefore(java.time.LocalDateTime.now()) ?: false
 
-                                val isBooked = unavailableSlots.any { bookedSlot ->
-                                    try {
-                                        val requestedStart = Instant.parse("${selectedDate}T${time}Z")
-                                        val requestedEnd = requestedStart.plus(Duration.ofMinutes(serviceDurationMinutes.toLong()))
-                                        val cleaned = bookedSlot.scheduledAt.replace(" ", "T")
-                                        val normalized = (if (!cleaned.endsWith("Z") && !cleaned.contains("+")) "${cleaned}Z" else cleaned).replace(Regex("\\+\\d{2}$"), "Z")
-                                        val bookedStart = Instant.parse(normalized)
-                                        val bookedDuration = bookedSlot.service?.durationMinutes ?: 60
-                                        val bookedEnd = bookedStart.plus(Duration.ofMinutes(bookedDuration.toLong()))
-                                        
-                                        val travelMin = if (bookedSlot.lat != null && bookedSlot.lng != null) {
-                                            estimateTravelTime(customerLat, customerLng, bookedSlot.lat, bookedSlot.lng)
-                                        } else 60
-
-                                        (bookedStart == requestedStart) ||
-                                        (bookedStart.isBefore(requestedStart) && bookedEnd.plus(Duration.ofMinutes(travelMin.toLong())).isAfter(requestedStart)) ||
-                                        (bookedStart.isAfter(requestedStart) && requestedEnd.plus(Duration.ofMinutes(travelMin.toLong())).isAfter(bookedStart))
-                                    } catch (e: Exception) { false }
-                                }
-
-                                val isAvailable = !isLoading && !isSlotInPast && !isBooked
+                                // USE THE PRE-CALCULATED availableSlots MAP
+                                val isAvailable = availableSlots[time] ?: true
+                                val isBooked = !isAvailable && !isSlotInPast
+                                
                                 val isSelected = selectedTimeSlot == time
                                 
                                 val backgroundColor = when {
@@ -437,7 +422,7 @@ fun BookingRequestDialog(
                                                     else Color.Gray.copy(alpha = 0.5f),
                                             shape = RoundedCornerShape(8.dp)
                                         )
-                                        .clickable(enabled = isAvailable) { selectedTimeSlot = time }
+                                        .clickable(enabled = isAvailable && !isSlotInPast) { selectedTimeSlot = time }
                                         .padding(vertical = 12.dp),
                                     contentAlignment = Alignment.Center
                                 ) {

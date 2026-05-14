@@ -191,7 +191,6 @@ class BookingRepository {
 
     suspend fun getUnavailableSlots(providerId: String, date: String): List<BookingSlot> {
         return try {
-            // Fetch bookings with service details (to get duration) and location
             val response = postgrest.from("bookings").select(io.github.jan.supabase.postgrest.query.Columns.raw("scheduled_at, lat, lng, service_id, service:services(duration_minutes)")) {
                 filter {
                     eq("provider_id", providerId)
@@ -201,12 +200,14 @@ class BookingRepository {
             
             val allSlots = response.decodeList<BookingSlot>()
             
-            val daySlots = allSlots.filter { slot ->
-                slot.scheduledAt.contains(date) || 
-                (slot.scheduledAt.contains("Apr") && date.contains("04"))
-            }
-            
-            daySlots
+            // Log for debugging
+            android.util.Log.d("BookingRepo", "Found ${allSlots.size} total bookings for provider $providerId")
+
+            // Better filtering: 
+            // If date is "2026-05-14", we want to catch bookings that might overlap into this day (buffer)
+            // But for simplicity of finding the root cause, let's just return all non-cancelled ones 
+            // and let the UI's improved logic handle the rest.
+            allSlots
         } catch (e: Exception) {
             Log.e("BookingRepo", "Error in getUnavailableSlots", e)
             emptyList()
