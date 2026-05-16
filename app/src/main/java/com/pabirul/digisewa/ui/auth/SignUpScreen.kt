@@ -17,9 +17,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.pabirul.digisewa.R
 import com.pabirul.digisewa.UserRole
+import androidx.compose.material.icons.Icons
+import com.pabirul.digisewa.ui.theme.CustomIcons
 
 @Composable
 fun SignUpScreen(
@@ -28,6 +31,7 @@ fun SignUpScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var fullName by remember { mutableStateOf("") }
     var role by remember { mutableStateOf(UserRole.CUSTOMER) }
     var agreedToTerms by remember { mutableStateOf(false) }
@@ -140,7 +144,18 @@ fun SignUpScreen(
                         label = { Text("Password") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            val image = if (passwordVisible)
+                                CustomIcons.EyeWithEyelashesOpen
+                            else CustomIcons.EyeWithEyelashesClosed
+
+                            val description = if (passwordVisible) "Hide password" else "Show password"
+
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = image, contentDescription = description)
+                            }
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         singleLine = true
                     )
