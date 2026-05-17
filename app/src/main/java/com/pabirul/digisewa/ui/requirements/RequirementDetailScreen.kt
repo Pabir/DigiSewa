@@ -87,7 +87,7 @@ fun RequirementDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Text(text = "Requirement Details", style = MaterialTheme.typography.titleLarge)
+            Text(text = stringResource(R.string.requirement_details), style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = requirement.description, style = MaterialTheme.typography.bodyLarge)
             
@@ -95,12 +95,12 @@ fun RequirementDetailScreen(
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text(text = "Location", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                    Text(text = stringResource(R.string.location), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                     Text(text = requirement.locationName ?: "N/A", style = MaterialTheme.typography.bodyMedium)
                 }
                 if (requirement.scheduledAt != null) {
                     Column(horizontalAlignment = Alignment.End) {
-                        Text(text = "Proposed Time", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                        Text(text = stringResource(R.string.proposed_time), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                         Text(text = requirement.scheduledAt.replace("T", " ").replace("Z", ""), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -109,7 +109,7 @@ fun RequirementDetailScreen(
             Spacer(modifier = Modifier.height(16.dp))
             
             if (requirement.budget != null) {
-                Text(text = "Budget", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
+                Text(text = stringResource(R.string.budget), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                 Text(text = "₹${requirement.budget}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
             }
 
@@ -123,7 +123,7 @@ fun RequirementDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 if (requirement.responses.isEmpty()) {
-                    Text(text = "No quotes received yet.")
+                    Text(text = stringResource(R.string.no_quotes_received))
                 } else {
                     requirement.responses.forEach { response ->
                         ResponseItem(
@@ -138,9 +138,9 @@ fun RequirementDetailScreen(
             } else {
                 // Provider View: Send Quote
                 if (hasAlreadyResponded) {
-                    Text(text = "You have already sent a quote for this requirement.", color = MaterialTheme.colorScheme.primary)
+                    Text(text = stringResource(R.string.already_responded), color = MaterialTheme.colorScheme.primary)
                 } else if (requirement.status != RequirementStatus.OPEN) {
-                    Text(text = "This requirement is no longer open.", color = MaterialTheme.colorScheme.error)
+                    Text(text = stringResource(R.string.requirement_closed), color = MaterialTheme.colorScheme.error)
                 } else {
                     Text(text = stringResource(R.string.send_quote), style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.height(16.dp))
@@ -152,10 +152,10 @@ fun RequirementDetailScreen(
                         onExpandedChange = { serviceExpanded = !serviceExpanded }
                     ) {
                         OutlinedTextField(
-                            value = providerServices.find { it.id == selectedServiceId }?.title ?: "Select your Service",
+                            value = providerServices.find { it.id == selectedServiceId }?.title ?: stringResource(R.string.select_your_service),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Service to Provide") },
+                            label = { Text(stringResource(R.string.service_to_provide)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = serviceExpanded) },
                             modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
@@ -203,10 +203,10 @@ fun RequirementDetailScreen(
                     )
 
                     OutlinedTextField(
-                        value = overridenScheduledAt?.replace("T", " ")?.replace("Z", "") ?: "As Proposed by Customer",
+                        value = overridenScheduledAt?.replace("T", " ")?.replace("Z", "") ?: stringResource(R.string.as_proposed_by_customer),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Preferred Date & Time") },
+                        label = { Text(stringResource(R.string.preferred_date_time)) },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {
                             IconButton(onClick = { datePickerDialog.show() }) {
@@ -289,14 +289,14 @@ fun ResponseItem(
                     Text(text = "₹${response.quoteAmount}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     if (response.scheduledAt != null) {
                         Text(
-                            text = "Proposed Time: ${response.scheduledAt.replace("T", " ").replace("Z", "")}",
+                            text = stringResource(R.string.proposed_time_label, response.scheduledAt.replace("T", " ").replace("Z", "")),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )
                     }
                     if (response.service != null) {
                         Text(
-                            text = "Service: ${response.service.title}",
+                            text = stringResource(R.string.service_label, response.service.title ?: ""),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }

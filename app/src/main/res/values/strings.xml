@@ -82,4 +82,17 @@
     <string name="no_leads_yet">No leads available in your category yet.</string>
     <string name="responses">Responses</string>
     <string name="budget_label">Budget: ₹%1$d</string>
+    <string name="requirement_details">Requirement Details</string>
+    <string name="location">Location</string>
+    <string name="proposed_time">Proposed Time</string>
+    <string name="budget">Budget</string>
+    <string name="no_quotes_received">No quotes received yet.</string>
+    <string name="already_responded">You have already sent a quote for this requirement.</string>
+    <string name="requirement_closed">This requirement is no longer open.</string>
+    <string name="select_your_service">Select your Service</string>
+    <string name="service_to_provide">Service to Provide</string>
+    <string name="preferred_date_time">Preferred Date &amp; Time</string>
+    <string name="as_proposed_by_customer">As Proposed by Customer</string>
+    <string name="proposed_time_label">Proposed Time: %1$s</string>
+    <string name="service_label">Service: %1$s</string>
 </resources>

@@ -62,4 +62,37 @@
     <string name="how_was_your_experience">आपका अनुभव कैसा रहा?</string>
     <string name="share_details_optional">अधिक विवरण साझा करें (वैकल्पिक)</string>
     <string name="submit_review">समीक्षा सबमिट करें</string>
+
+    <!-- Post a Requirement -->
+    <string name="post_requirement">अपनी आवश्यकता पोस्ट करें</string>
+    <string name="requirement_category">आवश्यकता की श्रेणी</string>
+    <string name="requirement_description">बताएं कि आपको क्या चाहिए</string>
+    <string name="requirement_budget">अनुमानित बजट (वैकल्पिक)</string>
+    <string name="add_photos">फोटो जोड़ें</string>
+    <string name="post_now">अभी पोस्ट करें</string>
+    <string name="my_requirements">मेरी आवश्यकताएं</string>
+    <string name="lead_feed">लीड फीड</string>
+    <string name="send_quote">कोटेशन भेजें</string>
+    <string name="quote_amount">कोटेशन राशि</string>
+    <string name="quote_message">ग्राहक के लिए आपका संदेश</string>
+    <string name="submit_quote">कोटेशन सबमिट करें</string>
+    <string name="accept">स्वीकार करें</string>
+    <string name="reject">अस्वीकार करें</string>
+    <string name="no_requirements_yet">अभी तक कोई आवश्यकता पोस्ट नहीं की गई है।</string>
+    <string name="no_leads_yet">अभी तक आपकी श्रेणी में कोई लीड उपलब्ध नहीं है।</string>
+    <string name="responses">प्रतिक्रियाएं</string>
+    <string name="budget_label">बजट: ₹%1$d</string>
+    <string name="requirement_details">आवश्यकता का विवरण</string>
+    <string name="location">स्थान</string>
+    <string name="proposed_time">प्रस्तावित समय</string>
+    <string name="budget">बजट</string>
+    <string name="no_quotes_received">अभी तक कोई कोटेशन प्राप्त नहीं हुआ है।</string>
+    <string name="already_responded">आप इस आवश्यकता के लिए पहले ही कोटेशन भेज चुके हैं।</string>
+    <string name="requirement_closed">यह आवश्यकता अब खुली नहीं है।</string>
+    <string name="select_your_service">अपनी सेवा चुनें</string>
+    <string name="service_to_provide">प्रदान की जाने वाली सेवा</string>
+    <string name="preferred_date_time">पसंदीदा तिथि और समय</string>
+    <string name="as_proposed_by_customer">ग्राहक के प्रस्ताव के अनुसार</string>
+    <string name="proposed_time_label">प्रस्तावित समय: %1$s</string>
+    <string name="service_label">सेवा: %1$s</string>
 </resources>
