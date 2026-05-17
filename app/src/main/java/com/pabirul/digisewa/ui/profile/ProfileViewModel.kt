@@ -77,4 +77,10 @@ class ProfileViewModel(private val repository: ProfileRepository = ProfileReposi
             _setupState.value = ProfileSetupState.Success
         }
     }
+
+    fun completeOnboarding(userId: String) {
+        viewModelScope.launch {
+            repository.completeOnboarding(userId)
+        }
+    }
 }

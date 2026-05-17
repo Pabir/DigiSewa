@@ -23,6 +23,8 @@ import com.pabirul.digisewa.Profile
 
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import com.pabirul.digisewa.R
 import com.pabirul.digisewa.ui.components.AdMobBanner
 
@@ -30,7 +32,8 @@ import com.pabirul.digisewa.ui.components.AdMobBanner
 fun CustomerHomeScreen(
     profile: Profile,
     viewModel: DiscoveryViewModel,
-    onCategoryClick: (Category) -> Unit
+    onCategoryClick: (Category) -> Unit,
+    onPositioned: (String, LayoutCoordinates) -> Unit = { _, _ -> }
 ) {
     val categories by viewModel.categories.collectAsState()
     val state by viewModel.state.collectAsState()
@@ -43,7 +46,7 @@ fun CustomerHomeScreen(
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             // Welcome Header
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().onGloballyPositioned { onPositioned("hero", it) },
                 color = MaterialTheme.colorScheme.primary,
                 shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
             ) {
@@ -81,7 +84,7 @@ fun CustomerHomeScreen(
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().onGloballyPositioned { onPositioned("categories", it) }
                 ) {
                     items(categories) { category ->
                         CategoryCard(category = category, onClick = { onCategoryClick(category) })

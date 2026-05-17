@@ -65,6 +65,17 @@ class ProfileRepository {
         }
     }
 
+    suspend fun completeOnboarding(userId: String): Result<Unit> {
+        return try {
+            postgrest.from("profiles").update(mapOf("onboarding_completed" to true)) {
+                filter { eq("id", userId) }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getCategories(): List<Category> {
         return try {
             postgrest.from("categories").select().decodeList<Category>()

@@ -10,11 +10,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pabirul.digisewa.ui.auth.*
 import com.pabirul.digisewa.ui.components.AppDrawer
@@ -67,6 +70,9 @@ class MainActivity : AppCompatActivity() {
 
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
+                
+                // Onboarding Coordinates
+                val onboardingCoords = remember { mutableStateMapOf<String, LayoutCoordinates>() }
 
                 // Global Back Navigation Handling
                 BackHandler(enabled = authState is AuthState.Authenticated) {
@@ -181,7 +187,10 @@ class MainActivity : AppCompatActivity() {
                                                     }
                                                 },
                                                 navigationIcon = {
-                                                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                                    IconButton(
+                                                        onClick = { scope.launch { drawerState.open() } },
+                                                        modifier = Modifier.onGloballyPositioned { onboardingCoords["menu_icon"] = it }
+                                                    ) {
                                                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                                                     }
                                                 }
@@ -249,7 +258,8 @@ class MainActivity : AppCompatActivity() {
                                                 }
                                                 else -> {
                                                     ProviderDashboardScreen(
-                                                        profile = state.profile
+                                                        profile = state.profile,
+                                                        onPositioned = { tag, coords -> onboardingCoords[tag] = coords }
                                                     )
                                                 }
                                             }
@@ -323,12 +333,58 @@ class MainActivity : AppCompatActivity() {
                                                         onCategoryClick = {
                                                             selectedCategory = it
                                                             customerSubScreen = "listing"
-                                                        }
+                                                        },
+                                                        onPositioned = { tag, coords -> onboardingCoords[tag] = coords }
                                                     )
                                                 }
                                             }
                                         }
                                     }
+                                }
+
+                                // --- ONBOARDING OVERLAY ---
+                                if (!state.profile.onboardingCompleted) {
+                                    val profileViewModel: ProfileViewModel = viewModel()
+                                    val steps = when (state.profile.role) {
+                                        UserRole.PROVIDER -> listOf(
+                                            com.pabirul.digisewa.ui.components.OnboardingStep(
+                                                "Professional Dashboard",
+                                                "Manage your service requests and view your business stats here.",
+                                                "dashboard_hero"
+                                            ),
+                                            com.pabirul.digisewa.ui.components.OnboardingStep(
+                                                "Lead Feed",
+                                                "Access new customer requirements and send quotes to grow your business.",
+                                                "menu_icon"
+                                            )
+                                        )
+                                        else -> listOf(
+                                            com.pabirul.digisewa.ui.components.OnboardingStep(
+                                                "Welcome to DigiSewa!",
+                                                "Find and book the best local professionals for all your needs.",
+                                                "hero"
+                                            ),
+                                            com.pabirul.digisewa.ui.components.OnboardingStep(
+                                                "Explore Categories",
+                                                "Browse through a wide variety of services tailored for you.",
+                                                "categories"
+                                            ),
+                                            com.pabirul.digisewa.ui.components.OnboardingStep(
+                                                "Custom Requirements",
+                                                "Can't find what you need? Post a custom requirement and get quotes from providers.",
+                                                "menu_icon"
+                                            )
+                                        )
+                                    }
+
+                                    com.pabirul.digisewa.ui.components.OnboardingWalkthrough(
+                                        steps = steps,
+                                        targetCoordinates = onboardingCoords,
+                                        onComplete = {
+                                            profileViewModel.completeOnboarding(state.profile.id)
+                                            authViewModel.refreshProfile()
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -388,9 +444,15 @@ class MainActivity : AppCompatActivity() {
 }
 
 @Composable
-fun ProviderDashboardScreen(profile: Profile) {
+fun ProviderDashboardScreen(
+    profile: Profile,
+    onPositioned: (String, LayoutCoordinates) -> Unit = { _, _ -> }
+) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally, 
+            modifier = Modifier.padding(16.dp).onGloballyPositioned { onPositioned("dashboard_hero", it) }
+        ) {
             Text(text = "Welcome, ${profile.fullName}!", style = MaterialTheme.typography.headlineMedium)
             Text(text = "Role: Provider", style = MaterialTheme.typography.bodyLarge)
             Spacer(modifier = Modifier.height(16.dp))

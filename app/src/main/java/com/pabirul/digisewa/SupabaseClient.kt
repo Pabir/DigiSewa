@@ -57,6 +57,7 @@ data class Profile(
     val district: String? = null,
     val state: String? = null,
     @kotlinx.serialization.SerialName("pin_code") val pinCode: String? = null,
+    @kotlinx.serialization.SerialName("onboarding_completed") val onboardingCompleted: Boolean = true,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
     @kotlinx.serialization.SerialName("provider_details") val providerDetails: ProviderDetails? = null
 )
@@ -77,6 +78,7 @@ data class ProfileWithDetails(
     val district: String? = null,
     val state: String? = null,
     @kotlinx.serialization.SerialName("pin_code") val pinCode: String? = null,
+    @kotlinx.serialization.SerialName("onboarding_completed") val onboardingCompleted: Boolean = true,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
     @kotlinx.serialization.SerialName("provider_details") val providerDetails: ProviderDetails? = null,
     @kotlinx.serialization.SerialName("private_profile") val privateProfile: PrivateProfile? = null
