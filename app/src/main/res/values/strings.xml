@@ -95,4 +95,13 @@
     <string name="as_proposed_by_customer">As Proposed by Customer</string>
     <string name="proposed_time_label">Proposed Time: %1$s</string>
     <string name="service_label">Service: %1$s</string>
+    <!-- Categories for Ticker -->
+    <string name="cat_electrician">ELECTRICIAN</string>
+    <string name="cat_photographer">PHOTOGRAPHER</string>
+    <string name="cat_physiotherapy">PHYSIOTHERAPY</string>
+    <string name="cat_tattoo_art">TATTOO ART</string>
+    <string name="cat_cleaning">CLEANING</string>
+    <string name="cat_music_dance">MUSIC &amp; DANCE</string>
+    <string name="cat_nursing">NURSING</string>
+    <string name="cat_medical_report">MEDICAL REPORT</string>
 </resources>

@@ -95,4 +95,13 @@
     <string name="as_proposed_by_customer">ग्राहक के प्रस्ताव के अनुसार</string>
     <string name="proposed_time_label">प्रस्तावित समय: %1$s</string>
     <string name="service_label">सेवा: %1$s</string>
+    <!-- Categories for Ticker -->
+    <string name="cat_electrician">इलेक्ट्रीशियन</string>
+    <string name="cat_photographer">फोटोग्राफर</string>
+    <string name="cat_physiotherapy">फिजियोथेरेपी</string>
+    <string name="cat_tattoo_art">टैटू कलाकार</string>
+    <string name="cat_cleaning">सफाई</string>
+    <string name="cat_music_dance">संगीत और नृत्य</string>
+    <string name="cat_nursing">नर्सिंग</string>
+    <string name="cat_medical_report">मेडिकल रिपोर्ट</string>
 </resources>

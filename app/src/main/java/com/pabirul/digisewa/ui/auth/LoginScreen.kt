@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -41,10 +42,14 @@ import java.util.Locale
 fun ServiceTicker() {
     val services = remember {
         listOf(
-            Triple("ELECTRICIAN", R.raw.electrician, Color(0xFF00B0FF)),
-            Triple("PHOTOGRAPHER", R.raw.photographer, Color(0xFF607D8B)),
-            Triple("PHYSIOTHERAPY", R.raw.physiotherapy, Color(0xFFE91E63)),
-            Triple("TATTOO ART", R.raw.tattoo, Color(0xFF9C27B0))
+            Triple(R.string.cat_electrician, R.raw.electrician, Color(0xFF00B0FF)),
+            Triple(R.string.cat_photographer, R.raw.photographer, Color(0xFF607D8B)),
+            Triple(R.string.cat_physiotherapy, R.raw.physiotherapy, Color(0xFFE91E63)),
+            Triple(R.string.cat_tattoo_art, R.raw.tattoo, Color(0xFF9C27B0)),
+            Triple(R.string.cat_cleaning, R.raw.cleaning, Color(0xFF4CAF50)),
+            Triple(R.string.cat_music_dance, R.raw.music, Color(0xFFFF9800)),
+            Triple(R.string.cat_nursing, R.raw.nursing, Color(0xFF2196F3)),
+            Triple(R.string.cat_medical_report, R.raw.report, Color(0xFF7E57C2))
         )
     }
 
@@ -133,7 +138,7 @@ fun ServiceTicker() {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = service.first,
+                    text = stringResource(service.first).uppercase(Locale.getDefault()),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF4FC3F7), 
