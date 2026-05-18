@@ -18,7 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.platform.LocalContext
 import com.pabirul.digisewa.R
 import com.pabirul.digisewa.UserRole
 import androidx.compose.material.icons.Icons
@@ -96,54 +99,57 @@ fun SignUpScreen(
                 .padding(24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
+            Spacer(modifier = Modifier.height(32.dp))
             androidx.compose.foundation.Image(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "DigiSewa Logo",
-                modifier = Modifier.size(150.dp)
+                modifier = Modifier.size(100.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Create your account to get started",
-                style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.outline)
+                text = "Create your account",
+                style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.outline)
             )
             
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 2.dp,
                 shadowElevation = 8.dp
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
+                Column(modifier = Modifier.padding(20.dp)) {
                     OutlinedTextField(
                         value = fullName,
                         onValueChange = { fullName = it },
-                        label = { Text("Full Name") },
+                        label = { Text("Full Name", style = MaterialTheme.typography.bodySmall) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        singleLine = true
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email Address") },
+                        label = { Text("Email Address", style = MaterialTheme.typography.bodySmall) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        singleLine = true
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password") },
+                        label = { Text("Password", style = MaterialTheme.typography.bodySmall) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             val image = if (passwordVisible)
@@ -153,18 +159,19 @@ fun SignUpScreen(
                             val description = if (passwordVisible) "Hide password" else "Show password"
 
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(imageVector = image, contentDescription = description)
+                                Icon(imageVector = image, contentDescription = description, modifier = Modifier.size(20.dp))
                             }
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        singleLine = true
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium
                     )
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     
                     Text(
                         text = "I am a:",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -173,18 +180,18 @@ fun SignUpScreen(
                         FilterChip(
                             selected = role == UserRole.CUSTOMER,
                             onClick = { role = UserRole.CUSTOMER },
-                            label = { Text("Customer") },
+                            label = { Text("Customer", style = MaterialTheme.typography.labelSmall) },
                             modifier = Modifier.weight(1f).padding(4.dp)
                         )
                         FilterChip(
                             selected = role == UserRole.PROVIDER,
                             onClick = { role = UserRole.PROVIDER },
-                            label = { Text("Service Provider") },
+                            label = { Text("Provider", style = MaterialTheme.typography.labelSmall) },
                             modifier = Modifier.weight(1f).padding(4.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -192,48 +199,63 @@ fun SignUpScreen(
                     ) {
                         Checkbox(
                             checked = agreedToTerms,
-                            onCheckedChange = { agreedToTerms = it }
+                            onCheckedChange = { agreedToTerms = it },
+                            modifier = Modifier.scale(0.8f)
                         )
                         Text(
-                            text = "I agree to the ",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "Terms & Conditions",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            ),
+                            text = "I agree to the Terms & Conditions",
+                            style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.clickable { showTermsDialog = true }
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
                         onClick = { viewModel.signUp(email, password, fullName, role) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
                         enabled = authState !is AuthState.Loading && agreedToTerms
                     ) {
                         if (authState is AuthState.Loading) {
-                            CircularProgressIndicator(color = Color.White, size = 24.dp)
+                            CircularProgressIndicator(color = Color.White, size = 20.dp, strokeWidth = 2.dp)
                         } else {
-                            Text("Create Account", style = MaterialTheme.typography.titleMedium)
+                            Text("Create Account", style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val context = LocalContext.current
+                    OutlinedButton(
+                        onClick = { viewModel.signInWithGoogle(context, role) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        enabled = agreedToTerms
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.foundation.Image(
+                                painter = painterResource(id = R.drawable.ic_google),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Sign up with Google", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(onClick = onNavigateToLogin) {
                 Text(
                     "Already have an account? Login",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
 

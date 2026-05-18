@@ -173,6 +173,7 @@ private fun getIconForCategory(name: String): ImageVector {
         name.contains("Music") -> Icons.Default.MusicNote
         name.contains("Art") -> Icons.Default.Brush
         name.contains("Pet") -> Icons.Default.Pets
+        name.contains("Report") -> Icons.Default.Description
         else -> Icons.Default.Category
     }
 }
@@ -182,9 +183,10 @@ private fun getColorForCategory(name: String): Color {
         name.contains("Health") || name.contains("Physio") || name.contains("Blood") || name.contains("Nursing") -> Color(0xFFE91E63)
         name.contains("Yoga") || name.contains("Massage") -> Color(0xFF9C27B0)
         name.contains("Makeup") || name.contains("Mehndi") || name.contains("Photography") -> Color(0xFFFF4081)
-        name.contains("Maintenance") || name.contains("Electrician") || name.contains("Plumbing") -> Color(0xFF2196F3)
-        name.contains("Education") || name.contains("Tutors") -> Color(0xFF4CAF50)
-        name.contains("Pet") -> Color(0xFFFF9800)
+        name.contains("Maintenance") || name.contains("Electrician") || name.contains("Plumbing") || name.contains("Cleaning") -> Color(0xFF2196F3)
+        name.contains("Education") || name.contains("Tutors") || name.contains("Art") -> Color(0xFF4CAF50)
+        name.contains("Pet") || name.contains("Music") -> Color(0xFFFF9800)
+        name.contains("Report") -> Color(0xFF7E57C2)
         else -> Color(0xFF607D8B)
     }
 }

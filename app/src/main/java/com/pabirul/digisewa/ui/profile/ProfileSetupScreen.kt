@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.pabirul.digisewa.ui.components.AddressForm
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -235,74 +236,25 @@ fun ProfileSetupScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedTextField(
-            value = address,
-            onValueChange = { address = it },
-            label = { Text("House Address") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = city,
-            onValueChange = { city = it },
-            label = { Text("City") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = vtc,
-            onValueChange = { vtc = it },
-            label = { Text("VTC (Village/Town/City)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = postOffice,
-            onValueChange = { postOffice = it },
-            label = { Text("Post Office") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = policeStation,
-            onValueChange = { policeStation = it },
-            label = { Text("Police Station") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = district,
-            onValueChange = { district = it },
-            label = { Text("District") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = state,
-            onValueChange = { state = it },
-            label = { Text("State") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = pinCode,
-            onValueChange = { pinCode = it },
-            label = { Text("PIN Code") },
-            modifier = Modifier.fillMaxWidth()
+        AddressForm(
+            initialPinCode = pinCode,
+            initialAddress = address,
+            initialVtc = vtc,
+            initialPostOffice = postOffice,
+            initialPoliceStation = policeStation,
+            initialDistrict = district,
+            initialState = state,
+            onAddressChanged = { pin, addr, v, po, ps, d, s ->
+                pinCode = pin
+                address = addr
+                vtc = v
+                postOffice = po
+                policeStation = ps
+                district = d
+                state = s
+                // Set city to vtc by default if not set elsewhere
+                if (city.isEmpty()) city = v
+            }
         )
 
         if (profile.role == UserRole.PROVIDER) {
