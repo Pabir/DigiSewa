@@ -5,9 +5,18 @@ import androidx.lifecycle.viewModelScope
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.UserRole
 import com.pabirul.digisewa.data.repository.AuthRepository
+import android.content.Context
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.security.MessageDigest
+import java.util.UUID
 
 sealed class AuthState {
     object Idle : AuthState()
@@ -22,8 +31,75 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState = _authState.asStateFlow()
 
+    private val WEB_CLIENT_ID = "593490873040-2ea33pv6euvgn6kafsag0poknomtbb3c.apps.googleusercontent.com"
+
     init {
         checkSession()
+    }
+
+    private fun createNonce(): String {
+        val rawNonce = UUID.randomUUID().toString()
+        val bytes = rawNonce.toByteArray()
+        val md = MessageDigest.getInstance("SHA-256")
+        val digest = md.digest(bytes)
+
+        return digest.fold("") { str, it ->
+            str + "%02x".format(it)
+        }
+    }
+
+    fun signInWithGoogle(context: Context, role: UserRole) {
+        val credentialManager = CredentialManager.create(context)
+        
+        val hashedNonce = createNonce()
+        
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setServerClientId(WEB_CLIENT_ID)
+            .setNonce(hashedNonce)
+            .setAutoSelectEnabled(false)
+            .setFilterByAuthorizedAccounts(false)
+            .build()
+
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        viewModelScope.launch {
+            try {
+                _authState.value = AuthState.Loading
+                val result = credentialManager.getCredential(context = context, request = request)
+                handleGoogleSignIn(result, role, hashedNonce)
+            } catch (e: GetCredentialException) {
+                android.util.Log.e("AuthViewModel", "Google Sign-In failed with exception: ${e.type}", e)
+                _authState.value = AuthState.Error(e.message ?: "Google Sign-In failed")
+            } catch (e: Exception) {
+                android.util.Log.e("AuthViewModel", "Unexpected error during Google Sign-In", e)
+                _authState.value = AuthState.Error(e.message ?: "An unexpected error occurred")
+            }
+        }
+    }
+
+    private suspend fun handleGoogleSignIn(result: GetCredentialResponse, role: UserRole, nonce: String) {
+        val credential = result.credential
+        
+        try {
+            // More robust parsing using createFrom as shown in the example
+            val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+            val idToken = googleIdTokenCredential.idToken
+            
+            android.util.Log.d("AuthViewModel", "ID Token obtained, signing in with Supabase...")
+            val loginResult = repository.signInWithGoogle(idToken, role, nonce)
+            loginResult.onSuccess {
+                android.util.Log.d("AuthViewModel", "Supabase sign-in successful")
+                checkSession()
+            }.onFailure {
+                android.util.Log.e("AuthViewModel", "Supabase sign-in failed: ${it.message}", it)
+                _authState.value = AuthState.Error(it.message ?: "Sign-in with Google failed")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("AuthViewModel", "Error parsing Google credential", e)
+            _authState.value = AuthState.Error("Error parsing Google credential: ${e.message}")
+        }
     }
 
     private fun checkSession() {
@@ -87,8 +163,6 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
                 checkSession()
             }.onFailure {
                 _authState.value = AuthState.Error(it.message ?: "OTP Verification failed")
-                // Keep the VerificationSent state so user can retry, but maybe with an error
-                // Actually, let's keep it simple for now
             }
         }
     }

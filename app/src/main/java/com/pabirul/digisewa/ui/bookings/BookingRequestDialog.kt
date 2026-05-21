@@ -35,6 +35,7 @@ import com.google.android.gms.location.Priority
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.R
 import com.pabirul.digisewa.data.repository.BookingSlot
+import com.pabirul.digisewa.ui.components.AddressForm
 import java.time.Duration
 import java.time.Instant
 import java.util.*
@@ -200,19 +201,24 @@ fun BookingRequestDialog(
                     Text(stringResource(R.string.manual_address), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    OutlinedTextField(value = mAddressName, onValueChange = { mAddressName = it }, label = { Text(stringResource(R.string.address_name)) }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(value = mVtc, onValueChange = { mVtc = it }, label = { Text(stringResource(R.string.vtc_label)) }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(value = mPostOffice, onValueChange = { mPostOffice = it }, label = { Text(stringResource(R.string.post_office_label)) }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(value = mPoliceStation, onValueChange = { mPoliceStation = it }, label = { Text(stringResource(R.string.police_station_label)) }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(value = mDistrict, onValueChange = { mDistrict = it }, label = { Text(stringResource(R.string.district_label)) }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(value = mState, onValueChange = { mState = it }, label = { Text(stringResource(R.string.state_label)) }, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(value = mPinCode, onValueChange = { mPinCode = it }, label = { Text(stringResource(R.string.pincode_label)) }, modifier = Modifier.fillMaxWidth())
+                    AddressForm(
+                        initialPinCode = mPinCode,
+                        initialAddress = mAddressName,
+                        initialVtc = mVtc,
+                        initialPostOffice = mPostOffice,
+                        initialPoliceStation = mPoliceStation,
+                        initialDistrict = mDistrict,
+                        initialState = mState,
+                        onAddressChanged = { pin, addr, vtc, po, ps, dist, state ->
+                            mPinCode = pin
+                            mAddressName = addr
+                            mVtc = vtc
+                            mPostOffice = po
+                            mPoliceStation = ps
+                            mDistrict = dist
+                            mState = state
+                        }
+                    )
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
@@ -236,7 +242,7 @@ fun BookingRequestDialog(
                             showAddressForm = false
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = mVtc.isNotEmpty() && mPinCode.isNotEmpty()
+                        enabled = mVtc.isNotEmpty() && mPinCode.isNotEmpty() && mPostOffice.isNotEmpty()
                     ) {
                         Text(stringResource(R.string.confirm_address))
                     }

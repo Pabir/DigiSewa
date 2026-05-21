@@ -68,6 +68,11 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.play.services.ads)
     implementation(libs.lottie.compose)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.androidx.cred.manager)
+    implementation(libs.androidx.cred.play)
+    implementation(libs.google.id)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

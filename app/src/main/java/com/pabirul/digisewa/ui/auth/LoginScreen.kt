@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Path
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +33,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pabirul.digisewa.R
+import com.pabirul.digisewa.UserRole
 import com.pabirul.digisewa.ui.theme.CustomIcons
 import kotlinx.coroutines.delay
 import com.airbnb.lottie.compose.*
@@ -173,13 +176,13 @@ fun AnimatedLoginCard(
             .fillMaxWidth()
             .padding(horizontal = 24.dp)
             .graphicsLayer { translationY = translateY },
-        shape = RoundedCornerShape(48.dp), 
+        shape = RoundedCornerShape(24.dp), 
         color = Color(0xFFF0F7FF), 
         tonalElevation = 2.dp,
         shadowElevation = 8.dp
     ) {
         Column(
-            modifier = Modifier.padding(28.dp),
+            modifier = Modifier.padding(16.dp),
             content = content
         )
     }
@@ -195,7 +198,9 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var selectedGoogleRole by remember { mutableStateOf(UserRole.CUSTOMER) }
     val authState by viewModel.authState.collectAsState()
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -245,7 +250,7 @@ fun LoginScreen(
             drawPath(path, Brush.horizontalGradient(listOf(Color(0xFF009688), Color(0xFF2196F3), Color(0xFF00BCD4)))) // Sea Green to Blue
         }
 
-        // --- MAIN CONTENT COLUMN (No Scroll, Fit to Screen) ---
+        // --- MAIN CONTENT COLUMN (No Scroll, Optimized for One-Screen) ---
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -253,129 +258,171 @@ fun LoginScreen(
                 .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.weight(0.05f))
+            // 1. Showcase Header (Moved higher and made smaller)
+            Box(modifier = Modifier.height(100.dp)) {
+                ServiceTicker()
+            }
 
-            // 1. Showcase Header
-            ServiceTicker()
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // 2. Startup Logo (Bigger)
+            // 2. Startup Logo
             androidx.compose.foundation.Image(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "DigiSewa Logo",
-                modifier = Modifier.size(130.dp)
+                modifier = Modifier.size(90.dp)
             )
 
-            Spacer(modifier = Modifier.weight(0.15f))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // 3. Main Login Interface
             AnimatedLoginCard {
                 Text(
                     text = "Welcome Back",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, color = Color.Black)
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.Black)
                 )
-                Text(
-                    text = "Sign in to continue to DigiSewa",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
+                
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Email Input
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email Address") },
-                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF039BE5)) },
+                    label = { Text("Email", style = MaterialTheme.typography.bodySmall) },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF039BE5), modifier = Modifier.size(16.dp)) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall,
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = Color(0xFFE0E0E0),
                         focusedBorderColor = Color(0xFF039BE5)
                     )
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // Password Input
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF039BE5)) },
+                    label = { Text("Password", style = MaterialTheme.typography.bodySmall) },
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF039BE5), modifier = Modifier.size(16.dp)) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(12.dp),
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
                                 imageVector = if (passwordVisible) CustomIcons.EyeWithEyelashesOpen else CustomIcons.EyeWithEyelashesClosed,
                                 contentDescription = null,
-                                tint = Color.Black
+                                tint = Color.Black,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall,
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = Color(0xFFE0E0E0),
                         focusedBorderColor = Color(0xFF039BE5)
                     )
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Action Button
                 Button(
                     onClick = { viewModel.signIn(email, password) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(20.dp),
+                        .height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
                     enabled = authState !is AuthState.Loading
                 ) {
                     if (authState is AuthState.Loading) {
-                        CircularProgressIndicator(size = 24.dp, color = Color.White, strokeWidth = 3.dp)
+                        CircularProgressIndicator(size = 18.dp, color = Color.White, strokeWidth = 2.dp)
                     } else {
-                        Text("LOGIN", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White))
+                        Text("LOGIN", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold, color = Color.White))
                     }
                 }
 
-                // Error Feedback
                 if (authState is AuthState.Error) {
-                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Wrong Login Details Provided",
+                        text = "Wrong Details",
                         color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp)
                     )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                    Text(" OR ", style = MaterialTheme.typography.labelSmall, color = Color.Gray, modifier = Modifier.padding(horizontal = 8.dp))
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = selectedGoogleRole == UserRole.CUSTOMER,
+                        onClick = { selectedGoogleRole = UserRole.CUSTOMER },
+                        label = { Text("Customer", style = MaterialTheme.typography.labelSmall) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    FilterChip(
+                        selected = selectedGoogleRole == UserRole.PROVIDER,
+                        onClick = { selectedGoogleRole = UserRole.PROVIDER },
+                        label = { Text("Provider", style = MaterialTheme.typography.labelSmall) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Google Login Button
+                OutlinedButton(
+                    onClick = { viewModel.signInWithGoogle(context, selectedGoogleRole) },
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        androidx.compose.foundation.Image(
+                            painter = painterResource(id = R.drawable.ic_google),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Google Sign In", color = Color.Black, style = MaterialTheme.typography.labelLarge)
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.weight(0.15f))
+            Spacer(modifier = Modifier.weight(1f))
 
             // 4. Onboarding Footer
             TextButton(
                 onClick = onNavigateToSignUp,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 8.dp)
             ) {
                 Text(
-                    "New to DigiSewa? Create an account",
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                    "New user? Create an account",
+                    style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.Bold,
-                        color = Color.White // White for better visibility over the blue curve
+                        color = Color.White
                     )
                 )
             }
-            
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
