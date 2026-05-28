@@ -104,4 +104,7 @@
     <string name="cat_music_dance">MUSIC &amp; DANCE</string>
     <string name="cat_nursing">NURSING</string>
     <string name="cat_medical_report">MEDICAL REPORT</string>
+    <string name="cat_karate_training">KARATE TRAINING</string>
+    <string name="cat_real_estate">REAL ESTATE</string>
+    <string name="cat_used_bike">USED BIKE</string>
 </resources>

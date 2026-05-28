@@ -104,4 +104,7 @@
     <string name="cat_music_dance">সঙ্গীত ও নৃত্য</string>
     <string name="cat_nursing">নার্সিং</string>
     <string name="cat_medical_report">মেডিকেল রিপোর্ট</string>
+    <string name="cat_karate_training">কারাতে প্রশিক্ষণ</string>
+    <string name="cat_real_estate">রিয়েল এস্টেট</string>
+    <string name="cat_used_bike">ব্যবহৃত বাইক</string>
 </resources>

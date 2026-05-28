@@ -52,7 +52,10 @@ fun ServiceTicker() {
             Triple(R.string.cat_cleaning, R.raw.cleaning, Color(0xFF4CAF50)),
             Triple(R.string.cat_music_dance, R.raw.music, Color(0xFFFF9800)),
             Triple(R.string.cat_nursing, R.raw.nursing, Color(0xFF2196F3)),
-            Triple(R.string.cat_medical_report, R.raw.report, Color(0xFF7E57C2))
+            Triple(R.string.cat_medical_report, R.raw.report, Color(0xFF7E57C2)),
+            Triple(R.string.cat_karate_training, R.raw.karate, Color(0xFF4CAF50)),
+            Triple(R.string.cat_real_estate, R.raw.real_estate, Color(0xFF2196F3)),
+            Triple(R.string.cat_used_bike, R.raw.used_bike, Color(0xFFFF9800))
         )
     }
 
