@@ -3,6 +3,6 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">openstreetmap.org</domain>
         <domain includeSubdomains="true">unpkg.com</domain>
-        <domain includeSubdomains="true">api.postalpincode.in</domain>
+        <domain includeSubdomains="true">github.io</domain>
     </domain-config>
 </network-security-config>

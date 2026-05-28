@@ -30,22 +30,19 @@ class PincodeViewModel(private val repository: PincodeRepository = PincodeReposi
             _uiState.value = PincodeUiState.Loading
             val result = repository.getPincodeDetails(pincode)
             result.onSuccess { response ->
-                if (response.isNotEmpty() && response[0].status == "Success") {
-                    val postOffices = response[0].postOffice ?: emptyList()
-                    if (postOffices.isNotEmpty()) {
-                        _uiState.value = PincodeUiState.Success(
-                            state = postOffices[0].state,
-                            district = postOffices[0].district,
-                            postOffices = postOffices
-                        )
-                    } else {
-                        _uiState.value = PincodeUiState.Error("No post office found for this PIN code")
-                    }
+                // The new API structure returns the object directly
+                if (response.offices.isNotEmpty()) {
+                    _uiState.value = PincodeUiState.Success(
+                        state = response.state,
+                        district = response.district,
+                        postOffices = response.offices
+                    )
                 } else {
-                    _uiState.value = PincodeUiState.Error(response.getOrNull(0)?.message ?: "Invalid PIN code")
+                    _uiState.value = PincodeUiState.Error("No details found for this PIN code")
                 }
             }.onFailure {
-                _uiState.value = PincodeUiState.Error(it.message ?: "Network failure")
+                android.util.Log.e("PincodeVM", "Fetch failed", it)
+                _uiState.value = PincodeUiState.Error("Invalid PIN or Network Error")
             }
         }
     }

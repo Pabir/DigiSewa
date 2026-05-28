@@ -150,7 +150,7 @@ fun AddressForm(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPo) }
                 )
 
-                val filteredOptions = s.postOffices.filter { it.name.contains(postOffice, ignoreCase = true) }
+                val filteredOptions = s.postOffices.filter { it.officeName.contains(postOffice, ignoreCase = true) }
                 if (filteredOptions.isNotEmpty()) {
                     ExposedDropdownMenu(
                         expanded = expandedPo,
@@ -158,9 +158,9 @@ fun AddressForm(
                     ) {
                         filteredOptions.forEach { option ->
                             DropdownMenuItem(
-                                text = { Text(option.name) },
+                                text = { Text(option.officeName) },
                                 onClick = {
-                                    postOffice = option.name
+                                    postOffice = option.officeName
                                     expandedPo = false
                                     notifyChanges()
                                 }
