@@ -15,13 +15,13 @@ object AdMobHelper {
     private var mRewardedAd: RewardedAd? = null
     private const val TAG = "AdMobHelper"
 
-    // Test IDs
-    private const val INTERSTITIAL_TEST_ID = "ca-app-pub-3940256099942544/1033173712"
-    private const val REWARDED_TEST_ID = "ca-app-pub-3940256099942544/5224354917"
+    // Real Ad Unit IDs
+    private const val INTERSTITIAL_ID = "ca-app-pub-2638459468563062/5686353780"
+    private const val REWARDED_ID = "ca-app-pub-2638459468563062/7079326504"
 
     fun loadInterstitial(context: Context) {
         val adRequest = AdRequest.Builder().build()
-        InterstitialAd.load(context, INTERSTITIAL_TEST_ID, adRequest, object : InterstitialAdLoadCallback() {
+        InterstitialAd.load(context, INTERSTITIAL_ID, adRequest, object : InterstitialAdLoadCallback() {
             override fun onAdFailedToLoad(adError: LoadAdError) {
                 Log.d(TAG, "Interstitial failed to load: ${adError.message}")
                 mInterstitialAd = null
@@ -48,7 +48,7 @@ object AdMobHelper {
 
     fun loadRewardedAd(context: Context) {
         val adRequest = AdRequest.Builder().build()
-        RewardedAd.load(context, REWARDED_TEST_ID, adRequest, object : RewardedAdLoadCallback() {
+        RewardedAd.load(context, REWARDED_ID, adRequest, object : RewardedAdLoadCallback() {
             override fun onAdFailedToLoad(adError: LoadAdError) {
                 Log.d(TAG, "Rewarded Ad failed to load: ${adError.message}")
                 mRewardedAd = null

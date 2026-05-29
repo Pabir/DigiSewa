@@ -11,7 +11,7 @@ import com.google.android.gms.ads.AdView
 @Composable
 fun AdMobBanner(
     modifier: Modifier = Modifier,
-    adUnitId: String = "ca-app-pub-3940256099942544/6300978111" // Sample Test Ad Unit ID
+    adUnitId: String = "ca-app-pub-2638459468563062/6041880923" // DigiSewa Real Banner Ad Unit ID
 ) {
     AndroidView(
         modifier = modifier.fillMaxWidth(),
