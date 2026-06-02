@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -52,6 +53,10 @@ fun AddEditServiceScreen(
     var description by remember { mutableStateOf(service?.description ?: "") }
     var basePrice by remember { mutableStateOf(service?.basePrice?.toString() ?: "") }
     var duration by remember { mutableStateOf(service?.durationMinutes?.toString() ?: "60") }
+    var durationUnit by remember { mutableStateOf(service?.durationUnit ?: "Minutes") }
+    
+    val durationUnits = listOf("Minutes", "Hours", "Days", "Weeks", "Months")
+    var durationUnitExpanded by remember { mutableStateOf(false) }
     
     var mainImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val galleryBitmaps = remember { mutableStateListOf<Bitmap>() }
@@ -144,14 +149,14 @@ fun AddEditServiceScreen(
                 } else {
                     Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxSize()) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            androidx.compose.foundation.Image(
-                                painter = painterResource(id = R.drawable.ic_logo),
+                            Icon(
+                                imageVector = Icons.Default.AddAPhoto,
                                 contentDescription = null,
-                                modifier = Modifier.size(100.dp),
-                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Add Main Image")
+                            Text("Add Main Image", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
@@ -181,15 +186,19 @@ fun AddEditServiceScreen(
                 item {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.size(100.dp).padding(4.dp).clickable { galleryLauncher.launch("image/*") }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            androidx.compose.foundation.Image(
-                                painter = painterResource(id = R.drawable.ic_logo),
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.AddAPhoto,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp),
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                )
+                                Text("Add More", style = MaterialTheme.typography.labelSmall)
+                            }
                         }
                     }
                 }
@@ -228,10 +237,39 @@ fun AddEditServiceScreen(
                 OutlinedTextField(
                     value = duration,
                     onValueChange = { duration = it },
-                    label = { Text("Duration (Min)") },
+                    label = { Text("Duration") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                ExposedDropdownMenuBox(
+                    expanded = durationUnitExpanded,
+                    onExpandedChange = { durationUnitExpanded = !durationUnitExpanded },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = durationUnit,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Unit") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = durationUnitExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = durationUnitExpanded,
+                        onDismissRequest = { durationUnitExpanded = false }
+                    ) {
+                        durationUnits.forEach { unit ->
+                            DropdownMenuItem(
+                                text = { Text(unit) },
+                                onClick = {
+                                    durationUnit = unit
+                                    durationUnitExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -263,6 +301,7 @@ fun AddEditServiceScreen(
                         description = description,
                         basePrice = price,
                         durationMinutes = cleanDuration.toIntOrNull() ?: 60,
+                        durationUnit = durationUnit,
                         mainImageUrl = service?.mainImageUrl
                     )
                     

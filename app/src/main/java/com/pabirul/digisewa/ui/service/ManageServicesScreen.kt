@@ -104,7 +104,7 @@ fun ServiceItem(service: Service, onEdit: () -> Unit, onDelete: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = service.title ?: "Untitled", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                 Text(
-                    text = "₹${service.basePrice ?: 0} | ${service.durationMinutes ?: 0} min",
+                    text = "₹${service.basePrice ?: 0} | ${service.durationMinutes ?: 0} ${service.durationUnit ?: "Min"}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )

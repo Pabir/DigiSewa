@@ -133,6 +133,7 @@ data class Service(
     val description: String? = null,
     @kotlinx.serialization.SerialName("base_price") val basePrice: Int? = null,
     @kotlinx.serialization.SerialName("duration_minutes") val durationMinutes: Int? = null,
+    @kotlinx.serialization.SerialName("duration_unit") val durationUnit: String? = "Minutes",
     @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
     @kotlinx.serialization.SerialName("is_active") val isActive: Boolean? = null,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
@@ -153,6 +154,7 @@ data class ServiceWithProvider(
     val description: String? = null,
     @kotlinx.serialization.SerialName("base_price") val basePrice: Int,
     @kotlinx.serialization.SerialName("duration_minutes") val durationMinutes: Int,
+    @kotlinx.serialization.SerialName("duration_unit") val durationUnit: String = "Minutes",
     @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
     val provider: ProfileWithDetails
 )

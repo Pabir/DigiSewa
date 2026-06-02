@@ -197,7 +197,7 @@ fun ServiceDetailScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.outline)
                     Text(
-                        text = " ${stringResource(R.string.minutes_session, serviceWithProvider.durationMinutes ?: 0)}",
+                        text = " ${serviceWithProvider.durationMinutes ?: 0} ${serviceWithProvider.durationUnit ?: "Min"}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -286,7 +286,11 @@ fun ServiceDetailScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(100.dp)) // Extra space for bottom bar
+                // Ensure content is not covered by the bottom bar
+                Spacer(modifier = Modifier
+                    .navigationBarsPadding()
+                    .height(120.dp)
+                )
             }
         }
 
