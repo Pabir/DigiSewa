@@ -38,6 +38,7 @@ object Supabase {
 enum class UserRole {
     @kotlinx.serialization.SerialName("customer") CUSTOMER,
     @kotlinx.serialization.SerialName("provider") PROVIDER,
+    @kotlinx.serialization.SerialName("agent") AGENT,
     @kotlinx.serialization.SerialName("admin") ADMIN
 }
 

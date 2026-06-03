@@ -181,13 +181,19 @@ fun SignUpScreen(
                             selected = role == UserRole.CUSTOMER,
                             onClick = { role = UserRole.CUSTOMER },
                             label = { Text("Customer", style = MaterialTheme.typography.labelSmall) },
-                            modifier = Modifier.weight(1f).padding(4.dp)
+                            modifier = Modifier.weight(1f).padding(2.dp)
                         )
                         FilterChip(
                             selected = role == UserRole.PROVIDER,
                             onClick = { role = UserRole.PROVIDER },
                             label = { Text("Provider", style = MaterialTheme.typography.labelSmall) },
-                            modifier = Modifier.weight(1f).padding(4.dp)
+                            modifier = Modifier.weight(1f).padding(2.dp)
+                        )
+                        FilterChip(
+                            selected = role == UserRole.AGENT,
+                            onClick = { role = UserRole.AGENT },
+                            label = { Text("Agent", style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.weight(1f).padding(2.dp)
                         )
                     }
 

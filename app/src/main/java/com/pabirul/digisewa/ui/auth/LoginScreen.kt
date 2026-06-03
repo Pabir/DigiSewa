@@ -379,14 +379,21 @@ fun LoginScreen(
                         selected = selectedGoogleRole == UserRole.CUSTOMER,
                         onClick = { selectedGoogleRole = UserRole.CUSTOMER },
                         label = { Text("Customer", style = MaterialTheme.typography.labelSmall) },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).padding(2.dp),
                         shape = RoundedCornerShape(12.dp)
                     )
                     FilterChip(
                         selected = selectedGoogleRole == UserRole.PROVIDER,
                         onClick = { selectedGoogleRole = UserRole.PROVIDER },
                         label = { Text("Provider", style = MaterialTheme.typography.labelSmall) },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).padding(2.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    FilterChip(
+                        selected = selectedGoogleRole == UserRole.AGENT,
+                        onClick = { selectedGoogleRole = UserRole.AGENT },
+                        label = { Text("Agent", style = MaterialTheme.typography.labelSmall) },
+                        modifier = Modifier.weight(1f).padding(2.dp),
                         shape = RoundedCornerShape(12.dp)
                     )
                 }

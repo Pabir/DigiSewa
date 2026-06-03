@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pabirul.digisewa.ui.agent.*
 import com.pabirul.digisewa.ui.auth.*
 import com.pabirul.digisewa.ui.components.AppDrawer
 import com.pabirul.digisewa.ui.discovery.*
@@ -60,6 +61,7 @@ class MainActivity : AppCompatActivity() {
                 // Navigation States
                 var providerSubScreen by remember { mutableStateOf("dashboard") }
                 var customerSubScreen by remember { mutableStateOf("home") }
+                var agentSubScreen by remember { mutableStateOf("dashboard") }
                 var generalSubScreen by remember { mutableStateOf("") }
                 var isEditingProfile by remember { mutableStateOf(false) }
                 
@@ -80,6 +82,8 @@ class MainActivity : AppCompatActivity() {
                         drawerState.isOpen -> scope.launch { drawerState.close() }
                         isEditingProfile -> isEditingProfile = false
                         generalSubScreen == "bookings" -> generalSubScreen = ""
+                        // Agent Navigation
+                        agentSubScreen == "onboard" || agentSubScreen == "list" -> agentSubScreen = "dashboard"
                         // Provider Navigation
                         providerSubScreen == "requirement_detail" -> providerSubScreen = "lead_feed"
                         providerSubScreen == "lead_feed" -> providerSubScreen = "dashboard"
@@ -132,6 +136,7 @@ class MainActivity : AppCompatActivity() {
                                                 "home" -> {
                                                     providerSubScreen = "dashboard"
                                                     customerSubScreen = "home"
+                                                    agentSubScreen = "dashboard"
                                                     generalSubScreen = ""
                                                 }
                                                 "requirements" -> {
@@ -208,6 +213,28 @@ class MainActivity : AppCompatActivity() {
                                             )
                                         } else if (generalSubScreen == "settings") {
                                             com.pabirul.digisewa.ui.settings.SettingsScreen()
+                                        } else if (state.profile.role == UserRole.AGENT) {
+                                            when (agentSubScreen) {
+                                                "onboard" -> {
+                                                    // TODO: OnboardProviderScreen
+                                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                        Text("Onboard Provider Screen (Coming Soon)")
+                                                    }
+                                                }
+                                                "list" -> {
+                                                    // TODO: MyOnboardedProvidersScreen
+                                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                        Text("My Onboarded Providers Screen (Coming Soon)")
+                                                    }
+                                                }
+                                                else -> {
+                                                    AgentDashboardScreen(
+                                                        profile = state.profile,
+                                                        onOnboardProvider = { agentSubScreen = "onboard" },
+                                                        onViewMyProviders = { agentSubScreen = "list" }
+                                                    )
+                                                }
+                                            }
                                         } else if (state.profile.role == UserRole.PROVIDER) {
                                             when (providerSubScreen) {
                                                 "lead_feed" -> {
