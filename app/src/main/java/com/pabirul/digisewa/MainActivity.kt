@@ -214,18 +214,24 @@ class MainActivity : AppCompatActivity() {
                                         } else if (generalSubScreen == "settings") {
                                             com.pabirul.digisewa.ui.settings.SettingsScreen()
                                         } else if (state.profile.role == UserRole.AGENT) {
+                                            val agentViewModel: AgentViewModel = viewModel()
                                             when (agentSubScreen) {
                                                 "onboard" -> {
-                                                    // TODO: OnboardProviderScreen
-                                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                        Text("Onboard Provider Screen (Coming Soon)")
-                                                    }
+                                                    val discoveryViewModel: DiscoveryViewModel = viewModel()
+                                                    val categories by discoveryViewModel.categories.collectAsState()
+                                                    OnboardProviderScreen(
+                                                        agentProfile = state.profile,
+                                                        categories = categories,
+                                                        viewModel = agentViewModel,
+                                                        onBack = { agentSubScreen = "dashboard" }
+                                                    )
                                                 }
                                                 "list" -> {
-                                                    // TODO: MyOnboardedProvidersScreen
-                                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                                        Text("My Onboarded Providers Screen (Coming Soon)")
-                                                    }
+                                                    MyLeadsScreen(
+                                                        agentProfile = state.profile,
+                                                        viewModel = agentViewModel,
+                                                        onBack = { agentSubScreen = "dashboard" }
+                                                    )
                                                 }
                                                 else -> {
                                                     AgentDashboardScreen(
