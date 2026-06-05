@@ -108,4 +108,7 @@
     <string name="cat_real_estate">রিয়েল এস্টেট</string>
     <string name="cat_used_bike">ব্যবহৃত বাইক</string>
     <string name="cat_ac_fridge">এসি/ফ্রিজ মেরামত</string>
+    <string name="cat_tax_consultant">কর উপদেষ্টা</string>
+    <string name="cat_decorator">ডেকোরেটর/ইভেন্ট প্ল্যানার</string>
+    <string name="cat_interior_design">ইন্টেরিয়র ডিজাইন</string>
 </resources>

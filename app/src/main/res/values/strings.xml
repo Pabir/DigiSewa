@@ -108,4 +108,7 @@
     <string name="cat_real_estate">REAL ESTATE</string>
     <string name="cat_used_bike">USED BIKE</string>
     <string name="cat_ac_fridge">AC/FRIDGE REPAIR</string>
+    <string name="cat_tax_consultant">TAX CONSULTANT</string>
+    <string name="cat_decorator">DECORATOR/EVENT PLANNER</string>
+    <string name="cat_interior_design">INTERIOR DESIGN</string>
 </resources>

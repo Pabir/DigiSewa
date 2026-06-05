@@ -178,6 +178,9 @@ private fun getIconForCategory(name: String): ImageVector {
         name.contains("Real Estate") -> Icons.Default.HomeWork
         name.contains("Used Bike") -> Icons.Default.TwoWheeler
         name.contains("AC") || name.contains("Fridge") -> Icons.Default.AcUnit
+        name.contains("Tax") -> Icons.Default.AccountBalance
+        name.contains("Decorator") -> Icons.Default.Celebration
+        name.contains("Interior") -> Icons.Default.DesignServices
         else -> Icons.Default.Category
     }
 }
@@ -186,10 +189,11 @@ private fun getColorForCategory(name: String): Color {
     return when {
         name.contains("Health") || name.contains("Physio") || name.contains("Blood") || name.contains("Nursing") -> Color(0xFFE91E63)
         name.contains("Yoga") || name.contains("Massage") -> Color(0xFF9C27B0)
-        name.contains("Makeup") || name.contains("Mehndi") || name.contains("Photography") -> Color(0xFFFF4081)
+        name.contains("Makeup") || name.contains("Mehndi") || name.contains("Photography") || name.contains("Decorator") -> Color(0xFFFF4081)
         name.contains("Maintenance") || name.contains("Electrician") || name.contains("Plumbing") || name.contains("Cleaning") || name.contains("Real Estate") || name.contains("AC") || name.contains("Fridge") -> Color(0xFF2196F3)
-        name.contains("Education") || name.contains("Tutors") || name.contains("Art") || name.contains("Karate") -> Color(0xFF4CAF50)
+        name.contains("Education") || name.contains("Tutors") || name.contains("Art") || name.contains("Karate") || name.contains("Tax") -> Color(0xFF4CAF50)
         name.contains("Pet") || name.contains("Music") || name.contains("Used Bike") -> Color(0xFFFF9800)
+        name.contains("Interior") -> Color(0xFF795548)
         name.contains("Report") -> Color(0xFF7E57C2)
         else -> Color(0xFF607D8B)
     }

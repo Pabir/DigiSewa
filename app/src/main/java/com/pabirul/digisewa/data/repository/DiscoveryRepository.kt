@@ -13,7 +13,10 @@ class DiscoveryRepository {
     suspend fun getCategories(): List<Category> {
         return try {
             val columns = Columns.raw("id, name, name_bn, name_hi, description, icon_url")
-            postgrest.from("categories").select(columns).decodeList<Category>()
+            val list = postgrest.from("categories").select(columns).decodeList<Category>()
+            android.util.Log.d("DiscoveryRepo", "Categories fetched: ${list.size}")
+            list.forEach { android.util.Log.d("DiscoveryRepo", " - Category: ${it.name}") }
+            list
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()

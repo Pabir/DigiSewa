@@ -108,4 +108,7 @@
     <string name="cat_real_estate">रियल एस्टेट</string>
     <string name="cat_used_bike">पुरानी बाइक</string>
     <string name="cat_ac_fridge">एसी/फ्रिज मरम्मत</string>
+    <string name="cat_tax_consultant">कर सलाहकार</string>
+    <string name="cat_decorator">डेकोरेटर/इवेंट प्लानर</string>
+    <string name="cat_interior_design">इंटीरियर डिजाइन</string>
 </resources>
