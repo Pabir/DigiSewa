@@ -119,7 +119,7 @@ fun ServiceCard(serviceWithProvider: ServiceWithProvider, onClick: () -> Unit) {
                         .align(Alignment.TopEnd)
                 ) {
                     Text(
-                        text = "₹${serviceWithProvider.basePrice}",
+                        text = "₹${serviceWithProvider.customerPrice}",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelLarge.copy(
                             color = Color.White,

@@ -92,7 +92,7 @@ fun ServiceDetailScreen(
                     providerId = provider.id,
                     serviceId = serviceWithProvider.id,
                     scheduledAt = scheduledAt,
-                    totalPrice = serviceWithProvider.basePrice,
+                    totalPrice = serviceWithProvider.customerPrice,
                     lat = lat,
                     lng = lng,
                     serviceLocationName = locName
@@ -310,7 +310,7 @@ fun ServiceDetailScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = stringResource(R.string.total_price), style = MaterialTheme.typography.bodySmall)
                     Text(
-                        text = "₹${serviceWithProvider.basePrice}",
+                        text = "₹${serviceWithProvider.customerPrice}",
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary

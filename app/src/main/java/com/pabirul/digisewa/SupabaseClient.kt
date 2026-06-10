@@ -158,7 +158,9 @@ data class ServiceWithProvider(
     @kotlinx.serialization.SerialName("duration_unit") val durationUnit: String = "Minutes",
     @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
     val provider: ProfileWithDetails
-)
+) {
+    val customerPrice: Int get() = (basePrice * 1.15).toInt()
+}
 
 @Serializable
 enum class BookingStatus {
@@ -251,7 +253,9 @@ data class RequirementResponseWithProvider(
     val provider: ProfileWithDetails? = null,
     val service: Service? = null,
     val requirement: Requirement? = null
-)
+) {
+    val customerPrice: Int get() = (quoteAmount * 1.15).toInt()
+}
 
 @Serializable
 data class Booking(

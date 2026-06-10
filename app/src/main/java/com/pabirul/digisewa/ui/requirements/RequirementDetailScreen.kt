@@ -286,7 +286,7 @@ fun ResponseItem(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(text = response.provider?.fullName ?: "Provider", fontWeight = FontWeight.Bold)
-                    Text(text = "₹${response.quoteAmount}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Text(text = "₹${response.customerPrice}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     if (response.scheduledAt != null) {
                         Text(
                             text = stringResource(R.string.proposed_time_label, response.scheduledAt.replace("T", " ").replace("Z", "")),

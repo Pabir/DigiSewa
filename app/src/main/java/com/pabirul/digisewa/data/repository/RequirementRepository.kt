@@ -138,7 +138,7 @@ class RequirementRepository {
                 providerId = responseWithDetails.providerId,
                 serviceId = responseWithDetails.serviceId!!,
                 scheduledAt = responseWithDetails.scheduledAt ?: req.scheduledAt ?: throw Exception("No date/time specified"),
-                totalPrice = responseWithDetails.quoteAmount,
+                totalPrice = responseWithDetails.customerPrice,
                 lat = req.lat,
                 lng = req.lng,
                 serviceLocationName = req.locationName
