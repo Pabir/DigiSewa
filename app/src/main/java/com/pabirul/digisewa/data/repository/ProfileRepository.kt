@@ -3,6 +3,7 @@ package com.pabirul.digisewa.data.repository
 import com.pabirul.digisewa.Category
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.ProviderDetails
+import com.pabirul.digisewa.Store
 import com.pabirul.digisewa.Supabase
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
@@ -43,6 +44,16 @@ class ProfileRepository {
     suspend fun updateProviderDetails(details: ProviderDetails): Result<Unit> {
         return try {
             postgrest.from("provider_details").upsert(details)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateStoreDetails(details: Store): Result<Unit> {
+        return try {
+            postgrest.from("stores").upsert(details)
             Result.success(Unit)
         } catch (e: Exception) {
             e.printStackTrace()

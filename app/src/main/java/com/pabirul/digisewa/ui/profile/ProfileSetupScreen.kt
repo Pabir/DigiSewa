@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.ProviderDetails
+import com.pabirul.digisewa.Store
 import com.pabirul.digisewa.UserRole
 import java.io.ByteArrayOutputStream
 
@@ -68,6 +69,11 @@ fun ProfileSetupScreen(
     var bankIfsc by remember { mutableStateOf("") }
     var bankAccountName by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<Int?>(null) }
+
+    // Shopkeeper specific
+    var storeName by remember { mutableStateOf("") }
+    var storeDescription by remember { mutableStateOf("") }
+    var storePhone by remember { mutableStateOf("") }
     
     val categories by viewModel.categories.collectAsState()
     val setupState by viewModel.setupState.collectAsState()
@@ -266,12 +272,13 @@ fun ProfileSetupScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             var expanded by remember { mutableStateOf(false) }
+            val filteredCategories = categories.filter { it.type == "service" }
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded }
             ) {
                 OutlinedTextField(
-                    value = categories.find { it.id == selectedCategoryId }?.name ?: "Select Category",
+                    value = filteredCategories.find { it.id == selectedCategoryId }?.name ?: "Select Category",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Category") },
@@ -282,7 +289,7 @@ fun ProfileSetupScreen(
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    categories.forEach { category ->
+                    filteredCategories.forEach { category ->
                         DropdownMenuItem(
                             text = { Text(category.name) },
                             onClick = {
@@ -365,6 +372,78 @@ fun ProfileSetupScreen(
             )
         }
 
+        if (profile.role == UserRole.SHOPKEEPER) {
+            Spacer(modifier = Modifier.height(24.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Store Details", style = MaterialTheme.typography.titleLarge)
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = storeName,
+                onValueChange = { storeName = it },
+                label = { Text("Store Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = storePhone,
+                onValueChange = { storePhone = it },
+                label = { Text("Store Phone Number") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = storeDescription,
+                onValueChange = { storeDescription = it },
+                label = { Text("Store Description") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            var expanded by remember { mutableStateOf(false) }
+            val filteredCategories = categories.filter { 
+                if (profile.role == UserRole.PROVIDER) it.type == "service" else it.type == "store"
+            }
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = filteredCategories.find { it.id == selectedCategoryId }?.name ?: "Select Store Category",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Store Category") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    filteredCategories.forEach { category ->
+                        DropdownMenuItem(
+                            text = { Text(category.name) },
+                            onClick = {
+                                selectedCategoryId = category.id
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
@@ -401,8 +480,19 @@ fun ProfileSetupScreen(
                         bankIfsc = bankIfsc
                     )
                 } else null
-                
-                viewModel.completeProfile(updatedProfile, providerDetails, avatarBytes)
+
+                val storeDetails = if (profile.role == UserRole.SHOPKEEPER) {
+                    Store(
+                        ownerId = profile.id,
+                        name = storeName,
+                        description = storeDescription,
+                        phoneNumber = storePhone,
+                        categoryId = selectedCategoryId,
+                        address = address
+                    )
+                } else null
+
+                viewModel.completeProfile(updatedProfile, providerDetails, storeDetails, avatarBytes)
             },
             modifier = Modifier.fillMaxWidth(),
             enabled = setupState !is ProfileSetupState.Loading

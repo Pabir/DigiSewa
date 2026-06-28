@@ -126,8 +126,9 @@ fun AppDrawer(
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
+                    val roleLabel = if (profile.role == UserRole.AGENT) "Associate" else profile.role.name.lowercase().capitalize()
                     Text(
-                        text = profile.role.name.lowercase().capitalize(),
+                        text = roleLabel,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         style = MaterialTheme.typography.labelSmall.copy(color = Color.White)
                     )
@@ -197,6 +198,21 @@ fun AppDrawer(
                 selected = false,
                 onClick = { 
                     onNavigate("manage_services")
+                    closeDrawer()
+                },
+                icon = { Icon(Icons.Default.MedicalServices, contentDescription = null) },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = NavigationDrawerItemDefaults.colors(unselectedIconColor = MaterialTheme.colorScheme.primary)
+            )
+        }
+
+        if (profile.role == UserRole.SHOPKEEPER) {
+            NavigationDrawerItem(
+                label = { Text("My Store", fontWeight = FontWeight.SemiBold) },
+                selected = false,
+                onClick = { 
+                    onNavigate("home") // Shopkeeper Home is Dashboard
                     closeDrawer()
                 },
                 icon = { Icon(Icons.Default.Storefront, contentDescription = null) },

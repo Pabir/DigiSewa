@@ -373,32 +373,45 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    FilterChip(
-                        selected = selectedGoogleRole == UserRole.CUSTOMER,
-                        onClick = { selectedGoogleRole = UserRole.CUSTOMER },
-                        label = { Text("Customer", style = MaterialTheme.typography.labelSmall) },
-                        modifier = Modifier.weight(1f).padding(2.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    FilterChip(
-                        selected = selectedGoogleRole == UserRole.PROVIDER,
-                        onClick = { selectedGoogleRole = UserRole.PROVIDER },
-                        label = { Text("Provider", style = MaterialTheme.typography.labelSmall) },
-                        modifier = Modifier.weight(1f).padding(2.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    FilterChip(
-                        selected = selectedGoogleRole == UserRole.AGENT,
-                        onClick = { selectedGoogleRole = UserRole.AGENT },
-                        label = { Text("Agent", style = MaterialTheme.typography.labelSmall) },
-                        modifier = Modifier.weight(1f).padding(2.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = selectedGoogleRole == UserRole.CUSTOMER,
+                            onClick = { selectedGoogleRole = UserRole.CUSTOMER },
+                            label = { Text("Customer", style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.weight(1f).padding(2.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        FilterChip(
+                            selected = selectedGoogleRole == UserRole.PROVIDER,
+                            onClick = { selectedGoogleRole = UserRole.PROVIDER },
+                            label = { Text("Provider", style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.weight(1f).padding(2.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = selectedGoogleRole == UserRole.SHOPKEEPER,
+                            onClick = { selectedGoogleRole = UserRole.SHOPKEEPER },
+                            label = { Text("Shopkeeper", style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.weight(1f).padding(2.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        FilterChip(
+                            selected = selectedGoogleRole == UserRole.AGENT,
+                            onClick = { selectedGoogleRole = UserRole.AGENT },
+                            label = { Text("Associate", style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.weight(1f).padding(2.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))

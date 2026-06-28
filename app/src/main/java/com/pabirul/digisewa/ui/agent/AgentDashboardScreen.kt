@@ -27,7 +27,7 @@ fun AgentDashboardScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Agent Dashboard",
+            text = "Associate Dashboard",
             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
         )
         Text(

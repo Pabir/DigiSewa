@@ -152,48 +152,40 @@ fun CategoryCard(category: Category, onClick: () -> Unit) {
     }
 }
 
-private fun getIconForCategory(name: String): ImageVector {
+fun getIconForCategory(name: String): ImageVector {
     return when {
-        name.contains("Physiotherapy") -> Icons.Default.HealthAndSafety
-        name.contains("Blood") -> Icons.Default.Bloodtype
-        name.contains("Nursing") -> Icons.Default.MedicalServices
-        name.contains("Yoga") -> Icons.Default.SelfImprovement
-        name.contains("Massage") -> Icons.Default.Spa
-        name.contains("Makeup") -> Icons.Default.Face
-        name.contains("Mehndi") -> Icons.Default.Palette
-        name.contains("Photography") -> Icons.Default.PhotoCamera
-        name.contains("Priest") -> Icons.Default.Church
-        name.contains("Waitstaff") -> Icons.Default.Restaurant
-        name.contains("Electrician") -> Icons.Default.ElectricalServices
-        name.contains("Plumbing") -> Icons.Default.Plumbing
-        name.contains("Appliances") -> Icons.Default.HomeRepairService
-        name.contains("Cleaning") -> Icons.Default.CleaningServices
-        name.contains("Pest") -> Icons.Default.BugReport
-        name.contains("Tutors") -> Icons.Default.School
-        name.contains("Music") -> Icons.Default.MusicNote
-        name.contains("Art") -> Icons.Default.Brush
-        name.contains("Pet") -> Icons.Default.Pets
-        name.contains("Report") -> Icons.Default.Description
-        name.contains("Karate") -> Icons.Default.SportsMartialArts
-        name.contains("Real Estate") -> Icons.Default.HomeWork
-        name.contains("Used Bike") -> Icons.Default.TwoWheeler
-        name.contains("AC") || name.contains("Fridge") -> Icons.Default.AcUnit
-        name.contains("Tax") -> Icons.Default.AccountBalance
         name.contains("Decorator") -> Icons.Default.Celebration
         name.contains("Interior") -> Icons.Default.DesignServices
+        name.contains("Grocery") -> Icons.Default.ShoppingCart
+        name.contains("Pharmacy") -> Icons.Default.LocalPharmacy
+        name.contains("Electronics") -> Icons.Default.Computer
+        name.contains("Fashion") || name.contains("Footwear") -> Icons.Default.Checkroom
+        name.contains("Home") || name.contains("Furniture") -> Icons.Default.Weekend
+        name.contains("Beauty") -> Icons.Default.AutoAwesome
+        name.contains("Toys") || name.contains("Baby") -> Icons.Default.ChildCare
+        name.contains("Sports") || name.contains("Fitness") -> Icons.Default.FitnessCenter
+        name.contains("Books") || name.contains("Stationery") -> Icons.Default.MenuBook
+        name.contains("Automotive") -> Icons.Default.DirectionsCar
+        name.contains("Tools") || name.contains("Hardware") -> Icons.Default.Construction
+        name.contains("Pet Supplies") -> Icons.Default.Pets
+        name.contains("Musical Instruments") -> Icons.Default.MusicNote
+        name.contains("Jewellery") -> Icons.Default.Diamond
+        name.contains("Luggage") -> Icons.Default.Luggage
+        name.contains("Mobile") || name.contains("Tablet") -> Icons.Default.Smartphone
+        name.contains("Garden") -> Icons.Default.Grass
         else -> Icons.Default.Category
     }
 }
 
-private fun getColorForCategory(name: String): Color {
+fun getColorForCategory(name: String): Color {
     return when {
-        name.contains("Health") || name.contains("Physio") || name.contains("Blood") || name.contains("Nursing") -> Color(0xFFE91E63)
-        name.contains("Yoga") || name.contains("Massage") -> Color(0xFF9C27B0)
-        name.contains("Makeup") || name.contains("Mehndi") || name.contains("Photography") || name.contains("Decorator") -> Color(0xFFFF4081)
-        name.contains("Maintenance") || name.contains("Electrician") || name.contains("Plumbing") || name.contains("Cleaning") || name.contains("Real Estate") || name.contains("AC") || name.contains("Fridge") -> Color(0xFF2196F3)
-        name.contains("Education") || name.contains("Tutors") || name.contains("Art") || name.contains("Karate") || name.contains("Tax") -> Color(0xFF4CAF50)
-        name.contains("Pet") || name.contains("Music") || name.contains("Used Bike") -> Color(0xFFFF9800)
-        name.contains("Interior") -> Color(0xFF795548)
+        name.contains("Health") || name.contains("Physio") || name.contains("Blood") || name.contains("Nursing") || name.contains("Pharmacy") -> Color(0xFFE91E63)
+        name.contains("Yoga") || name.contains("Massage") || name.contains("Fitness") -> Color(0xFF9C27B0)
+        name.contains("Makeup") || name.contains("Mehndi") || name.contains("Photography") || name.contains("Decorator") || name.contains("Beauty") || name.contains("Fashion") || name.contains("Jewellery") -> Color(0xFFFF4081)
+        name.contains("Maintenance") || name.contains("Electrician") || name.contains("Plumbing") || name.contains("Cleaning") || name.contains("Real Estate") || name.contains("AC") || name.contains("Fridge") || name.contains("Electronics") || name.contains("Automotive") || name.contains("Tools") || name.contains("Hardware") || name.contains("Mobile") -> Color(0xFF2196F3)
+        name.contains("Education") || name.contains("Tutors") || name.contains("Art") || name.contains("Karate") || name.contains("Tax") || name.contains("Grocery") || name.contains("Garden") -> Color(0xFF4CAF50)
+        name.contains("Pet") || name.contains("Music") || name.contains("Used Bike") || name.contains("Toys") || name.contains("Baby") || name.contains("Books") || name.contains("Stationery") || name.contains("Luggage") -> Color(0xFFFF9800)
+        name.contains("Interior") || name.contains("Home") || name.contains("Furniture") -> Color(0xFF795548)
         name.contains("Report") -> Color(0xFF7E57C2)
         else -> Color(0xFF607D8B)
     }

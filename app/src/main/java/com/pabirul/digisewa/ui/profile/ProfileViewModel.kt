@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pabirul.digisewa.Category
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.ProviderDetails
+import com.pabirul.digisewa.Store
 import com.pabirul.digisewa.data.repository.ProfileRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,6 +42,7 @@ class ProfileViewModel(private val repository: ProfileRepository = ProfileReposi
     fun completeProfile(
         profile: Profile,
         providerDetails: ProviderDetails? = null,
+        storeDetails: Store? = null,
         avatarBytes: ByteArray? = null
     ) {
         viewModelScope.launch {
@@ -70,6 +72,14 @@ class ProfileViewModel(private val repository: ProfileRepository = ProfileReposi
                 val providerResult = repository.updateProviderDetails(providerDetails)
                 if (providerResult.isFailure) {
                     _setupState.value = ProfileSetupState.Error("Provider details update failed: ${providerResult.exceptionOrNull()?.message}")
+                    return@launch
+                }
+            }
+            
+            if (storeDetails != null) {
+                val storeResult = repository.updateStoreDetails(storeDetails)
+                if (storeResult.isFailure) {
+                    _setupState.value = ProfileSetupState.Error("Store details update failed: ${storeResult.exceptionOrNull()?.message}")
                     return@launch
                 }
             }

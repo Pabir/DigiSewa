@@ -21,8 +21,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pabirul.digisewa.ui.agent.*
 import com.pabirul.digisewa.ui.auth.*
+import com.pabirul.digisewa.data.repository.StoreRepository
 import com.pabirul.digisewa.ui.components.AppDrawer
 import com.pabirul.digisewa.ui.discovery.*
+import com.pabirul.digisewa.ui.store.*
 import com.pabirul.digisewa.ui.profile.ProfileSetupScreen
 import com.pabirul.digisewa.ui.profile.ProfileViewModel
 import com.pabirul.digisewa.ui.requirements.*
@@ -60,8 +62,9 @@ class MainActivity : AppCompatActivity() {
                 
                 // Navigation States
                 var providerSubScreen by remember { mutableStateOf("dashboard") }
-                var customerSubScreen by remember { mutableStateOf("home") }
+                var customerSubScreen by remember { mutableStateOf("selection") }
                 var agentSubScreen by remember { mutableStateOf("dashboard") }
+                var shopkeeperSubScreen by remember { mutableStateOf("dashboard") }
                 var generalSubScreen by remember { mutableStateOf("") }
                 var isEditingProfile by remember { mutableStateOf(false) }
                 
@@ -69,6 +72,8 @@ class MainActivity : AppCompatActivity() {
                 var selectedCategory by remember { mutableStateOf<Category?>(null) }
                 var selectedServiceWithProvider by remember { mutableStateOf<ServiceWithProvider?>(null) }
                 var selectedRequirement by remember { mutableStateOf<RequirementWithDetails?>(null) }
+                var selectedStore by remember { mutableStateOf<Store?>(null) }
+                var selectedProduct by remember { mutableStateOf<Product?>(null) }
 
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
@@ -84,6 +89,8 @@ class MainActivity : AppCompatActivity() {
                         generalSubScreen == "bookings" -> generalSubScreen = ""
                         // Agent Navigation
                         agentSubScreen == "onboard" || agentSubScreen == "list" -> agentSubScreen = "dashboard"
+                        // Shopkeeper Navigation
+                        shopkeeperSubScreen == "edit_store" || shopkeeperSubScreen == "manage_products" || shopkeeperSubScreen == "add_edit_product" -> shopkeeperSubScreen = "dashboard"
                         // Provider Navigation
                         providerSubScreen == "requirement_detail" -> providerSubScreen = "lead_feed"
                         providerSubScreen == "lead_feed" -> providerSubScreen = "dashboard"
@@ -91,10 +98,18 @@ class MainActivity : AppCompatActivity() {
                         providerSubScreen == "manage_services" -> providerSubScreen = "dashboard"
                         // Customer Navigation
                         customerSubScreen == "requirement_detail" -> customerSubScreen = "my_requirements"
-                        customerSubScreen == "my_requirements" -> customerSubScreen = "home"
-                        customerSubScreen == "post_requirement" -> customerSubScreen = "home"
+                        customerSubScreen == "my_requirements" -> customerSubScreen = "selection"
+                        customerSubScreen == "post_requirement" -> customerSubScreen = "selection"
                         customerSubScreen == "detail" -> customerSubScreen = "listing"
                         customerSubScreen == "listing" -> customerSubScreen = "home"
+                        customerSubScreen == "product_detail" -> {
+                            if (selectedStore != null) customerSubScreen = "store_profile"
+                            else customerSubScreen = "category_products"
+                        }
+                        customerSubScreen == "category_products" -> customerSubScreen = "store_home"
+                        customerSubScreen == "store_profile" -> customerSubScreen = "store_home"
+                        customerSubScreen == "store_home" -> customerSubScreen = "selection"
+                        customerSubScreen == "home" -> customerSubScreen = "selection"
                         // If at top level and back is pressed, let it exit (or handle with a prompt)
                         else -> finish() 
                     }
@@ -135,8 +150,9 @@ class MainActivity : AppCompatActivity() {
                                             when (destination) {
                                                 "home" -> {
                                                     providerSubScreen = "dashboard"
-                                                    customerSubScreen = "home"
+                                                    customerSubScreen = "selection"
                                                     agentSubScreen = "dashboard"
+                                                    shopkeeperSubScreen = "dashboard"
                                                     generalSubScreen = ""
                                                 }
                                                 "requirements" -> {
@@ -175,7 +191,13 @@ class MainActivity : AppCompatActivity() {
                                         val title = if (generalSubScreen == "bookings") {
                                             if (state.profile.role == UserRole.PROVIDER) stringResource(R.string.booking_requests) else stringResource(R.string.my_bookings)
                                         } else {
-                                            getScreenTitle(state.profile.role, providerSubScreen, customerSubScreen)
+                                            getScreenTitle(
+                                                state.profile.role,
+                                                providerSubScreen,
+                                                customerSubScreen,
+                                                agentSubScreen,
+                                                shopkeeperSubScreen
+                                            )
                                         }
 
                                         if (title != null) {
@@ -241,6 +263,40 @@ class MainActivity : AppCompatActivity() {
                                                     )
                                                 }
                                             }
+                                        } else if (state.profile.role == UserRole.SHOPKEEPER) {
+                                            when (shopkeeperSubScreen) {
+                                                "edit_store" -> {
+                                                    Text("Store Setup Screen Placeholder")
+                                                }
+                                                "manage_products" -> {
+                                                    Text("Manage Products Screen Placeholder")
+                                                }
+                                                "add_edit_product" -> {
+                                                    val storeRepo = remember { StoreRepository() }
+                                                    var currentStore by remember { mutableStateOf<Store?>(null) }
+                                                    LaunchedEffect(state.profile.id) {
+                                                        currentStore = storeRepo.getStoreByOwner(state.profile.id)
+                                                    }
+                                                    
+                                                    if (currentStore != null) {
+                                                        AddEditProductScreen(
+                                                            store = currentStore!!,
+                                                            product = selectedProduct,
+                                                            onBack = { shopkeeperSubScreen = "dashboard" }
+                                                        )
+                                                    }
+                                                }
+                                                else -> {
+                                                    ShopkeeperDashboard(
+                                                        profile = state.profile,
+                                                        onManageProducts = { 
+                                                            selectedProduct = it
+                                                            shopkeeperSubScreen = "add_edit_product" 
+                                                        },
+                                                        onEditStore = { shopkeeperSubScreen = "edit_store" }
+                                                    )
+                                                }
+                                            }
                                         } else if (state.profile.role == UserRole.PROVIDER) {
                                             when (providerSubScreen) {
                                                 "lead_feed" -> {
@@ -297,11 +353,7 @@ class MainActivity : AppCompatActivity() {
                                                 }
                                             }
                                         } else {
-                                            // Customer Flow
                                             val discoveryViewModel: DiscoveryViewModel = viewModel()
-                                            
-                                            // Lead Feed for providers if needed (already handled above but ensuring consistency)
-
                                             when (customerSubScreen) {
                                                 "post_requirement" -> {
                                                     val categories by discoveryViewModel.categories.collectAsState()
@@ -359,6 +411,56 @@ class MainActivity : AppCompatActivity() {
                                                         }
                                                     )
                                                 }
+                                                "store_home" -> {
+                                                    StoreHomeScreen(
+                                                        onCategoryClick = {
+                                                            selectedCategory = it
+                                                            customerSubScreen = "category_products"
+                                                        },
+                                                        onStoreClick = {
+                                                            selectedStore = it
+                                                            customerSubScreen = "store_profile"
+                                                        },
+                                                        onBack = { customerSubScreen = "selection" }
+                                                    )
+                                                }
+                                                "category_products" -> {
+                                                    CategoryProductGridScreen(
+                                                        category = selectedCategory!!,
+                                                        onProductClick = {
+                                                            selectedProduct = it
+                                                            selectedStore = null // Clearing to know we came from category
+                                                            customerSubScreen = "product_detail"
+                                                        },
+                                                        onBack = { customerSubScreen = "store_home" }
+                                                    )
+                                                }
+                                                "store_profile" -> {
+                                                    StoreProfileScreen(
+                                                        store = selectedStore!!,
+                                                        onProductClick = {
+                                                            selectedProduct = it
+                                                            customerSubScreen = "product_detail"
+                                                        },
+                                                        onBack = { customerSubScreen = "store_home" }
+                                                    )
+                                                }
+                                                "product_detail" -> {
+                                                    ProductDetailScreen(
+                                                        product = selectedProduct!!,
+                                                        onBack = {
+                                                            if (selectedStore != null) customerSubScreen = "store_profile"
+                                                            else customerSubScreen = "category_products"
+                                                        }
+                                                    )
+                                                }
+                                                "selection" -> {
+                                                    SelectionScreen(
+                                                        profile = state.profile,
+                                                        onNavigateToServices = { customerSubScreen = "home" },
+                                                        onNavigateToProducts = { customerSubScreen = "store_home" }
+                                                    )
+                                                }
                                                 else -> {
                                                     CustomerHomeScreen(
                                                         profile = state.profile,
@@ -375,7 +477,6 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 }
 
-                                // --- ONBOARDING OVERLAY ---
                                 if (!state.profile.onboardingCompleted) {
                                     val profileViewModel: ProfileViewModel = viewModel()
                                     val steps = when (state.profile.role) {
@@ -455,23 +556,47 @@ class MainActivity : AppCompatActivity() {
         return profile.phoneNumber.isNullOrBlank() || profile.city.isNullOrBlank()
     }
 
-    private fun getScreenTitle(role: UserRole, providerSubScreen: String, customerSubScreen: String): String? {
-        if (role == UserRole.PROVIDER) {
-            return when (providerSubScreen) {
+    private fun getScreenTitle(
+        role: UserRole,
+        providerSubScreen: String,
+        customerSubScreen: String,
+        agentSubScreen: String,
+        shopkeeperSubScreen: String
+    ): String? {
+        return when (role) {
+            UserRole.PROVIDER -> when (providerSubScreen) {
                 "dashboard" -> "DigiSewa"
                 "manage_services" -> "Manage Services"
                 "lead_feed" -> "Lead Feed"
                 "requirement_detail" -> "Requirement Detail"
-                else -> null 
+                else -> null
             }
-        } else {
-            return when (customerSubScreen) {
+            UserRole.AGENT -> when (agentSubScreen) {
+                "dashboard" -> "DigiSewa"
+                "onboard" -> "Onboard Provider"
+                "list" -> "My Leads"
+                else -> null
+            }
+            UserRole.SHOPKEEPER -> when (shopkeeperSubScreen) {
+                "dashboard" -> "DigiSewa"
+                "edit_store" -> "Store Setup"
+                "manage_products" -> "Manage Products"
+                "add_edit_product" -> "Add/Edit Product"
+                else -> null
+            }
+            UserRole.CUSTOMER -> when (customerSubScreen) {
+                "selection" -> "DigiSewa"
                 "home" -> "DigiSewa"
                 "post_requirement" -> "Post a Requirement"
                 "my_requirements" -> "My Requirements"
                 "requirement_detail" -> "Requirement Detail"
+                "store_home" -> "Shop Locally"
+                "category_products" -> "Products"
+                "store_profile" -> "Store Catalog"
+                "product_detail" -> "Product Details"
                 else -> null
             }
+            else -> null
         }
     }
 }

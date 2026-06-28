@@ -61,7 +61,7 @@ fun OnboardProviderScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Register a new service provider account. They will receive a confirmation email to access their dashboard.",
+                text = "Register a new service provider account as an Associate. They will receive a confirmation email to access their dashboard.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline
             )

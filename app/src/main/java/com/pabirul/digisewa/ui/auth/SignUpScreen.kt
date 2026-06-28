@@ -71,6 +71,18 @@ fun SignUpScreen(
                                "3. Professional behavior and respect are mandatory at all times.",
                         style = MaterialTheme.typography.bodySmall
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "For Shopkeepers:",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = "1. Products listed must accurately represent the items available in your physical store.\n" +
+                               "2. Prices must be kept up-to-date and consistent with in-store pricing.\n" +
+                               "3. You must honor the stock status (In Stock / Out of Stock) shown to customers.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             },
             confirmButton = {
@@ -173,28 +185,41 @@ fun SignUpScreen(
                         text = "I am a:",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        FilterChip(
-                            selected = role == UserRole.CUSTOMER,
-                            onClick = { role = UserRole.CUSTOMER },
-                            label = { Text("Customer", style = MaterialTheme.typography.labelSmall) },
-                            modifier = Modifier.weight(1f).padding(2.dp)
-                        )
-                        FilterChip(
-                            selected = role == UserRole.PROVIDER,
-                            onClick = { role = UserRole.PROVIDER },
-                            label = { Text("Provider", style = MaterialTheme.typography.labelSmall) },
-                            modifier = Modifier.weight(1f).padding(2.dp)
-                        )
-                        FilterChip(
-                            selected = role == UserRole.AGENT,
-                            onClick = { role = UserRole.AGENT },
-                            label = { Text("Agent", style = MaterialTheme.typography.labelSmall) },
-                            modifier = Modifier.weight(1f).padding(2.dp)
-                        )
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = role == UserRole.CUSTOMER,
+                                onClick = { role = UserRole.CUSTOMER },
+                                label = { Text("Customer", style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.weight(1f).padding(2.dp)
+                            )
+                            FilterChip(
+                                selected = role == UserRole.PROVIDER,
+                                onClick = { role = UserRole.PROVIDER },
+                                label = { Text("Provider", style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.weight(1f).padding(2.dp)
+                            )
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = role == UserRole.SHOPKEEPER,
+                                onClick = { role = UserRole.SHOPKEEPER },
+                                label = { Text("Shopkeeper", style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.weight(1f).padding(2.dp)
+                            )
+                            FilterChip(
+                                selected = role == UserRole.AGENT,
+                                onClick = { role = UserRole.AGENT },
+                                label = { Text("Associate", style = MaterialTheme.typography.labelSmall) },
+                                modifier = Modifier.weight(1f).padding(2.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))

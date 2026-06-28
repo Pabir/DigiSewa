@@ -12,7 +12,7 @@ class DiscoveryRepository {
 
     suspend fun getCategories(): List<Category> {
         return try {
-            val columns = Columns.raw("id, name, name_bn, name_hi, description, icon_url")
+            val columns = Columns.raw("id, name, name_bn, name_hi, description, type, icon_url")
             val list = postgrest.from("categories").select(columns).decodeList<Category>()
             android.util.Log.d("DiscoveryRepo", "Categories fetched: ${list.size}")
             list.forEach { android.util.Log.d("DiscoveryRepo", " - Category: ${it.name}") }

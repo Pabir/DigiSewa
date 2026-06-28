@@ -38,6 +38,7 @@ object Supabase {
 enum class UserRole {
     @kotlinx.serialization.SerialName("customer") CUSTOMER,
     @kotlinx.serialization.SerialName("provider") PROVIDER,
+    @kotlinx.serialization.SerialName("shopkeeper") SHOPKEEPER,
     @kotlinx.serialization.SerialName("agent") AGENT,
     @kotlinx.serialization.SerialName("admin") ADMIN
 }
@@ -60,7 +61,8 @@ data class Profile(
     @kotlinx.serialization.SerialName("pin_code") val pinCode: String? = null,
     @kotlinx.serialization.SerialName("onboarding_completed") val onboardingCompleted: Boolean = true,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
-    @kotlinx.serialization.SerialName("provider_details") val providerDetails: ProviderDetails? = null
+    @kotlinx.serialization.SerialName("provider_details") val providerDetails: ProviderDetails? = null,
+    @kotlinx.serialization.SerialName("store_details") val storeDetails: Store? = null
 )
 
 @Serializable
@@ -82,6 +84,7 @@ data class ProfileWithDetails(
     @kotlinx.serialization.SerialName("onboarding_completed") val onboardingCompleted: Boolean = true,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null,
     @kotlinx.serialization.SerialName("provider_details") val providerDetails: ProviderDetails? = null,
+    @kotlinx.serialization.SerialName("store_details") val storeDetails: Store? = null,
     @kotlinx.serialization.SerialName("private_profile") val privateProfile: PrivateProfile? = null
 )
 
@@ -105,6 +108,7 @@ data class Category(
     @kotlinx.serialization.SerialName("name_bn") val nameBn: String? = null,
     @kotlinx.serialization.SerialName("name_hi") val nameHi: String? = null,
     val description: String? = null,
+    val type: String = "service",
     @kotlinx.serialization.SerialName("icon_url") val iconUrl: String? = null
 )
 
@@ -123,6 +127,52 @@ data class ProviderDetails(
     @kotlinx.serialization.SerialName("bank_ifsc") val bankIfsc: String? = null,
     @kotlinx.serialization.SerialName("bank_account_name") val bankAccountName: String? = null,
     @kotlinx.serialization.SerialName("razorpay_account_id") val razorpayAccountId: String? = null
+)
+
+@Serializable
+data class Store(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("owner_id") val ownerId: String? = null,
+    val name: String,
+    val description: String? = null,
+    @kotlinx.serialization.SerialName("category_id") val categoryId: Int? = null,
+    val address: String? = null,
+    @kotlinx.serialization.SerialName("phone_number") val phoneNumber: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    @kotlinx.serialization.SerialName("is_verified") val isVerified: Boolean = false,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class Product(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("store_id") val storeId: String? = null,
+    val title: String,
+    val description: String? = null,
+    val price: Int? = null,
+    @kotlinx.serialization.SerialName("is_in_stock") val isInStock: Boolean = true,
+    @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class ProductGallery(
+    val id: Long? = null,
+    @kotlinx.serialization.SerialName("product_id") val productId: String,
+    @kotlinx.serialization.SerialName("image_url") val imageUrl: String,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class StoreWithProducts(
+    val id: String,
+    val name: String,
+    val description: String? = null,
+    val address: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val products: List<Product> = emptyList()
 )
 
 @Serializable
