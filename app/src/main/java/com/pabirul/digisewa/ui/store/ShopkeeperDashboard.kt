@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
@@ -32,6 +33,7 @@ import kotlinx.coroutines.launch
 fun ShopkeeperDashboard(
     profile: Profile,
     onManageProducts: (Product?) -> Unit,
+    onViewOrders: (Store) -> Unit,
     onEditStore: () -> Unit
 ) {
     val repository = remember { StoreRepository() }
@@ -106,7 +108,7 @@ fun ShopkeeperDashboard(
                     .padding(padding)
                     .padding(16.dp)
             ) {
-                StoreStatsSection(products.size)
+                StoreStatsSection(products.size, onViewOrders = { store?.let { onViewOrders(it) } })
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
@@ -148,21 +150,21 @@ fun ShopkeeperDashboard(
 }
 
 @Composable
-fun StoreStatsSection(productCount: Int) {
+fun StoreStatsSection(productCount: Int, onViewOrders: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         StatCard(
-            title = "Total Products",
+            title = "Products",
             value = productCount.toString(),
             icon = Icons.Default.Inventory,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
         )
         StatCard(
-            title = "Views",
-            value = "0",
-            icon = Icons.Default.Visibility,
-            color = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.weight(1f)
+            title = "Orders",
+            value = "View",
+            icon = Icons.Default.ShoppingBag,
+            color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.weight(1f).clickable { onViewOrders() }
         )
     }
 }

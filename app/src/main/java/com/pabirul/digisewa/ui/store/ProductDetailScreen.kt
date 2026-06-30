@@ -10,7 +10,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AddShoppingCart
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,11 +34,14 @@ import com.pabirul.digisewa.data.repository.StoreRepository
 @Composable
 fun ProductDetailScreen(
     product: Product,
+    cartViewModel: CartViewModel,
     onBack: () -> Unit
 ) {
     val repository = remember { StoreRepository() }
     val context = LocalContext.current
     var store by remember { mutableStateOf<Store?>(null) }
+    val cartItems by cartViewModel.cartItems.collectAsState()
+    val isInCart = cartItems.containsKey(product.id)
     
     LaunchedEffect(product.storeId) {
         product.storeId?.let {
@@ -122,44 +128,58 @@ fun ProductDetailScreen(
             shadowElevation = 16.dp,
             color = MaterialTheme.colorScheme.surface
         ) {
-            Row(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .navigationBarsPadding(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+            Column(modifier = Modifier.padding(16.dp).navigationBarsPadding()) {
                 Button(
-                    onClick = {
-                        store?.phoneNumber?.let {
-                            val intent = Intent(Intent.ACTION_DIAL, "tel:$it".toUri())
-                            context.startActivity(intent)
-                        }
-                    },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    onClick = { cartViewModel.addToCart(product) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    enabled = !store?.phoneNumber.isNullOrBlank()
+                    enabled = product.isInStock,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Icon(Icons.Default.Call, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Call Shop")
+                    Icon(if (isInCart) Icons.Default.AddShoppingCart else Icons.Default.ShoppingCart, contentDescription = null)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(if (isInCart) "Add One More" else "Add to Cart", fontWeight = FontWeight.Bold)
                 }
-                
-                OutlinedButton(
-                    onClick = {
-                        store?.let {
-                            val gmmIntentUri = Uri.parse("google.navigation:q=${it.lat},${it.lng}")
-                            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                            mapIntent.setPackage("com.google.android.apps.maps")
-                            context.startActivity(mapIntent)
-                        }
-                    },
-                    modifier = Modifier.weight(1f).height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    enabled = store?.lat != null
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Icon(Icons.Default.Directions, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Directions")
+                    OutlinedButton(
+                        onClick = {
+                            store?.phoneNumber?.let {
+                                val intent = Intent(Intent.ACTION_DIAL, "tel:$it".toUri())
+                                context.startActivity(intent)
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !store?.phoneNumber.isNullOrBlank()
+                    ) {
+                        Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Call Shop", style = MaterialTheme.typography.labelLarge)
+                    }
+                    
+                    OutlinedButton(
+                        onClick = {
+                            store?.let {
+                                val gmmIntentUri = Uri.parse("google.navigation:q=${it.lat},${it.lng}")
+                                val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                                mapIntent.setPackage("com.google.android.apps.maps")
+                                context.startActivity(mapIntent)
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = store?.lat != null
+                    ) {
+                        Icon(Icons.Default.Directions, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Directions", style = MaterialTheme.typography.labelLarge)
+                    }
                 }
             }
         }

@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -52,6 +53,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         enableEdgeToEdge()
+        @OptIn(ExperimentalMaterial3Api::class)
         setContent {
             DigiSewaTheme {
                 val authViewModel: AuthViewModel = viewModel()
@@ -75,6 +77,9 @@ class MainActivity : AppCompatActivity() {
                 var selectedStore by remember { mutableStateOf<Store?>(null) }
                 var selectedProduct by remember { mutableStateOf<Product?>(null) }
 
+                val cartViewModel: CartViewModel = viewModel()
+                val cartItemCount by cartViewModel.itemCount.collectAsState(initial = 0)
+
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
                 
@@ -87,16 +92,22 @@ class MainActivity : AppCompatActivity() {
                         drawerState.isOpen -> scope.launch { drawerState.close() }
                         isEditingProfile -> isEditingProfile = false
                         generalSubScreen == "bookings" -> generalSubScreen = ""
+                        generalSubScreen == "cart" -> generalSubScreen = ""
                         // Agent Navigation
                         agentSubScreen == "onboard" || agentSubScreen == "list" -> agentSubScreen = "dashboard"
                         // Shopkeeper Navigation
-                        shopkeeperSubScreen == "edit_store" || shopkeeperSubScreen == "manage_products" || shopkeeperSubScreen == "add_edit_product" -> shopkeeperSubScreen = "dashboard"
+                        shopkeeperSubScreen == "edit_store" || shopkeeperSubScreen == "manage_products" || shopkeeperSubScreen == "add_edit_product" || shopkeeperSubScreen == "orders" -> shopkeeperSubScreen = "dashboard"
                         // Provider Navigation
                         providerSubScreen == "requirement_detail" -> providerSubScreen = "lead_feed"
                         providerSubScreen == "lead_feed" -> providerSubScreen = "dashboard"
                         providerSubScreen == "add_edit_service" -> providerSubScreen = "manage_services"
                         providerSubScreen == "manage_services" -> providerSubScreen = "dashboard"
                         // Customer Navigation
+                        customerSubScreen == "checkout" -> customerSubScreen = "cart"
+                        customerSubScreen == "cart" -> {
+                            if (selectedProduct != null) customerSubScreen = "product_detail"
+                            else customerSubScreen = "store_home"
+                        }
                         customerSubScreen == "requirement_detail" -> customerSubScreen = "my_requirements"
                         customerSubScreen == "my_requirements" -> customerSubScreen = "selection"
                         customerSubScreen == "post_requirement" -> customerSubScreen = "selection"
@@ -220,6 +231,25 @@ class MainActivity : AppCompatActivity() {
                                                     ) {
                                                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                                                     }
+                                                },
+                                                actions = {
+                                                    val showCart = state.profile.role == UserRole.CUSTOMER && 
+                                                        customerSubScreen in listOf("store_home", "category_products", "store_profile", "product_detail")
+                                                    
+                                                    if (showCart) {
+                                                        BadgedBox(
+                                                            badge = {
+                                                                if (cartItemCount > 0) {
+                                                                    Badge { Text(cartItemCount.toString()) }
+                                                                }
+                                                            },
+                                                            modifier = Modifier.padding(end = 16.dp)
+                                                        ) {
+                                                            IconButton(onClick = { customerSubScreen = "cart" }) {
+                                                                Icon(Icons.Default.ShoppingCart, contentDescription = "Cart")
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             )
                                         }
@@ -231,6 +261,7 @@ class MainActivity : AppCompatActivity() {
                                             com.pabirul.digisewa.ui.bookings.MyBookingsScreen(
                                                 profile = state.profile,
                                                 viewModel = bookingViewModel,
+                                                cartViewModel = cartViewModel,
                                                 isProvider = state.profile.role == UserRole.PROVIDER
                                             )
                                         } else if (generalSubScreen == "settings") {
@@ -286,12 +317,28 @@ class MainActivity : AppCompatActivity() {
                                                         )
                                                     }
                                                 }
+                                                "orders" -> {
+                                                    val storeRepo = remember { StoreRepository() }
+                                                    var currentStore by remember { mutableStateOf<Store?>(null) }
+                                                    LaunchedEffect(state.profile.id) {
+                                                        currentStore = storeRepo.getStoreByOwner(state.profile.id)
+                                                    }
+                                                    if (currentStore != null) {
+                                                        ShopkeeperOrdersScreen(
+                                                            store = currentStore!!,
+                                                            onBack = { shopkeeperSubScreen = "dashboard" }
+                                                        )
+                                                    }
+                                                }
                                                 else -> {
                                                     ShopkeeperDashboard(
                                                         profile = state.profile,
                                                         onManageProducts = { 
                                                             selectedProduct = it
                                                             shopkeeperSubScreen = "add_edit_product" 
+                                                        },
+                                                        onViewOrders = { 
+                                                            shopkeeperSubScreen = "orders"
                                                         },
                                                         onEditStore = { shopkeeperSubScreen = "edit_store" }
                                                     )
@@ -448,10 +495,32 @@ class MainActivity : AppCompatActivity() {
                                                 "product_detail" -> {
                                                     ProductDetailScreen(
                                                         product = selectedProduct!!,
+                                                        cartViewModel = cartViewModel,
                                                         onBack = {
                                                             if (selectedStore != null) customerSubScreen = "store_profile"
                                                             else customerSubScreen = "category_products"
                                                         }
+                                                    )
+                                                }
+                                                "cart" -> {
+                                                    CartScreen(
+                                                        viewModel = cartViewModel,
+                                                        onCheckout = { customerSubScreen = "checkout" },
+                                                        onBack = {
+                                                            if (selectedProduct != null) customerSubScreen = "product_detail"
+                                                            else customerSubScreen = "store_home"
+                                                        }
+                                                    )
+                                                }
+                                                "checkout" -> {
+                                                    CheckoutScreen(
+                                                        profile = state.profile,
+                                                        viewModel = cartViewModel,
+                                                        onOrderPlaced = { orderId ->
+                                                            generalSubScreen = "bookings" // Navigate to My Orders (My Bookings screen handles both)
+                                                            customerSubScreen = "selection"
+                                                        },
+                                                        onBack = { customerSubScreen = "cart" }
                                                     )
                                                 }
                                                 "selection" -> {
@@ -582,6 +651,7 @@ class MainActivity : AppCompatActivity() {
                 "edit_store" -> "Store Setup"
                 "manage_products" -> "Manage Products"
                 "add_edit_product" -> "Add/Edit Product"
+                "orders" -> "Product Orders"
                 else -> null
             }
             UserRole.CUSTOMER -> when (customerSubScreen) {
@@ -594,6 +664,8 @@ class MainActivity : AppCompatActivity() {
                 "category_products" -> "Products"
                 "store_profile" -> "Store Catalog"
                 "product_detail" -> "Product Details"
+                "cart" -> "Your Cart"
+                "checkout" -> "Checkout"
                 else -> null
             }
             else -> null

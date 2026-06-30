@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,62 +33,157 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.OutlinedTextField
 import com.pabirul.digisewa.ui.components.AdMobBanner
 
+import com.pabirul.digisewa.OrderWithDetails
+import com.pabirul.digisewa.OrderStatus
+import com.pabirul.digisewa.ui.store.CartViewModel
+import com.pabirul.digisewa.ui.store.StatusChip
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+
 @Composable
 fun MyBookingsScreen(
     profile: Profile,
     viewModel: BookingViewModel,
+    cartViewModel: com.pabirul.digisewa.ui.store.CartViewModel, // Need this for customer orders
     isProvider: Boolean
 ) {
     val bookings by viewModel.bookings.collectAsState()
-    val state by viewModel.state.collectAsState()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val bookingState by viewModel.state.collectAsState()
+    
+    val storeRepo = remember { com.pabirul.digisewa.data.repository.StoreRepository() }
+    var productOrders by remember { mutableStateOf<List<OrderWithDetails>>(emptyList()) }
+    var ordersLoading by remember { mutableStateOf(false) }
+
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Services", "Products")
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        viewModel.loadBookings(profile.id, isProvider)
-    }
-
-    LaunchedEffect(state) {
-        if (state is BookingState.Error) {
-            scope.launch {
-                snackbarHostState.showSnackbar("Error: ${(state as BookingState.Error).message}")
-            }
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == 0) {
+            viewModel.loadBookings(profile.id, isProvider)
+        } else {
+            ordersLoading = true
+            productOrders = storeRepo.getOrdersForCustomer(profile.id)
+            ordersLoading = false
         }
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            if (!isProvider) {
+                TabRow(selectedTabIndex = selectedTab) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(title) }
+                        )
+                    }
+                }
+            }
+        },
         bottomBar = {
             AdMobBanner()
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (bookings.isEmpty() && state is BookingState.Idle) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = "No bookings found.", style = MaterialTheme.typography.titleMedium)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(bookings) { booking ->
-                        BookingItem(
-                            booking = booking,
-                            isProvider = isProvider,
-                            onConfirm = { viewModel.confirmBooking(booking.id, profile.id) },
-                            onComplete = { viewModel.completeBooking(booking.id, profile.id) },
-                            onCancel = { viewModel.cancelBooking(booking, profile.id) },
-                            onSubmitReview = { review -> viewModel.submitReview(review, profile.id, isProvider) }
-                        )
+            if (selectedTab == 0) {
+                // SERVICE BOOKINGS
+                if (bookings.isEmpty() && bookingState is BookingState.Idle) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "No service bookings found.", style = MaterialTheme.typography.titleMedium)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(bookings) { booking ->
+                            BookingItem(
+                                booking = booking,
+                                isProvider = isProvider,
+                                onConfirm = { viewModel.confirmBooking(booking.id, profile.id) },
+                                onComplete = { viewModel.completeBooking(booking.id, profile.id) },
+                                onCancel = { viewModel.cancelBooking(booking, profile.id) },
+                                onSubmitReview = { review -> viewModel.submitReview(review, profile.id, isProvider) }
+                            )
+                        }
                     }
                 }
+                if (bookingState is BookingState.Loading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+            } else {
+                // PRODUCT ORDERS
+                if (productOrders.isEmpty() && !ordersLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "No product orders found.", style = MaterialTheme.typography.titleMedium)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(productOrders) { order ->
+                            CustomerOrderCard(order = order)
+                        }
+                    }
+                }
+                if (ordersLoading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
             }
+        }
+    }
+}
 
-            if (state is BookingState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+@Composable
+fun CustomerOrderCard(order: OrderWithDetails) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text(text = order.store?.name ?: "Shop", fontWeight = FontWeight.Bold)
+                    Text(text = "Order ID: ${order.id.take(8)}...", style = MaterialTheme.typography.labelSmall)
+                }
+                StatusChip(order.status)
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(modifier = Modifier.alpha(0.1f))
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            order.items.forEach { item ->
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    AsyncImage(
+                        model = item.product?.mainImageUrl ?: "https://via.placeholder.com/50",
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(text = "${item.quantity}x ${item.product?.title ?: "Item"}", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    Text(text = "₹${item.priceAtOrder * item.quantity}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            
+            HorizontalDivider(modifier = Modifier.alpha(0.1f))
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(text = "Total Paid", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "₹${order.totalAmount}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
         }
     }

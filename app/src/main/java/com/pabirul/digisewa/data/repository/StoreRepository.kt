@@ -1,6 +1,10 @@
 package com.pabirul.digisewa.data.repository
 
 import android.util.Log
+import com.pabirul.digisewa.Order
+import com.pabirul.digisewa.OrderItem
+import com.pabirul.digisewa.OrderStatus
+import com.pabirul.digisewa.OrderWithDetails
 import com.pabirul.digisewa.Product
 import com.pabirul.digisewa.ProductGallery
 import com.pabirul.digisewa.Store
@@ -168,6 +172,63 @@ class StoreRepository {
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("StoreRepo", "Error deleting product", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun placeOrder(order: Order, items: List<OrderItem>): Result<String> {
+        return try {
+            // 1. Insert Order
+            val orderResponse = postgrest.from("orders").insert(order) {
+                select()
+            }.decodeSingle<Order>()
+            val orderId = orderResponse.id!!
+
+            // 2. Insert Items with the new order ID
+            val itemsToInsert = items.map { it.copy(orderId = orderId) }
+            postgrest.from("order_items").insert(itemsToInsert)
+
+            Result.success(orderId)
+        } catch (e: Exception) {
+            Log.e("StoreRepo", "Error placing order", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getOrdersForCustomer(customerId: String): List<OrderWithDetails> {
+        return try {
+            val columns = io.github.jan.supabase.postgrest.query.Columns.raw("*, store:stores(*), order_items(*, product:products(*))")
+            postgrest.from("orders").select(columns) {
+                filter { eq("customer_id", customerId) }
+                order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+            }.decodeList<OrderWithDetails>()
+        } catch (e: Exception) {
+            Log.e("StoreRepo", "Error fetching customer orders", e)
+            emptyList()
+        }
+    }
+
+    suspend fun getOrdersForStore(storeId: String): List<OrderWithDetails> {
+        return try {
+            val columns = io.github.jan.supabase.postgrest.query.Columns.raw("*, customer:profiles(*), order_items(*, product:products(*))")
+            postgrest.from("orders").select(columns) {
+                filter { eq("store_id", storeId) }
+                order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+            }.decodeList<OrderWithDetails>()
+        } catch (e: Exception) {
+            Log.e("StoreRepo", "Error fetching store orders", e)
+            emptyList()
+        }
+    }
+
+    suspend fun updateOrderStatus(orderId: String, status: OrderStatus): Result<Unit> {
+        return try {
+            postgrest.from("orders").update(mapOf("status" to status.name.lowercase())) {
+                filter { eq("id", orderId) }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("StoreRepo", "Error updating order status", e)
             Result.failure(e)
         }
     }

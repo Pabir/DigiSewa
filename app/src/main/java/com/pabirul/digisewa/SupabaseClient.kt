@@ -308,6 +308,64 @@ data class RequirementResponseWithProvider(
 }
 
 @Serializable
+enum class OrderStatus {
+    @kotlinx.serialization.SerialName("placed") PLACED,
+    @kotlinx.serialization.SerialName("confirmed") CONFIRMED,
+    @kotlinx.serialization.SerialName("out_for_delivery") OUT_FOR_DELIVERY,
+    @kotlinx.serialization.SerialName("delivered") DELIVERED,
+    @kotlinx.serialization.SerialName("cancelled") CANCELLED
+}
+
+@Serializable
+data class Order(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("customer_id") val customerId: String,
+    @kotlinx.serialization.SerialName("store_id") val storeId: String,
+    @kotlinx.serialization.SerialName("total_amount") val totalAmount: Int,
+    val status: OrderStatus = OrderStatus.PLACED,
+    @kotlinx.serialization.SerialName("delivery_address") val deliveryAddress: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class OrderItem(
+    val id: String? = null,
+    @kotlinx.serialization.SerialName("order_id") val orderId: String,
+    @kotlinx.serialization.SerialName("product_id") val productId: String,
+    val quantity: Int = 1,
+    @kotlinx.serialization.SerialName("price_at_order") val priceAtOrder: Int,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
+data class OrderWithDetails(
+    val id: String,
+    @kotlinx.serialization.SerialName("customer_id") val customerId: String,
+    @kotlinx.serialization.SerialName("store_id") val storeId: String,
+    @kotlinx.serialization.SerialName("total_amount") val totalAmount: Int,
+    val status: OrderStatus,
+    @kotlinx.serialization.SerialName("delivery_address") val deliveryAddress: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    @kotlinx.serialization.SerialName("created_at") val createdAt: String,
+    val store: Store? = null,
+    val customer: Profile? = null,
+    @kotlinx.serialization.SerialName("order_items") val items: List<OrderItemWithProduct> = emptyList()
+)
+
+@Serializable
+data class OrderItemWithProduct(
+    val id: String,
+    @kotlinx.serialization.SerialName("order_id") val orderId: String,
+    @kotlinx.serialization.SerialName("product_id") val productId: String,
+    val quantity: Int,
+    @kotlinx.serialization.SerialName("price_at_order") val priceAtOrder: Int,
+    val product: Product? = null
+)
+
+@Serializable
 data class Booking(
     val id: String? = null,
     @kotlinx.serialization.SerialName("customer_id") val customerId: String,
