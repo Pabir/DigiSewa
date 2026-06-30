@@ -151,7 +151,7 @@ data class Product(
     val title: String,
     val description: String? = null,
     val price: Int? = null,
-    @kotlinx.serialization.SerialName("is_in_stock") val isInStock: Boolean = true,
+    @kotlinx.serialization.SerialName("is_in_stock") val isInStock: Boolean,
     @kotlinx.serialization.SerialName("main_image_url") val mainImageUrl: String? = null,
     @kotlinx.serialization.SerialName("created_at") val createdAt: String? = null
 )

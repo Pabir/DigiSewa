@@ -19,6 +19,10 @@ import coil.compose.AsyncImage
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.Service
 
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.alpha
+import kotlinx.coroutines.launch
+
 @Composable
 fun ManageServicesScreen(
     profile: Profile,
@@ -28,6 +32,7 @@ fun ManageServicesScreen(
 ) {
     val services by viewModel.services.collectAsState()
     val state by viewModel.serviceState.collectAsState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         viewModel.loadServices(profile.id)
@@ -69,6 +74,9 @@ fun ManageServicesScreen(
                         ServiceItem(
                             service = service,
                             onEdit = { onEditService(service) },
+                            onToggleActive = { newValue ->
+                                viewModel.saveService(service.copy(isActive = newValue), null, emptyList())
+                            },
                             onDelete = { service.id?.let { viewModel.deleteService(it, profile.id) } }
                         )
                     }
@@ -79,44 +87,65 @@ fun ManageServicesScreen(
 }
 
 @Composable
-fun ServiceItem(service: Service, onEdit: () -> Unit, onDelete: () -> Unit) {
+fun ServiceItem(service: Service, onEdit: () -> Unit, onToggleActive: (Boolean) -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AsyncImage(
-                model = service.mainImageUrl ?: "https://via.placeholder.com/100?text=No+Image",
-                contentDescription = null,
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-                contentScale = ContentScale.Crop
-            )
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = service.title ?: "Untitled", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                Text(
-                    text = "₹${service.basePrice ?: 0} | ${service.durationMinutes ?: 0} ${service.durationUnit ?: "Min"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = service.mainImageUrl ?: "https://via.placeholder.com/100?text=No+Image",
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Crop
                 )
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = service.title ?: "Untitled", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    Text(
+                        text = "₹${service.basePrice ?: 0} | ${service.durationMinutes ?: 0} ${service.durationUnit ?: "Min"}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
             
-            Row {
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
-                }
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
-                }
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(modifier = Modifier.alpha(0.5f))
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val isActive = service.isActive ?: true
+                Text(
+                    text = if (isActive) "Available to Customers" else "Hidden from Customers",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isActive) Color(0xFF4CAF50) else Color.Red,
+                    modifier = Modifier.weight(1f)
+                )
+                Switch(
+                    checked = isActive,
+                    onCheckedChange = onToggleActive,
+                    modifier = Modifier.scale(0.8f)
+                )
             }
         }
     }

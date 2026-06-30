@@ -42,7 +42,9 @@ fun StoreProfileScreen(
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(store.id) {
+        isLoading = true
         products = repository.getProductsByStore(store.id!!, onlyInStock = true)
+        android.util.Log.d("StoreProfile", "Loaded ${products.size} in-stock products")
         isLoading = false
     }
 

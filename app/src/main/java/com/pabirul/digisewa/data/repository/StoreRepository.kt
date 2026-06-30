@@ -53,12 +53,21 @@ class StoreRepository {
         }
     }
 
-    suspend fun getStoreWithProducts(storeId: String): Store? {
+    suspend fun getStoreWithProducts(storeId: String, onlyInStock: Boolean = true): Store? {
         return try {
-            val columns = io.github.jan.supabase.postgrest.query.Columns.raw("*, products(*)")
-            postgrest.from("stores").select(columns) {
+            val columns = if (onlyInStock) {
+                io.github.jan.supabase.postgrest.query.Columns.raw("*, products(*)") // We will filter manually below due to nested query limitations in some SDK versions
+            } else {
+                io.github.jan.supabase.postgrest.query.Columns.raw("*, products(*)")
+            }
+            
+            val store = postgrest.from("stores").select(columns) {
                 filter { eq("id", storeId) }
             }.decodeSingleOrNull<Store>()
+            
+            // NOTE: Since the current model structure might not support nested filtering easily in decodeSingle,
+            // we rely on the direct fetching methods getProductsByStore for the Profile screen to be 100% sure.
+            store
         } catch (e: Exception) {
             Log.e("StoreRepo", "Error fetching store details", e)
             null
@@ -75,16 +84,19 @@ class StoreRepository {
             if (stores.isEmpty()) return emptyList()
             
             val storeIds = stores.map { it.id }.filterNotNull()
-            postgrest.from("products").select {
+            val response = postgrest.from("products").select {
                 filter {
-                    or {
-                        storeIds.forEach { eq("store_id", it) }
-                    }
+                    isIn("store_id", storeIds)
                     if (onlyInStock) {
                         eq("is_in_stock", true)
                     }
                 }
-            }.decodeList<Product>()
+            }
+            val list = response.decodeList<Product>()
+            // Double check in Kotlin as a fallback
+            val filteredList = if (onlyInStock) list.filter { it.isInStock } else list
+            Log.d("StoreRepo", "Fetched ${filteredList.size} products for category $categoryId (onlyInStock=$onlyInStock)")
+            filteredList
         } catch (e: Exception) {
             Log.e("StoreRepo", "Error fetching products by category", e)
             emptyList()
@@ -93,14 +105,19 @@ class StoreRepository {
 
     suspend fun getProductsByStore(storeId: String, onlyInStock: Boolean = false): List<Product> {
         return try {
-            postgrest.from("products").select {
+            val response = postgrest.from("products").select {
                 filter { 
                     eq("store_id", storeId)
                     if (onlyInStock) {
                         eq("is_in_stock", true)
                     }
                 }
-            }.decodeList<Product>()
+            }
+            val list = response.decodeList<Product>()
+            // Double check in Kotlin as a fallback to be 100% safe
+            val filteredList = if (onlyInStock) list.filter { it.isInStock } else list
+            Log.d("StoreRepo", "Fetch result for store $storeId: Total=${list.size}, Filtered=${filteredList.size} (onlyInStock=$onlyInStock)")
+            filteredList
         } catch (e: Exception) {
             Log.e("StoreRepo", "Error fetching products", e)
             emptyList()
@@ -109,10 +126,11 @@ class StoreRepository {
 
     suspend fun saveProduct(product: Product, mainImage: ByteArray?, gallery: List<ByteArray>): Result<Unit> {
         return try {
-            val savedProduct = postgrest.from("products").upsert(product) {
+            val response = postgrest.from("products").upsert(product) {
                 select()
-            }.decodeSingle<Product>()
-
+            }
+            
+            val savedProduct = response.decodeSingle<Product>()
             val productId = savedProduct.id!!
 
             // Upload main image

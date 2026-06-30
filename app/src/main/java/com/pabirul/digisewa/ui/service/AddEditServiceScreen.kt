@@ -54,6 +54,7 @@ fun AddEditServiceScreen(
     var basePrice by remember { mutableStateOf(service?.basePrice?.toString() ?: "") }
     var duration by remember { mutableStateOf(service?.durationMinutes?.toString() ?: "60") }
     var durationUnit by remember { mutableStateOf(service?.durationUnit ?: "Minutes") }
+    var isActive by remember { mutableStateOf(service?.isActive ?: true) }
     
     val durationUnits = listOf("Minutes", "Hours", "Days", "Weeks", "Months")
     var durationUnitExpanded by remember { mutableStateOf(false) }
@@ -272,6 +273,13 @@ fun AddEditServiceScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text("Show to Customers", modifier = Modifier.weight(1f))
+                Switch(checked = isActive, onCheckedChange = { isActive = it })
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
@@ -302,7 +310,8 @@ fun AddEditServiceScreen(
                         basePrice = price,
                         durationMinutes = cleanDuration.toIntOrNull() ?: 60,
                         durationUnit = durationUnit,
-                        mainImageUrl = service?.mainImageUrl
+                        mainImageUrl = service?.mainImageUrl,
+                        isActive = isActive
                     )
                     
                     android.util.Log.d("AddEditService", "Attempting to save: $newService")

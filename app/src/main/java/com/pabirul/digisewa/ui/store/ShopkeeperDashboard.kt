@@ -9,12 +9,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +25,7 @@ import com.pabirul.digisewa.Product
 import com.pabirul.digisewa.Profile
 import com.pabirul.digisewa.Store
 import com.pabirul.digisewa.data.repository.StoreRepository
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,23 +35,41 @@ fun ShopkeeperDashboard(
     onEditStore: () -> Unit
 ) {
     val repository = remember { StoreRepository() }
+    val scope = rememberCoroutineScope()
     var store by remember { mutableStateOf<Store?>(null) }
     var products by remember { mutableStateOf<List<Product>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    LaunchedEffect(profile.id) {
-        val s = repository.getStoreByOwner(profile.id)
-        store = s
-        if (s != null) {
-            products = repository.getProductsByStore(s.id!!)
+    fun loadData() {
+        scope.launch {
+            isLoading = true
+            val s = repository.getStoreByOwner(profile.id)
+            store = s
+            if (s != null) {
+                products = repository.getProductsByStore(s.id!!)
+            }
+            isLoading = false
         }
-        isLoading = false
+    }
+
+    LaunchedEffect(profile.id) {
+        loadData()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Shopkeeper Dashboard", fontWeight = FontWeight.Bold) }
+                title = { Text("Shopkeeper Dashboard", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = { loadData() }) {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -108,7 +129,16 @@ fun ShopkeeperDashboard(
                         modifier = Modifier.weight(1f)
                     ) {
                         items(products) { product ->
-                            ProductDashboardCard(product, onClick = { onManageProducts(product) })
+                            ProductDashboardCard(
+                                product = product, 
+                                onClick = { onManageProducts(product) },
+                                onToggleStock = { newValue ->
+                                    scope.launch {
+                                        repository.saveProduct(product.copy(isInStock = newValue), null, emptyList())
+                                        loadData()
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -154,31 +184,44 @@ fun StatCard(title: String, value: String, icon: ImageVector, color: Color, modi
 }
 
 @Composable
-fun ProductDashboardCard(product: Product, onClick: () -> Unit) {
+fun ProductDashboardCard(product: Product, onClick: () -> Unit, onToggleStock: (Boolean) -> Unit) {
     Card(
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = product.title,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 1,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "₹${product.price}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            val stockColor = if (product.isInStock) Color(0xFF4CAF50) else Color.Red
-            Text(
-                text = if (product.isInStock) "In Stock" else "Out of Stock",
-                style = MaterialTheme.typography.labelSmall,
-                color = stockColor
-            )
+            Box(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+                Column {
+                    Text(
+                        text = product.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "₹${product.price}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (product.isInStock) "In Stock" else "Out of Stock",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (product.isInStock) Color(0xFF4CAF50) else Color.Red,
+                    modifier = Modifier.weight(1f)
+                )
+                Switch(
+                    checked = product.isInStock,
+                    onCheckedChange = onToggleStock,
+                    modifier = Modifier.scale(0.7f)
+                )
+            }
         }
     }
 }
