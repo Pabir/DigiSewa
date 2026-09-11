@@ -8,15 +8,15 @@ import { getFunctions } from 'firebase/functions';
 import { Platform } from 'react-native';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
-// Direct Live Firebase Configuration for project digisewa-ac3c4
+// Load Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyCZK4mCFHiBlCyU-7ROICitSes0krqyfLI",
-  authDomain: "digisewa-ac3c4.firebaseapp.com",
-  projectId: "digisewa-ac3c4",
-  storageBucket: "digisewa-ac3c4.firebasestorage.app",
-  messagingSenderId: "1064799817380",
-  appId: "1:1064799817380:web:c42bb12b1a6f151dc72031",
-  measurementId: "G-44P44K88ZQ"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase safely
