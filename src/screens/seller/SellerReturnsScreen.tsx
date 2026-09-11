@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 
 import { ArrowLeft, PackageCheck, AlertTriangle, CheckCircle2, Search, ShieldCheck, ArrowRight } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { getReturnsFromFirestore } from '../../services/firebaseService';
+import { trackShadowfaxOrder } from '../../services/shadowfaxService';
 import { ReturnItem } from '../../types';
+import { Modal, ActivityIndicator } from 'react-native';
 
 interface SellerReturnsScreenProps {
   onBack: () => void;
@@ -15,6 +17,11 @@ export const SellerReturnsScreen: React.FC<SellerReturnsScreenProps> = ({ onBack
   const [searchQuery, setSearchQuery] = useState('');
   const [returns, setReturns] = useState<ReturnItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Tracking State
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [isTrackingModalVisible, setIsTrackingModalVisible] = useState(false);
+  const [isTrackingLoading, setIsTrackingLoading] = useState(false);
 
   React.useEffect(() => {
     const fetchReturns = async () => {
@@ -62,6 +69,20 @@ export const SellerReturnsScreen: React.FC<SellerReturnsScreenProps> = ({ onBack
         return { bg: '#E0E7FF', text: '#4338CA', label: 'Replacement Sent' };
       default:
         return { bg: '#F1F5F9', text: '#475569', label: status };
+    }
+  };
+
+  const handleTrackReturn = async (awbNumber: string) => {
+    setIsTrackingLoading(true);
+    setIsTrackingModalVisible(true);
+    try {
+      const data = await trackShadowfaxOrder(awbNumber);
+      setTrackingData(data);
+    } catch (error) {
+      console.error(error);
+      setTrackingData(null);
+    } finally {
+      setIsTrackingLoading(false);
     }
   };
 
@@ -147,6 +168,21 @@ export const SellerReturnsScreen: React.FC<SellerReturnsScreenProps> = ({ onBack
 
               <Text style={styles.productName}>{item.productName}</Text>
               <Text style={styles.reasonText}>Reason: {item.returnReason}</Text>
+              
+              {item.awbNumber && (
+                <View style={{ backgroundColor: '#F8FAFC', padding: 10, borderRadius: 8, marginTop: 8, borderWidth: 1, borderColor: '#E2E8F0', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View>
+                    <Text style={{ fontSize: 11, color: '#64748B' }}>Reverse AWB Number</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>{item.awbNumber}</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={{ backgroundColor: '#4F46E5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}
+                    onPress={() => handleTrackReturn(item.awbNumber!)}
+                  >
+                    <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>Track Status</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               <View style={styles.cardFooter}>
                 <Text style={styles.customerText}>Buyer: {item.customerName} • {item.returnDate}</Text>
@@ -156,6 +192,57 @@ export const SellerReturnsScreen: React.FC<SellerReturnsScreenProps> = ({ onBack
           );
         })}
       </ScrollView>
+
+      {/* Tracking Modal */}
+      <Modal visible={isTrackingModalVisible} transparent animationType="slide" onRequestClose={() => setIsTrackingModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '80%' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A' }}>Tracking Details</Text>
+              <TouchableOpacity onPress={() => setIsTrackingModalVisible(false)} style={{ padding: 8, backgroundColor: '#F1F5F9', borderRadius: 20 }}>
+                <Text style={{ fontSize: 14, color: '#64748B', fontWeight: 'bold' }}>X</Text>
+              </TouchableOpacity>
+            </View>
+
+            {isTrackingLoading ? (
+              <ActivityIndicator size="large" color="#4F46E5" style={{ marginVertical: 40 }} />
+            ) : trackingData ? (
+              <ScrollView>
+                <View style={{ backgroundColor: '#EEF2FF', padding: 16, borderRadius: 12, marginBottom: 20 }}>
+                  <Text style={{ fontSize: 12, color: '#4F46E5', fontWeight: '600' }}>Current Status</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#3730A3', marginTop: 4 }}>{trackingData.status || 'Unknown'}</Text>
+                  {trackingData.location && (
+                    <Text style={{ fontSize: 13, color: '#4338CA', marginTop: 4 }}>📍 {trackingData.location}</Text>
+                  )}
+                </View>
+
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#0F172A', marginBottom: 12 }}>Tracking History</Text>
+                {trackingData.tracking_history?.map((event: any, index: number) => (
+                  <View key={index} style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                    <View style={{ alignItems: 'center' }}>
+                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: index === 0 ? '#4F46E5' : '#CBD5E1' }} />
+                      {index !== trackingData.tracking_history.length - 1 && (
+                        <View style={{ width: 2, height: 40, backgroundColor: '#E2E8F0', marginTop: 4 }} />
+                      )}
+                    </View>
+                    <View style={{ flex: 1, paddingBottom: 10 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: index === 0 ? '#0F172A' : '#475569' }}>{event.status}</Text>
+                      {event.location && <Text style={{ fontSize: 12, color: '#64748B' }}>{event.location}</Text>}
+                      {event.remarks && <Text style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>{event.remarks}</Text>}
+                      <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+                        {new Date(event.date).toLocaleString('en-IN')}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={{ textAlign: 'center', color: '#EF4444', marginVertical: 20 }}>Failed to load tracking data.</Text>
+            )}
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 };

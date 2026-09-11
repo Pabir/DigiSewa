@@ -2,15 +2,15 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CartItem, Product, User } from '../types';
 import { useAuth } from './AuthContext';
-import { saveUserToFirestore } from '../services/firebaseService';
+import { updateUserFieldsInFirestore, getUserFromFirestore } from '../services/firebaseService';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 
 interface CartContextType {
   items: CartItem[];
   addToCart: (product: Product, quantity?: number, deliveryPreference?: 'fast' | 'budget') => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeFromCart: (productId: string, size?: string, color?: string) => void;
+  updateQuantity: (productId: string, quantity: number, size?: string, color?: string) => void;
   clearCart: () => void;
   totalItems: number;
   totalAmount: number;
@@ -27,7 +27,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadCart = async () => {
       try {
-        const storedCart = await AsyncStorage.getItem('@digisewa_cart');
+        const storedCart = await AsyncStorage.getItem('@tafdeal_cart');
         if (storedCart) {
           setItems(JSON.parse(storedCart));
         }
@@ -41,33 +41,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sync cart from Firestore when user logs in
   useEffect(() => {
     const fetchRemoteCart = async () => {
-      if (isAuthenticated && user && user.role === 'customer') {
+      if (isAuthenticated && user && (user.role === 'customer' || user.role === 'buyer')) {
         try {
-          const userDocRef = doc(db, 'users', user.id);
-          const userDoc = await getDoc(userDocRef);
+          const userData = await getUserFromFirestore(user.id);
           
-          if (userDoc.exists()) {
-            const userData = userDoc.data() as User;
+          if (userData) {
             const dbCart = userData.cart || [];
             
             setItems(prevItems => {
               if (dbCart.length > 0 && prevItems.length === 0) {
                 // Local is empty, use DB cart
-                AsyncStorage.setItem('@digisewa_cart', JSON.stringify(dbCart));
+                AsyncStorage.setItem('@tafdeal_cart', JSON.stringify(dbCart));
                 return dbCart;
               } else if (prevItems.length > 0) {
                 // Merge local and DB carts
                 const merged = [...prevItems];
-                let changed = false;
                 dbCart.forEach(dbItem => {
                   if (!merged.find(i => i.product.id === dbItem.product.id)) {
                     merged.push(dbItem);
-                    changed = true;
                   }
                 });
-                if (changed) {
-                  AsyncStorage.setItem('@digisewa_cart', JSON.stringify(merged));
-                  saveUserToFirestore({ ...user, cart: merged });
+                
+                if (merged.length !== dbCart.length || merged.length !== prevItems.length) {
+                  AsyncStorage.setItem('@tafdeal_cart', JSON.stringify(merged));
+                  updateUserFieldsInFirestore(user.id, { cart: merged });
                   return merged;
                 }
               }
@@ -86,16 +83,16 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (prevAuth.current === true && isAuthenticated === false) {
       setItems([]);
-      AsyncStorage.removeItem('@digisewa_cart');
+      AsyncStorage.removeItem('@tafdeal_cart');
     }
     prevAuth.current = isAuthenticated;
   }, [isAuthenticated]);
 
   const saveCart = async (newItems: CartItem[], currentUser: User | null) => {
     try {
-      await AsyncStorage.setItem('@digisewa_cart', JSON.stringify(newItems));
-      if (currentUser && currentUser.role === 'customer') {
-        saveUserToFirestore({ ...currentUser, cart: newItems });
+      await AsyncStorage.setItem('@tafdeal_cart', JSON.stringify(newItems));
+      if (currentUser && (currentUser.role === 'customer' || currentUser.role === 'buyer')) {
+        updateUserFieldsInFirestore(currentUser.id, { cart: newItems });
       }
     } catch (error) {
       console.error('Failed to save cart to storage/db', error);
@@ -104,12 +101,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addToCart = (product: Product, quantity: number = 1, deliveryPreference: 'fast' | 'budget' = 'budget') => {
     setItems(prevItems => {
-      const existingIndex = prevItems.findIndex(i => i.product.id === product.id);
+      const existingIndex = prevItems.findIndex(i => i.product.id === product.id && i.product.selectedSize === product.selectedSize && i.product.color === product.color);
       let newItems;
       if (existingIndex > -1) {
         const updated = [...prevItems];
         updated[existingIndex].quantity += quantity;
         updated[existingIndex].deliveryPreference = deliveryPreference;
+        updated[existingIndex].product.price = product.price;
+        updated[existingIndex].product.originalPrice = product.originalPrice;
         newItems = updated;
       } else {
         newItems = [...prevItems, { product, quantity, deliveryPreference }];
@@ -119,22 +118,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = (productId: string, size?: string, color?: string) => {
     setItems(prevItems => {
-      const newItems = prevItems.filter(i => i.product.id !== productId);
+      const newItems = prevItems.filter(i => !(i.product.id === productId && i.product.selectedSize === size && i.product.color === color));
       saveCart(newItems, isAuthenticated ? user : null);
       return newItems;
     });
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = (productId: string, quantity: number, size?: string, color?: string) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, size, color);
       return;
     }
     setItems(prevItems => {
       const newItems = prevItems.map(item =>
-        item.product.id === productId ? { ...item, quantity } : item
+        (item.product.id === productId && item.product.selectedSize === size && item.product.color === color) ? { ...item, quantity } : item
       );
       saveCart(newItems, isAuthenticated ? user : null);
       return newItems;

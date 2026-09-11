@@ -1,0 +1,488 @@
+
+DocumentationInspector
+Apiary Powered Documentation
+
+Sign in with Apiary account.
+
+DownloadAPI BlueprintShadowfax Unified API for Forward IntegrationsIntroductionYou can integrate with Shadowfax's Last Mile Customer Delivery Platform by using the Unified API Collection. Unified APIs provide a singular interface to enable Marketplace Seller and Warehouse models of operations. These APIs support end to end order lifecycle starting from Pincode serviceability to order status tracking until delivery.GlossaryDCs and HubsDC: Large facilities typically located in the outskirts of a city where all shipments(intercity and intracity both) are processed.
+Hub: Small facilities located across the city from where last-mile delivery and first mile pick up happens.Following terms are defined concerning a shipment's locationOrigin Hub:
+This is the first Shadowfax facility where a packet reaches directly from the seller or customerOrigin DC:
+This is the first DC where a packet is sent from the client Warehouse or origin hub to process further.Destination Hub:
+This is the last shadowfax facility where a packet reaches before delivering to customer or sellerDestination DC:
+This is the last DC where a packet is sent before sending to the destination hub or client WarehouseVia DC:
+All DC's, other than origin and destination where a shipment has to go through. Manifest bags are not opened at these DCs and will be directly passed on to the next location.Type of OperationsForward Operations:
+Orders that are originating at client warehouse or seller side and are to be delivered to end customer.
+
+Reverse Operations:
+Return orders that are originating at the customer side or forward orders that could not be delivered to the customer and are to be returned to the client warehouse or seller.
+Miscellaneous
+AWBs:
+Unique Identification Number for each item/packet
+LOR:
+Letter of Receipt, a document for acknowledging the delivery or receipt of shipments/ packets
+POD(Proof of Delivery):
+A receipt of pickup and delivery of itemsAuthenticationShadowfax API uses Token Authentication. The Staging and Production API keys will be shared with you from the Shadowfax Team via an automated email.
+
+The Authorization header that should be used while sending the request will look like:
+Token <token_id here>
+The Authorization value itself contains the Word “Token”.RequestsThis is the base URL. Please refer to endpoints to make the actual request. The base URL for all requests to the Production Shadowfax Server is given below:
+Staging	https://dale.staging.shadowfax.in/api
+Production	https://dale.shadowfax.in/api
+All our API is REST-based. This means:It makes use of standard HTTP verbs like GET, POST, DELETE.The API uses standard HTTP error responses to describe errors.Authentication is specified with HTTP Token Authentication.POST data should be encoded as standard application/json
+Accepted Format	
+Date	(YYYY:MM:DD)
+DateTime	(YYYY:MM:DD HH:MM:SS)
+ResponsesShadowfax API uses HTTP status codes to indicate the status of your requests. This includes successful and unsuccessful responses.All responses are in JSON by default.All response Timestamps follow ISO-8061 format.Times are expressed in UTC (Coordinated Universal Time), with a special UTC designator ("Z").Status Codes200 - OK: Everything went as planned.400 - Bad Request: You did something wrong. Often a missing argument or parameter.401 - Unauthorized: Authentication was incorrect.404 - Not Found500 - Internal Server Error: We had a problem processing the request.503 - Service Unavailable: Try again later.Order StatesA given order can be in one of the following states. This state will be shared in the status_id field in the Order Tracking APIs.Marketplace order states :
+status_id	status	Remark	Description
+new	New	Item New at <SFX Facility>	When the delivery request is new at shadowfax facility
+picked	Picked	Picked	When the order is picked successfully
+assigned_for_seller_pickup	Assigned For Pickup	Item Assigned For Customer Pickup at <SFX Facility>	When the order is Assigned to Shadowfax Rider For Seller Pickup.
+ofp	Out For Pickup	Item Out For Pickup at <SFX Facility>	When the order is out for Seller Pickup.
+recd_at_rev_hub	Received At Reverse Hub	Received at hub Successfully	When the order is Picked and Received At pickup hub
+item_manifested	Item added to Bag	Item added to bag at <SFX facility>	When the order is added to the bag
+recd_at_fwd_hub	Received At Forward Hub	Item Received at hub at <SFX Facility>	when order is received at destination hub
+recd_at_fwd_dc	Received At DC	Item Received at dc at <SFX Facility>	when the order received at destination city DC.
+cancelled_by_seller	Cancelled By Seller	Item cancelled by seller at <SFX Facility>	Seller has requested to cancel the pickup
+assigned_for_delivery	Assigned for Customer Delivery	Item Assigned at <SFX Facility>	Order is assigned to Shadowfax Rider for Customer Delivery.
+ofd	Out For Delivery	Item OFD at <SFX Facility>	Order is out for Customer Delivery.
+delivered	Delivered	Item Delivered at <SFX Facility>	Order has been delivered to the customer.
+cid	Cid	Customer wants delivery on another date	Customer Initiated Delay(cid). Customer has requested for delivery on another day.
+seller_initiated_delay	Cid	Seller Initiated Delay	Seller has requested to pickup the order on another day
+seller_not_contactable	Not Contactable	Seller not reachable	Seller is not contactable for pickup
+nc	Not Contactable	Refer Appendix for detailed Reasons of Not Contactable	Customer is not contactable for delivery
+pickup_not_attempted	Not Attempted	Not able to attempt	Not able to attempt the pickup for the order
+na	Not attempted	Refer Appendix for detailed Reasons of Not Attempted	Customer Delivery was not attempted by Shadowfax Rider
+cancelled_by_customer	Cancelled	Refer Appendix for detailed reasons of order Cancelled.	Delivery Request has been Cancelled By customer (can be due to various reasons)
+rts	Return to Seller initiated	Item Return To Seller at <SFX Facility>	Order is initated for Return To Seller
+rts_d	Returned To Client	Item Return To Seller Delivered at <SFX Facility>	Order has been successfully returned to Seller.
+rts_in_process	RTS In Progress	Item RTS In Progress at <SFX Facility>	Order Return to Seller in progress
+rts_ofd	Out for Delivery for RTS	Item out for delivery to seller at <SFX Facility>	Order out for delivery to seller.
+rts_nd	Undelivered	Item Return to Seller Not Delivered at <SFX Facility>	Order has been not returned to Seller.
+lost	Lost	Item Lost at <SFX Facility>	Order lost in transit
+on_hold	On Hold	Refer Appendix for detailed Reasons of order On Hold	When the item is put On Hold due to client orders/Operational Concerns.
+pickup_on_hold	Pick up On Hold	Refer Appendix for detailed Reasons of order On Hold	Due to the specified reason the pickup was put on hold. This status is only for marketplace order type
+reopen_ndr	Require Delivery - NDR	Require Delivery As Per NDR Instructions	Customer Delivery will be reattempted as per customer request
+in_transit_return	In Transit for Return	Bag in transit return from <SFX Facility>	This status signifies that the bag (Master Manifest) is in transit during rts journey.
+bag_received	Bag Received	Bag received at <SFX Facility>	This status signifies that the bag (Master Manifest) has been received at the destination facility
+bag_received_at_via	Bag Received at Via	Bag received at <SFX Facility>	This status signifies that the bag (Master Manifest) has been received at the intermediate facility.
+bag_in_transit	Bag In Transit	Bag in transit from <SFX Facility>	This status signifies that the bag (Master Manifest) is in forward journey.
+pincode_updated	Pincode Updated	Item destination pincode updated at `	This status signifies that the destination pincode was updated.
+item_misrouted	Item Misrouted	Item misrouted at <SFX Facility>	The shipment reached to a wrong sfx facility
+warehouse order states :
+status_id	status	Remark	Description
+new	New	Item New at <SFX Facility>	When the delivery request is new at shadowfax facility
+received_from_client_warehouse	Received from Client Warehouse	Item Received from Client Warehouse at <SFX Facility>	This status signifies that the item has been picked from the client's warehouse.
+item_manifested	Item added to Bag	Item added to bag at <SFX facility>	When the warehouse order added to the bag
+bag_in_transit	Bag In Transit	Bag in transit from <SFX Facility>	This status signifies that the bag (Master Manifest) is in transit.
+bag_received_at_via	Bag Received at Via	Bag received at <SFX Facility>	This status signifies that the bag (Master Manifest) has been received at the intermediate facility.
+bag_received	Bag Received	Bag received at <SFX Facility>	This status signifies that the bag (Master Manifest) has been received at the destination facility
+ofd	Out For Delivery	Item OFD at <SFX Facility>	Order is out for Customer Delivery.
+cid	Cid	Customer wants delivery on another date	Customer Initiated Delay(cid). Customer has requested for delivery on another day.
+on_hold	On Hold	Refer Appendix for detailed Reasons of order On Hold	When the item is put On Hold due to client orders/Operational Concerns.
+reopen_ndr	Require Delivery - NDR	Require Delivery As Per NDR Instructions	Customer Delivery will be reattempted as per customer request
+delivered	Delivered	Item Delivered at <SFX Facility>	Order has been delivered to the customer.
+rto	Return to origin initiated	Item Return To Origin at <SFX Facility>	Order is initated for Return To Client/ warehouse
+rto_d	Returned to Client	Item Return To Origin Delivered at <SFX Facility>	Order has been successfully returned to client
+lost	Lost	Item Lost at <SFX Facility>	Order lost in transit
+item_misrouted	Item Misrouted	Item misrouted at <SFX Facility>	The shipment reached to a wrong sfx facility
+pincode_updated	Pincode Updated	Item destination pincode updated at `	This status signifies that the destination pincode was updated.
+in_transit_return	In Transit for Return	Bag in transit return from <SFX Facility>	This status signifies that the bag (Master Manifest) is in transit during rts journey.
+recd_at_fwd_dc	Received At DC	Item Received at dc at <SFX Facility>	Order is received to Forward DC.
+recd_at_fwd_hub	Received At Forward Hub	Item Received at hub at <SFX Facility>	Order is received at Forward Hub from Reverse Hub.
+assigned_for_delivery	Assigned for Customer Delivery	Item Assigned at <SFX Facility>	Order is assigned to Shadowfax Rider for Customer Delivery.
+nc	Not Contactable	Refer Appendix for detailed Reasons of Not Contactable	Customer is not contactable for delivery
+na	Not attempted	Refer Appendix for detailed Reasons of Not Attempted	Customer Delivery was not attempted by Shadowfax Rider
+cancelled_by_customer	Cancelled	Refer Appendix for detailed reasons of order Cancelled.	Delivery Request has been Cancelled By customer (can be due to various reasons)
+Push Callback APIWe have built a generic PUSH API callback for both Marketplace(seller pickup) and warehouse models. The client can enable it to get real-time notification of each push notification status change.Callback Header detailsThe Standard callback header has the following keys: Authentication Key(Non mandatory).HeadersAuthorization: Token c6b780ae9250f3
+Content-Type: application/json
+Here we have the capability to add/modify the header keys as shown in the example below:HeadersContent-Type: application/json Authorization: d5eecf30ae6eb8d158dc54c77178ab9 account_name: SF_ACC_STAGINGRequest Body detailsThe callback contains the below parameters:awb_number - Generated by Shadowfax while placing an order.order_id - client_order_id shared while placing an order.event_timestamp - event_timestamp of the current status.current_location - The current location of the order during the event.comments - Contains the remarks associated with the status.status - Current status of the shipmentevent - Current status id of the shipmentotp_verifed - The value indicates whether the status was marked after OTP verification. The possible values are "Y"/"N"/"NA". By Default "NA".rider_name - The name of the rider delivering the order.The rider details are shared when the current status is Out For Delivery (ofd).rider_contact - The contact details of the rider delivering the order.The rider details are shared when the current status is Out For Delivery (ofd).type - The order type is shared over this field. eg: FWD/REVrecepient_info - This field contains proof of delivery, and it will be sent only when the current status has been delivered or RTS_D has been confirmed.This is the structure of the payload data(JSON) that will be pushed to your end.Response 200 (application/json)  {
+      "awb_number": "SF610198449AAA",
+      "order_id": "FL20230517311447364",
+      "event_timestamp": "2023-05-18 16:22:13",
+      "current_location": "CHN_Ambattur_EXP",
+      "comments": "Item Delivered at CHN_Ambattur_EXP",
+      "event": "delivered",
+      "status": "Delivered",
+      "otp_verified": "Y",
+      "rider_name": null,
+      "rider_contact": null,
+      "client_id": 2245,
+      "recipient_info": {
+          "recipient": "Customer",
+          "recipient_name": "Chittaranjan",
+          "recipient_contact": "20369854715",
+          "recipient_signature": []
+      },
+      "type": "FWD"
+  }
+When we want to send a push message to your server, we need to make an API call to a push service. API call would require the following callback details, which can be configured via the Client Portal on the Webhook tab.Note : Customized Request Body for Push CallbackWe also have the capability to send the below optional fields on clients request as an addition to the above request body :updated_date - Here the value would be the event updated date and the format would be YYYY-MM-DD eg: 2023-05-18updated_time - Here the value would be the event updated time. The format would be HHMM. eg: 1622created_date - Here the value would be the order created date. The format would be YYYY-MM-DD eg: 2023-05-18.created_time - Here the value would be the order created time. The format would be HHMM. eg: 1622total_amount - This field would be the total amount (inclusive of GST) passed during order placement.destinationPincode - This field would have the delivery pincode.destinationCity - This field would have the drop city name. default: nulloriginCity - This field would have the drop city name.shipmenttype - This field indicated the order leg, that is for reverse leg the value would be R and for forward leg the value would be F. This field is not the same as the type field.payMode - Here the value indicates the payment mode. The value would be C for cod mode and P for prepaid mode.codAmount - This field would have the cod amount.estimatedDeliveryDate - This field would have the promised date. The format would be YYYY-MM-DD HH:MM:SS.attempt_number - This field would have the attempt count. default: 0The appropriate URL implemented at your end to trigger a push message(Mandatory).Marketplace order states for PUSH Api :
+status_id	status	Remark	Description
+assigned_for_pickup	Assigned For Pickup	Item Assigned For Seller Pickup at <SFX Facility>	When the Item Assigned For Seller Pickup
+assigned_for_seller_pickup	Assigned For Pickup	Item Assigned For Customer Pickup at <SFX Facility>	When the order is Assigned to Shadowfax Rider For Seller Pickup.
+ofp	Out For Pickup	Item Out For Pickup at <SFX Facility>	When the order is out for Seller Pickup.
+picked	Picked	Picked	When the order is picked successfully
+recd_at_rev_hub	Received At Reverse Hub	Received at hub Successfully	When the order is Picked and Received At pickup hub
+recd_at_fwd_hub	Received At Forward Hub	Item Received at hub at <SFX Facility>	when order is received at destination hub
+recd_at_fwd_dc	Received At DC	Item Received at dc at <SFX Facility>	when the order received at destination city DC.
+ofd	Out For Delivery	Item OFD at <SFX Facility>	Order is out for Customer Delivery.
+assigned_for_delivery	Assigned for Customer Delivery	Item Assigned at <SFX Facility>	Order is assigned to Shadowfax Rider for Customer Delivery.
+delivered	Delivered	Item Delivered at <SFX Facility>	Order has been delivered to the customer.
+cid	Cid	Customer wants delivery on another date	Customer Initiated Delay(cid). Customer has requested for delivery on another day.
+nc	Not Contactable	Refer Appendix for detailed Reasons of Not Contactable	Customer is not contactable for delivery
+na	Not attempted	Refer Appendix for detailed Reasons of Not Attempted	Customer Delivery was not attempted by Shadowfax Rider
+pickup_not_attempted	Not Attempted	Not able to attempt	Not able to attempt the pickup for the marketplace order
+pickup_on_hold	Pick up On Hold	Refer Appendix for detailed Reasons of order On Hold	Due to the specified reason the pickup was put on hold
+reopen_ndr	Require Delivery - NDR	Require Delivery As Per NDR Instructions	Customer Delivery will be reattempted as per customer request
+cancelled_by_customer	Cancelled	Refer Appendix for detailed reasons of order Cancelled.	Delivery Request has been Cancelled By customer (can be due to various reasons)
+rts	Return to Seller initiated	Item Return To Seller at <SFX Facility>	Order is initated for Return To Seller
+rts_in_process	RTS In Progress	Item RTS In Progress at <SFX Facility>	Order Return to Seller in progress
+rts_d	Returned To Client	Item Return To Seller Delivered at <SFX Facility>	Order has been successfully returned to Seller.
+rts_nd	Undelivered	Item Return to Seller Not Delivered at <SFX Facility>	Order has been not returned to Seller.
+lost	Lost	Item Lost at <SFX Facility>	Order lost in transit
+on_hold	On Hold	Refer Appendix for detailed Reasons of order On Hold	When the item is put On Hold due to client orders/Operational Concerns.
+seller_initiated_delay	Cid	Seller Initiated Delay	Seller has requested to pickup the order on another day
+cancelled_by_seller	Cancelled by Seller	Item cancelled by seller at <SFX Facility>	Seller has requested to cancel the pickup
+Warehouse order states for PUSH Api :
+status_id	status	Remark	Description
+received_from_client_warehouse	Received from Client Warehouse	Item Received from Client Warehouse at <SFX Facility>	This status signifies that the item has been picked from the client's warehouse.
+recd_at_fwd_dc	Received At DC	Item Received at dc at <SFX Facility>	Order is received to Forward DC.
+recd_at_fwd_hub	Received At Forward Hub	Item Received at hub at <SFX Facility>	Order is received at Forward Hub from Reverse Hub.
+assigned_for_delivery	Assigned for Customer Delivery	Item Assigned at <SFX Facility>	Order is assigned to Shadowfax Rider for Customer Delivery.
+ofd	Out For Delivery	Item OFD at <SFX Facility>	Order is out for Customer Delivery.
+delivered	Delivered	Item Delivered at <SFX Facility>	Order has been delivered to the customer.
+cancelled_by_customer	Cancelled	Cancelled	Delivery Request has been Cancelled By customer (can be due to various reasons)
+cid	Cid	Customer wants delivery on another date	Customer Initiated Delay(cid). Customer has requested for delivery on another day.
+nc	Not Contactable	Customer not contactable	Customer is not contactable for delivery
+na	Not attempted	Not Attempted	Customer Delivery was not attempted by Shadowfax Rider
+lost	Lost	Item Lost at <SFX Facility>	Order lost in transit
+reopen_ndr	Require Delivery - NDR	Require Delivery As Per NDR Instructions	Customer Delivery will be reattempted as per customer request
+rto	Return to origin initiated	Refer Appendix for detailed Reasons of Return to origion	Order is initated for Return To Client/ warehouse
+rto_in_process	In RTO/RTS Process	Item RTO In Progress at <SFX Facility>	Order is initated for Return To Client/ warehouse is in process
+rto_d	Returned to Client	Item Return To Origin Delivered at <SFX Facility>	Order has been successfully returned to client
+rto_nd	Undelivered	Item Return To Origin Not Delivered at <SFX Facility>	Order has been returned to client
+on_hold	On Hold	Refer Appendix for detailed Reasons of order On Hold	When the item is put On Hold due to client orders/Operational Concerns.
+ReferenceServiceability
+Unified Pincode Serviceability
+List All Serviceable Pincodes
+By using this endpoint, you can get a list of all Shadowfax serviceable pincodes, as well as the services provided by each of them.If pagination is not sent as a parameter then by default 25 pincodes will be retrieved.While triggering the API enter the service for which the list of pincode needs to be fetched.The service parameter can be:seller_pickup - List all the pincodes where seller pickup is available.customer_delivery - List all the pincodes where customer delivery is available.customer_pickup - List all the pincodes where customer pickup is available.seller_delivery - List all the pincodes where seller delivery is available.warehouse_pickup - List all the pincodes where warehouse pickup is available.warehouse_return - List all the pincodes where warehouse return or rto is available.RequestsThis is the URL to make an actual request:
+Staging	https://dale.staging.shadowfax.in/api/v1/clients/serviceability/?service=customer_delivery&page=1&count=10&pincodes=560016,560017
+Production	https://dale.shadowfax.in/api/v1/clients/serviceability/?service=customer_delivery&page=1&count=10&pincodes=560016,560017
+AWB Generation
+AWB Generation
+Generate AWB
+We have an automated process of sharing new and unused AWBs once the existing ones are about to exhaust. It takes the count of AWB Number as the parameter. The endpoint automatically generates new AWBs and returns them if the unused AWBs are less than the required count. The max limit for the number of AWBs that can be requested in one go is 100,000.For any changes, please reach out to Shadowfax's Account Manager.
+Staging	https://dale.staging.shadowfax.in/api/
+|Production|https://dale.shadowfax.in/api/|
+Marketplace- Order Creation
+Order Creation for marketplace seller model
+Create a Seller Pickup Request
+This endpoint is used to place a new seller pickup and delivery order in our system. It takes order_details, customer_details, pickup_details, rts_details and product_details as parameters.Below given are sample pincodes for testing in Staging Environment for Pickup / delivered / return110009560077560007
+Warehouse - Order Creation
+Order Creation for warehouse model
+Create a Delivery Request
+This endpoint is used to create a new delivery request in our E-Commerce Forward System. It takes customer details, product details, and RTO(Return To Origin) details as parameters. Make sure to only add serviceable pincodes.Below given are sample pincodes for testing in Staging Environment for Pickup / delivered / return110009560077560007
+Order Details
+Single Order Details V4 version
+Get Details of a Request
+This endpoint is used to get all details of an Order by AWB Number. The v4 version of tracking API provides the additional intermediate statuses like Item Manifested, Bag In Transit etc.Multiple Order Details V4 Version
+Get Details of Multiple Delivery Requests
+This endpoint is used to get all details of multiple delivery requests, each defined by its AWB Number. The v4 version of tracking API provides the additional intermediate statuses like Item Manifested, Bag In Transit etc. The API can be used to track up to 50 AWBs in a single API call.
+Update Order Details
+Update Order Data
+Request to Update Order Data
+The endpoint allows you to edit delivery_details, pickup_details,return_details and order status for an order.The API functionalities are as follows:This API can be used to update the order status as rts / rto / reopen_ndr only if the current status of the order is either on_hold or cancelled_by_customerThe API can be used to update customer details along with the Pincode, but the Pincode can only be updated twice per order and only for intra-city orders.The mandatory/required attributes should be passed as null if they do not need to be updated.The Pincode cannot be updated when the current status of the order is delivered .This API can be used to update the payment mode of the order to prepaid if the cod_amount is passed as 0, but the updation can only be done after the pickup phase i.e post the item is picked.The shipment weight can be updated only once, and only while the shipment is in new status.The delivery_details can be updated before OFD, the return_details can be edited until the order is cancelled_by_customer and pickup_details can be edited until the order is assigned_for_seller_pickup.
+
+The Authorization header that should be used while sending request will look like:
+Token <auth token here>
+The Authorization value itself contains the Word “Token”.RequestsThis is the URL to make an actual request:
+Staging	https://dale.staging.shadowfax.in/api/v3/clients/order_update/
+Production	https://dale.shadowfax.in/api/v3/clients/order_update/
+Order Cancellation
+Order Cancellation
+Cancel a Request
+This endpoint cancels marketplace or warehouse orders using the AWB Number or unique client order id, along with the cancellation reason.For successful cancellation, we give a Response message as “Request has been marked as cancelled” & 200 as response code.For below mentioned statues, the API queues the cancellation request, returning 'Request is queued for cancellation' & 304 as response code.Out for pickup (ofp)received at reverse hub (recd_at_rev_hub)Out for delivery (ofd)Bag In Transit (bag_in_transit)Bag Received at Via (bag_received_at_via)The cancellation is executed when the shipments are received in the next SFX facility. In case the shipment is “Delivered”, then the canceling request is not executed.Cancellation after delivery results in failure, returning 'Order cannot be cancelled. Invalid state.' & 400 as response code.
+Escalation API
+Escalation API
+Escalation API
+This endpoint is used take escalations from clients in real time. Based on the issue category, a ticket would be raised in the system. This API is to take the escalation input from the clients. The action being taken on those tickets .Issue Category options
+Issue Category	Issue Category Code	Validations	Order Type
+Delayed Delivery	1	To be passed post an order is successfully picked in system and not delivered post to Estimated Delivery Date	Forward
+Expedite Pickup - Customer	2	To be passed only if the order is not yet picked from the Customer	Reverse
+Expedite Pickup - Seller	3	To be passed only until the seller pickup is not completed	Forward
+Status Mismatch	4	To be passed when there is a mismatch in expected and received order status	Forward/Reverse
+Delivery Dispute	5	To be passed only post the order is marked Delivered in the system	Forward
+Get POD Details
+Get POD Details
+Get POD Details
+Using this API, you can get POD (proof of delivery) details for multiple delivery requests, each defined by their AWB number. This API will allow you to get pod details for up to 100 AWB numbers. To obtain POD details, the order status of the AWB_number's passed must be delivered or rts_d
+Generate QR CodeGenerate QR Code v2 Version [POST]This API would help you to generate the QR code on invoices and labels for B2C shipments as per the guidelines of the Government of India. Using this API, Clients can get the QR code after the order has been placed successfully in the Shadowfax system. API would return the respective QR string generated with all the parameters passed in the request which the client would use to generate QR code and print it on the invoices. Clients can show the same QR code on the invoice/shipment labels and payment can be made by this QR code by the end customer.RequestsThis is the URL to make an actual request:
+Staging	https://saruman.staging.shadowfax.in/api/v2/clients/qr_code/generate/
+Production	https://saruman.shadowfax.in/api/v2/clients/qr_code/generate/
+Request (application/json)Body  {
+      "awb_number": "SF29534985888TER",
+      "gstin": "36AAVCS6697K1Z4",
+      "invoice_number": "ADSf",
+      "invoice_date": "2021-03-25 12:20:16",
+      "amount":1.00,
+      "taxableValue":12.00,
+      "gstPercentage":12.00,
+      "gst": 23.00,
+      "cgst": 0.00,
+      "sgst": 23.00,
+      "igst": 23.00,
+      "cess": 0.00
+  }
+Headers  Authorization: Token <token_id>
+AttributesRequired Parameters(required, object)awb_number(required, string) - AWB Number of the shipmentgstin(required , string) - Seller GSTINinvoice_number(required, string) - Invoice Number for the Shipmentinvoice_date(required, string) - Invoice Dateamount(required, string) - Pass the cash amount to be collected for which payment has to be made.taxableValue(required, string) - Total invoice value (declared value) of the shipment.gstPercentage(required, string) - GST Tax slab rate e.g. 12% / 18% in the format of number i.e. 18 or 12 or 24gst(required, string) - Total GST tax amount charged. Should be equal to INVOICE_AMOUNT * GST_RATEcgst(required, string) - CGST portion of total GST amount. Can be 0 or greater than 0igst(required, string) - IGST portion of total GST amount. Can be 0 or greater than 0sgst(required, string) - SGST portion of total GST amount. Can be 0 or greater than 0cess(required, string) - Cess amount if any. Can be 0 or greater than 0Response 200 (application/json)  {
+      "message": "success",
+      "payment_mode": "UPI/QR",
+      "qr_details": {
+          "qr_code_string": "upi://pay?pa=BHARATPE30029095568@yesbankltd&pn=Shadowfax+Technologies+Private+Limited&cu=INR&tn=Pay+To+Shadowfax+Technologies+Private+Limited&tr=BPD29095568&am=1.0&awb_number=SF29534985888TER&taxableValue=12.0&gstin=36AAVCS6697K1Z4&gstPercentage=12.0&gstBreakup=gst:23.0|cgst:0.0|sgst:23.0|igst:23.0|cess:0.0&invoice_number=ADSf&invoice_date=2021-03-25 12:20:16",
+          "transaction_id": "BHARATPE30029095568"
+      }
+  }
+Response 403 (application/json)  {
+      "detail": "You do not have permission to perform this action."
+  }
+Response 400 (application/json)  {
+      "message": {
+          "awb_number": [
+              "This field may not be blank."
+          ]
+      }
+  }
+Response 400 (application/json)  {
+      "message": {
+          "awb_number": [
+              "This field is required."
+          ]
+      }
+  }
+Response 400 (application/json)  {
+      "message": "Only Cash payments are enabled for this order."
+  }
+Response 400 (application/json)  {
+      "message": {
+          "amount": [
+              "Invalid transaction due to negative pay amount."
+          ]
+      }
+  }
+Response 400 (application/json)  {
+      "message": "Invalid AWB."
+  }
+Response 400 (application/json)  {
+      "message": "Invalid Client."
+  }
+Response 400 (application/json)  {
+      "message": "QR Code can only be generated for customer delivery."
+  }
+Response 400 (application/json)  {
+      "message": "QR Code can only be generated for COD."
+  }
+Response 400 (application/json)  {
+      "message": "Failed to generate qr code for delivery_request."
+  }
+Response 400 (application/json)  {
+      "message": "Amount entered does not match with COD amount"
+  }
+Issues and BugsPlease drop in a mail to ecom.techsupport@shadowfax.in to report any bug(s) in the Client APIs. Any issue with respect to integration can also be raised on this forum. Our team shall review the issue and get back to you in due time.Client Queries Troubleshooter - https://docs.google.com/spreadsheets/d/1c7EfdwrxQrqz9zhwaa4bE0dI0EI41PT5ynY74aDJ7S8/edit#gid=1815509323
+AppendixOn Hold Remarks for marketplaceFollowing are the remarks shared in the cases when the order is marked as On Hold.
+Status	Remarks
+On Hold	Incorrect/incomplete contact info
+On Hold	Pincode/address mismatch
+On Hold	Customer wants open delivery
+On Hold	Customer shifted from given address
+On Hold	Non Serviceable Area
+On Hold	Customer wants delivery on another address
+On Hold	High Volume Shipment
+On Hold	Three succesful attempts done
+On Hold	Customer wants delivery beyond cut-off date
+On Hold	Payment Issue
+On Hold	High Ageing
+On Hold	Successful attempts done
+On Hold	COVID Restricted Area
+On Hold	Same City Pincode Update
+On Hold	InterCity Shipment
+On Hold	Address is Junk
+On Hold	RTO Pending - Max attempts exhausted
+On Hold	RTO Pending - OTP validated cancellation
+On Hold	RTO Pending - OTP not validated cancellation
+On Hold	RTO Pending - Cancelled by customer through webapp
+On Hold	RTO Pending - Awaiting runsheet closure
+Pickup On Hold Remarks for marketplaceFollowing are the remarks shared in the cases when the order is marked as pickup_on_hold.
+Status	Remarks
+On Hold	Customer want pick-up from Non-Serviceable area
+On Hold	Pincode Address Mismatch
+On Hold	Incorrect contact number
+On Hold	Address issue
+On Hold	Customer wants replacement/refund first
+On Hold	Incomplete information received from client
+On Hold	Mandatory check not available
+On Hold	Pickup already done by other DSP
+On Hold	Shipment is not picked
+On Hold	Successful 3 attempts done
+On Hold	Large Shipment
+On Hold	Customer wants pickup beyond cut off time
+On Hold	Customer changed his/her mind
+On Hold	Doorstep QC Brandbox not available
+On Hold	DOORSTEP_QC_PRICE_TAG_MISSING
+On Hold	DOORSTEP_QC_PRODUCT_DAMAGE
+On Hold	DOORSTEP_QC_PRODUCT_MISMATCH
+On Hold	DOORSTEP_QC_USED_ITEM
+On Hold	Unable to pickup in given slot
+On Hold	Non Serviceable Area
+On Hold	Seller wants pickup beyond cut off time
+On Hold	COVID Restricted Area
+Pickup On Hold Remarks for marketplace PUSH APIFollowing are the remarks shared in the cases when the order is marked as pickup_on_hold.
+Status	Remarks
+On Hold	Customer want pick-up from Non-Serviceable area
+On Hold	Pincode Address Mismatch
+On Hold	Incorrect contact number
+On Hold	Address issue
+On Hold	Customer wants replacement/refund first
+On Hold	Incomplete information received from client
+On Hold	Mandatory check not available
+On Hold	Pickup already done by other DSP
+On Hold	Shipment is not picked
+On Hold	Successful 3 attempts done
+On Hold	Large Shipment
+On Hold	Customer wants pickup beyond cut off time
+On Hold	Customer changed his/her mind
+On Hold	Doorstep QC Brandbox not available
+On Hold	DOORSTEP_QC_PRICE_TAG_MISSING
+On Hold	DOORSTEP_QC_PRODUCT_DAMAGE
+On Hold	DOORSTEP_QC_PRODUCT_MISMATCH
+On Hold	DOORSTEP_QC_USED_ITEM
+On Hold	Unable to pickup in given slot
+On Hold	Non Serviceable Area
+On Hold	Seller wants pickup beyond cut off time
+On Hold	COVID Restricted Area
+Not Contactable Remarks for marketplaceFollowing are the remarks shared in the cases when the order is marked as nc.
+Status	Remarks
+Not Contactable	Customer not contactable
+Not Contactable	Residence or Office Closed
+Not Contactable Remarks for marketplace PUSH APIFollowing are the remarks shared in the cases when the order is marked as nc.
+Status	Remarks
+Not Contactable	Customer not contactable
+Not Contactable	Residence or Office Closed
+Cancelled RemarksFollowing are the remarks shared in the cases when the order is marked as cancelled.
+Status	Remarks
+Cancelled	Cancelled by customer
+Cancelled	Cancelled by Client
+Cancelled	Third Successful Attempt
+Cancelled	Cancelled as per client's request
+Cancelled	Central Ops Queued Return
+Cancelled Remarks for Marketplace PUSH APIFollowing are the remarks shared in the cases when the order is marked as cancelled.
+Status	Remarks
+Cancelled	Cancelled by customer
+Cancelled	Cancelled by Client
+Cancelled	Third Successful Attempt
+Cancelled	Cancelled as per client's request
+Cancelled	Central Ops Queued Return
+Return to origin for warehouse PUSH APIFollowing are the remarks shared in the cases when the order is marked as RTO.
+Status	Remarks
+RTO	NSZ/Junk/Different City/Long Distance Pincode
+RTO	Client instructions for RTO
+RTO	>= 3+ Attempt RTO
+RTO	Exception
+RTO	Misrouted/Pincode Updated
+RTO	Validated by OTP
+RTO	Max IVR attempts exhausted
+RTO	Validated by IVR/Webapp
+RTO	Cancelled by client over API
+RTO	Marked return by cron due to inactivity
+Not Attempted RemarksFollowing are the remarks shared in the cases when the order is marked as not_attempted.
+Status	Remarks
+Not Attempted	Not Attempted
+Not Attempted	Vehicle Breakdown
+Not Attempted	Heavy Rain
+Not Attempted Remarks for Marketplace PUSH ApiFollowing are the remarks shared in the cases when the order is marked as not_attempted.
+Status	Remarks
+Not Attempted	Not Attempted
+Not Attempted	Vehicle Breakdown
+Not Attempted	Heavy Rain
+On Hold Remarks for warehouseFollowing are the remarks shared in the cases when the order is marked as On Hold.
+Status	Remarks
+On Hold	Incorrect/incomplete contact info
+On Hold	Pincode/address mismatch
+On Hold	Customer wants open delivery
+On Hold	Customer shifted from given address
+On Hold	Non Serviceable Area
+On Hold	Customer wants delivery on another address
+On Hold	High Volume Shipment
+On Hold	Three succesful attempts done
+On Hold	Customer wants delivery beyond cut-off date
+On Hold	Payment Issue
+On Hold	High Ageing
+On Hold	Successful attempts done
+On Hold	COVID Restricted Area
+On Hold	Eligible for liquidation
+On Hold	Liquidated
+On Hold	Same City Pincode Update
+On Hold	InterCity Shipment
+On Hold	Address is Junk
+On Hold	RTO Pending - Max attempts exhausted
+On Hold	RTO Pending - OTP validated cancellation
+On Hold	RTO Pending - OTP not validated cancellation
+On Hold	RTO Pending - Cancelled by customer through webapp
+On Hold	RTO Pending - Awaiting runsheet closure
+On Hold Remarks for Marketplace PUSH APIFollowing are the remarks shared in the cases when the order is marked as On Hold.
+Status	Remarks
+On Hold	Incorrect/incomplete contact info
+On Hold	Pincode/address mismatch
+On Hold	Customer wants open delivery
+On Hold	Customer shifted from given address
+On Hold	Non Serviceable Area
+On Hold	Customer wants delivery on another address
+On Hold	High Volume Shipment
+On Hold	Three succesful attempts done
+On Hold	Customer wants delivery beyond cut-off date
+On Hold	Payment Issue
+On Hold	High Ageing
+On Hold	Successful attempts done
+On Hold	COVID Restricted Area
+On Hold	Eligible for liquidation
+On Hold	Liquidated
+On Hold	Same City Pincode Update
+On Hold	InterCity Shipment
+On Hold	Address is Junk
+On Hold	RTO Pending - Max attempts exhausted
+On Hold	RTO Pending - OTP validated cancellation
+On Hold	RTO Pending - OTP not validated cancellation
+On Hold	RTO Pending - Cancelled by customer through webapp
+On Hold	RTO Pending - Awaiting runsheet closure
+On Hold Remarks for Warehouse PUSH APIFollowing are the remarks shared in the cases when the order is marked as On Hold.
+Status	Remarks
+On Hold	Incorrect/incomplete contact info
+On Hold	Pincode/address mismatch
+On Hold	Customer wants open delivery
+On Hold	Customer shifted from given address
+On Hold	Non Serviceable Area
+On Hold	Customer wants delivery on another address
+On Hold	High Volume Shipment
+On Hold	Three succesful attempts done
+On Hold	Customer wants delivery beyond cut-off date
+On Hold	Payment Issue
+On Hold	High Ageing
+On Hold	Successful attempts done
+On Hold	COVID Restricted Area
+On Hold	Eligible for liquidation
+On Hold	Liquidated
+On Hold	Same City Pincode Update
+On Hold	InterCity Shipment
+On Hold	Address is Junk
+On Hold	RTO Pending - Max attempts exhausted
+On Hold	RTO Pending - OTP validated cancellation
+On Hold	RTO Pending - OTP not validated cancellation
+On Hold	RTO Pending - Cancelled by customer through webapp
+On Hold	RTO Pending - Awaiting runsheet closure
+Not Contactable RemarksFollowing are the remarks shared in the cases when the order is marked as nc.
+Status	Remarks
+Not Contactable	Customer not contactable
+Not Contactable	Item Customer Not Contactable at
+Not Contactable Remarks for Warehouse PUSH APIFollowing are the remarks shared in the cases when the order is marked as nc.
+Status	Remarks
+Not Contactable	Customer not contactable
+Not Contactable	Item Customer Not Contactable at
+No action selectedYou can try selecting ‘List All Serviceable Pincodes’ from the left column.Learn more about using the documentation.

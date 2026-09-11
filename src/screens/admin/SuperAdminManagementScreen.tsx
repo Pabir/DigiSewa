@@ -111,7 +111,7 @@ export const SuperAdminManagementScreen: React.FC = () => {
             <Text style={styles.label}>Email Address</Text>
             <TextInput 
               style={styles.input}
-              placeholder="admin@DigiSewa.in"
+              placeholder="admin@TafDeal.in"
               autoCapitalize="none"
               keyboardType="email-address"
               value={newAdminEmail}

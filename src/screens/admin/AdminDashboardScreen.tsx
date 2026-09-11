@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, useWindowDimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions, TouchableOpacity } from 'react-native';
 import { AdminHeader } from '../../components/admin/AdminHeader';
 import { AdminSidebar, AdminTab } from '../../components/admin/AdminSidebar';
 import { AdminOverviewScreen } from './AdminOverviewScreen';
@@ -10,17 +10,27 @@ import { AdminCustomerTicketsScreen } from './AdminCustomerTicketsScreen';
 import { AdminCatalogFormBuilderScreen } from './AdminCatalogFormBuilderScreen';
 import { SuperAdminManagementScreen } from './SuperAdminManagementScreen';
 import { SuperadminSettlementsScreen } from './SuperadminSettlementsScreen';
+import { AdminReturnsScreen } from './AdminReturnsScreen';
+import { AdminSystemSettingsScreen } from './AdminSystemSettingsScreen';
+import { FinanceDashboardScreen } from './finance/FinanceDashboardScreen';
+import { SellerWiseFinanceScreen } from './finance/SellerWiseFinanceScreen';
+import { ReconciliationScreen } from './finance/ReconciliationScreen';
+import { SettlementBatchesScreen } from './finance/SettlementBatchesScreen';
+import { TaxReportsScreen } from './finance/TaxReportsScreen';
+import { AdminPendingTasksScreen } from './AdminPendingTasksScreen';
 import {
   AdminSeller,
   AdminCustomer,
   SupportTicket,
   AdminOverviewMetrics,
   TicketStatus,
+  SystemSettings,
 } from '../../types/adminTypes';
 
-import { UserRole, Seller } from '../../types';
+import { UserRole, Seller, Order } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { getSellersFromFirestore, getSupportTicketsFromFirestore, getUsersFromFirestore, getOrders } from '../../services/firebaseService';
+import { getSellersFromFirestore, getSupportTicketsFromFirestore, getUsersFromFirestore, getOrders, updateSellerGstInFirestore, listenToSystemSettings } from '../../services/firebaseService';
+import { Alert } from 'react-native';
 
 interface AdminDashboardScreenProps {
   onSwitchRole: (role: UserRole) => void;
@@ -45,6 +55,15 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
   const [customers, setCustomers] = useState<AdminCustomer[]>(INITIAL_CUSTOMERS);
   const [sellerTickets, setSellerTickets] = useState<SupportTicket[]>(INITIAL_SELLER_TICKETS);
   const [customerTickets, setCustomerTickets] = useState<SupportTicket[]>(INITIAL_CUSTOMER_TICKETS);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [maintenanceWarning, setMaintenanceWarning] = useState<boolean>(false);
+
+  useEffect(() => {
+    const unsubscribe = listenToSystemSettings((settings) => {
+      setMaintenanceWarning(settings.maintenanceWarningEnabled || false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     getSellersFromFirestore().then(remoteSellers => {
@@ -53,7 +72,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
           id: s.id,
           storeName: s.storeName,
           ownerName: s.ownerName || s.storeName,
-          email: s.email || 'seller@DigiSewa.in',
+          email: s.email || 'seller@TafDeal.in',
           phone: s.phone,
           gstin: s.gstin || 'GST-NOT-PROVIDED',
           panNumber: s.panNumber || 'PAN-NOT-PROVIDED',
@@ -71,6 +90,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
           rejectionReason: s.rejectionReason,
           eSignatureText: s.eSignatureText,
           eSignatureUrl: s.eSignatureUrl || (s.eSignatureText ? 'verified' : undefined),
+          gstAdditionRequest: s.gstAdditionRequest,
         }));
 
         setSellers(prev => {
@@ -94,9 +114,10 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
         const customerUsers = remoteUsers.filter(u => u.role === 'customer' || u.role === 'buyer' || u.role === 'guest');
         if (customerUsers.length > 0) {
           try {
-            const allOrders = await getOrders();
+            const fetchedOrders = await getOrders();
+            setAllOrders(fetchedOrders);
             const mappedAdminCustomers: AdminCustomer[] = customerUsers.map((u) => {
-              const userOrders = allOrders.filter(order => order.buyerId === u.id);
+              const userOrders = fetchedOrders.filter(order => order.buyerId === u.id);
               const totalOrders = userOrders.length;
               const totalSpent = userOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
 
@@ -174,6 +195,60 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
     alert('⚠️ Seller Store account SUSPENDED.');
   };
 
+  const handleApproveGst = async (sellerId: string, gstin: string) => {
+    const seller = sellers.find(s => s.id === sellerId);
+    if (!seller || !seller.gstAdditionRequest) return;
+
+    try {
+      await updateSellerGstInFirestore(sellerId, {
+        gstin,
+        hasGst: true,
+        gstAdditionRequest: { ...seller.gstAdditionRequest, status: 'approved' },
+      });
+      setSellers((prev) =>
+        prev.map((s) => {
+          if (s.id === sellerId && s.gstAdditionRequest) {
+            return {
+              ...s,
+              gstin: gstin,
+              hasGst: true,
+              gstAdditionRequest: { ...s.gstAdditionRequest, status: 'approved' },
+            };
+          }
+          return s;
+        })
+      );
+      alert('✅ GSTIN update approved successfully.');
+    } catch (err) {
+      alert('❌ Failed to approve GSTIN. Please try again.');
+    }
+  };
+
+  const handleRejectGst = async (sellerId: string, reason: string) => {
+    const seller = sellers.find(s => s.id === sellerId);
+    if (!seller || !seller.gstAdditionRequest) return;
+
+    try {
+      await updateSellerGstInFirestore(sellerId, {
+        gstAdditionRequest: { ...seller.gstAdditionRequest, status: 'rejected', rejectionReason: reason },
+      });
+      setSellers((prev) =>
+        prev.map((s) => {
+          if (s.id === sellerId && s.gstAdditionRequest) {
+            return {
+              ...s,
+              gstAdditionRequest: { ...s.gstAdditionRequest, status: 'rejected', rejectionReason: reason },
+            };
+          }
+          return s;
+        })
+      );
+      alert(`❌ GSTIN request rejected. Reason: ${reason}`);
+    } catch (err) {
+      alert('❌ Failed to reject GSTIN. Please try again.');
+    }
+  };
+
   // Handlers for Customer Management
   const handleUpdateWalletBalance = (customerId: string, newBalance: number) => {
     setCustomers((prev) =>
@@ -204,7 +279,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
             {
               id: 'm-' + Date.now(),
               senderRole: 'admin' as const,
-              senderName: 'DigiSewa Admin',
+              senderName: 'TafDeal Admin',
               message: replyMessage,
               timestamp: 'Just now',
             },
@@ -222,6 +297,10 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
   };
 
   // Handlers for Customer Tickets
+  const handleCreateCustomerTicket = (newTicket: SupportTicket) => {
+    setCustomerTickets((prev) => [newTicket, ...prev]);
+  };
+
   const handleReplyCustomerTicket = (ticketId: string, replyMessage: string, newStatus?: TicketStatus) => {
     setCustomerTickets((prev) =>
       prev.map((t) => {
@@ -231,7 +310,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
             {
               id: 'm-' + Date.now(),
               senderRole: 'admin' as const,
-              senderName: 'DigiSewa Customer Support',
+              senderName: 'TafDeal Customer Support',
               message: replyMessage,
               timestamp: 'Just now',
             },
@@ -263,6 +342,16 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
 
   return (
     <View style={styles.container}>
+      {maintenanceWarning && (
+        <View style={styles.warningBanner}>
+          <Text style={styles.warningText}>
+            {activeRole === 'super_admin' 
+              ? "MAINTENANCE WARNING IS ON - Junior Admins are currently locked out." 
+              : "SYSTEM MAINTENANCE - Super Admin is performing critical operations. Actions are temporarily disabled."}
+          </Text>
+        </View>
+      )}
+
       {/* Admin Top Navigation Bar */}
       <AdminHeader
         activeRole="admin"
@@ -308,9 +397,20 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
 
         {/* Tab Content Renderer */}
         <View style={styles.contentArea}>
-          {activeTab === 'overview' && (
-            <AdminOverviewScreen metrics={metrics} onNavigateTab={handleSelectAdminTab} />
-          )}
+          {maintenanceWarning && activeRole !== 'super_admin' ? (
+            <View style={styles.lockedContainer}>
+              <Text style={styles.lockedIcon}>⚠️</Text>
+              <Text style={styles.lockedTitle}>System Locked</Text>
+              <Text style={styles.lockedDescription}>
+                Operations are currently disabled as the Super Admin is performing critical delete operations. 
+                Please wait until maintenance is complete.
+              </Text>
+            </View>
+          ) : (
+            <>
+              {activeTab === 'overview' && (
+                <AdminOverviewScreen metrics={metrics} onNavigateTab={handleSelectAdminTab} />
+              )}
 
           {activeTab === 'catalog_builder' && (
             <AdminCatalogFormBuilderScreen />
@@ -322,6 +422,8 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
               onApproveSeller={handleApproveSeller}
               onRejectSeller={handleRejectSeller}
               onSuspendSeller={handleSuspendSeller}
+              onApproveGst={handleApproveGst}
+              onRejectGst={handleRejectGst}
             />
           )}
 
@@ -343,7 +445,10 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
           {activeTab === 'customer_tickets' && (
             <AdminCustomerTicketsScreen
               tickets={customerTickets}
+              customers={customers}
+              orders={allOrders}
               onReplyTicket={handleReplyCustomerTicket}
+              onCreateTicket={handleCreateCustomerTicket}
               onProcessInstantRefund={handleProcessInstantRefund}
             />
           )}
@@ -352,8 +457,42 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
             <SuperadminSettlementsScreen />
           )}
 
+          {activeTab === 'returns' && (
+            <AdminReturnsScreen />
+          )}
+
           {activeTab === 'team_management' && activeRole === 'super_admin' && (
             <SuperAdminManagementScreen />
+          )}
+
+          {activeTab === 'system_settings' && (
+            <AdminSystemSettingsScreen />
+          )}
+
+          {activeTab === 'finance_dashboard' && (
+            <FinanceDashboardScreen />
+          )}
+
+          {activeTab === 'finance_seller_wise' && (
+            <SellerWiseFinanceScreen />
+          )}
+
+          {activeTab === 'finance_reconciliation' && (
+            <ReconciliationScreen />
+          )}
+
+          {activeTab === 'finance_settlements' && (
+            <SettlementBatchesScreen />
+          )}
+
+          {activeTab === 'finance_taxes' && (
+            <TaxReportsScreen />
+          )}
+
+          {activeTab === 'pending_tasks' && (
+            <AdminPendingTasksScreen />
+          )}
+            </>
           )}
         </View>
       </View>
@@ -402,5 +541,44 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
     zIndex: 1000,
+  },
+  warningBanner: {
+    backgroundColor: '#DC2626',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  warningText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  lockedContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+    backgroundColor: '#FEF2F2',
+  },
+  lockedIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  lockedTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#991B1B',
+    marginBottom: 12,
+  },
+  lockedDescription: {
+    fontSize: 15,
+    color: '#7F1D1D',
+    textAlign: 'center',
+    lineHeight: 24,
+    maxWidth: 400,
   },
 });

@@ -1,5 +1,24 @@
 export type UserRole = 'guest' | 'buyer' | 'customer' | 'seller' | 'admin' | 'super_admin';
 
+export interface DeliveryAddress {
+  id: string;
+  title: string; // e.g. "Home", "Work"
+  fullName: string;
+  phone: string;
+  fullAddress: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault: boolean;
+}
+
+export interface PaymentMethod {
+  id: string;
+  type: 'card' | 'upi';
+  details: string; // e.g. "**** **** **** 4242" or "user@upi"
+  isDefault: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -7,9 +26,15 @@ export interface User {
   phone: string;
   role: UserRole;
   avatarUrl?: string;
-  address?: string;
+  address?: string; // Legacy simple address
+  addresses?: DeliveryAddress[];
+  paymentMethods?: PaymentMethod[];
   password?: string;
   cart?: CartItem[];
+  wishlist?: Product[]; // Array of favorited Products
+  compareList?: Product[]; // Array of products for comparison
+  searchHistory?: string[]; // Array of recent search terms
+  recentlyViewed?: string[]; // Array of recently viewed product IDs
 }
 
 export interface SystemAdmin extends User {
@@ -46,7 +71,7 @@ export interface Seller {
   totalSales: number;
   verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
 
-  // Comprehensive DigiSewa Onboarding Fields (Modeled after Supplier Signup)
+  // Comprehensive TafDeal Onboarding Fields (Modeled after Supplier Signup)
   hasGst?: boolean;
   gstin?: string;
   eidNumber?: string;
@@ -61,6 +86,12 @@ export interface Seller {
   joinedDate?: string;
   eSignatureText?: string;
   eSignatureUrl?: string;
+  gstAdditionRequest?: {
+    gstin: string;
+    status: 'pending' | 'approved' | 'rejected';
+    submittedAt: string;
+    rejectionReason?: string;
+  };
 }
 
 export interface ClothSizeVariant {
@@ -117,7 +148,14 @@ export interface CartItem {
   deliveryPreference?: 'fast' | 'budget';
 }
 
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'reached_hub' | 'out_for_delivery' | 'delivered' | 'cancelled';
+export type OrderStatus = 'payment_pending' | 'payment_failed' | 'pending' | 'processing' | 'shipped' | 'reached_hub' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'rto_in_transit' | 'rto_delivered_to_seller';
+
+export interface OrderTrackingEvent {
+  status: OrderStatus;
+  location?: string;
+  timestamp: string;
+  message?: string;
+}
 
 export interface Order {
   id: string;
@@ -133,16 +171,26 @@ export interface Order {
   sellerOffersFreeShipping?: boolean;
   platformFee?: number;
   paymentMode: 'cod' | 'upi' | 'card';
-  paymentStatus: 'pending' | 'paid';
+  paymentStatus: 'pending' | 'paid' | 'payment_pending' | 'payment_failed';
   status: OrderStatus;
   createdAt: string;
   estimatedDelivery: string;
+  courierPartner?: 'shiprocket' | 'shadowfax';
   shiprocketOrderId?: string;
   shiprocketShipmentId?: string;
   awbCode?: string;
+  shadowfaxAwb?: string;
   labelUrl?: string;
   isLabelDownloaded?: boolean;
   razorpayPaymentId?: string;
+  trackingHistory?: OrderTrackingEvent[];
+  // COD Remittance Fields
+  codRemitted?: boolean;
+  remittanceAmount?: number;
+  utrNumber?: string;
+  remittanceDate?: string;
+  // Return Status
+  returnStatus?: 'not_requested' | 'requested' | 'approved' | 'rejected' | 'picked_up' | 'refunded';
 }
 
 export interface Category {
@@ -168,9 +216,12 @@ export interface ReturnItem {
   productName: string;
   returnReason: string;
   customerName: string;
-  status: 'rto_in_transit' | 'delivered_to_seller' | 'qc_failed' | 'replacement_requested';
+  status: 'rto_in_transit' | 'delivered_to_seller' | 'qc_failed' | 'replacement_requested' | 'approved';
   returnDate: string;
   amount: number;
+  awbNumber?: string;
+  refundMethod?: 'bank' | 'upi';
+  refundDetails?: string;
 }
 
 export interface Settlement {

@@ -1,23 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import {
-  AlertTriangle,
+  ListTodo,
+  Package,
+  Download,
+  ClipboardX,
+  ClipboardList,
+  Activity,
+  PlusCircle,
   Clock,
-  CheckCircle2,
-  Plus,
-  Zap,
-  Sparkles,
-  FileText,
-  ArrowRight,
-  Book,
-  Truck,
-  Tag,
-  ShieldAlert,
-  CheckCircle,
-  TrendingUp,
-  LayoutDashboard
+  ChevronRight,
 } from 'lucide-react-native';
+import Svg, { Path, Circle, Defs, LinearGradient, Stop, Line, Text as SvgText } from 'react-native-svg';
 import { useAuth } from '../../context/AuthContext';
+import { getOrders, getProducts } from '../../services/firebaseService';
 import { ESignatureModal } from '../../components/seller/ESignatureModal';
 import { BulkCatalogUploadModal } from '../../components/seller/BulkCatalogUploadModal';
 
@@ -34,279 +30,357 @@ export const MeeshoSupplierHomeScreen: React.FC<MeeshoSupplierHomeScreenProps> =
   onNavigateToOrders,
 }) => {
   const { sellerProfile } = useAuth();
-  const storeName = sellerProfile?.storeName || 'DigiSewa Express Store';
+  const storeName = sellerProfile?.storeName || 'MS.MAMONI.DRESSES';
 
   const [showESignatureModal, setShowESignatureModal] = useState<boolean>(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState<boolean>(false);
-  const [isSignatureAdded, setIsSignatureAdded] = useState<boolean>(false);
 
-  const isApproved = sellerProfile?.verificationStatus === 'verified';
-  const hasSignature = Boolean(sellerProfile?.eSignatureText || sellerProfile?.eSignatureUrl);
+  // Real Data States
+  const [pendingOrders, setPendingOrders] = useState(0);
+  const [outOfStock, setOutOfStock] = useState(0);
+  const [lowStock, setLowStock] = useState(0);
+  const [dailySales, setDailySales] = useState<number[]>([0,0,0,0,0,0,0]);
+  const [totalOrdersToday, setTotalOrdersToday] = useState(0);
+  const [viewsToday, setViewsToday] = useState(0);
 
-  const handleSingleCatalogPress = () => {
-    if (!isApproved) {
-      const status = sellerProfile?.verificationStatus || 'pending';
-      const msg =
-        status === 'rejected'
-          ? '❌ Account Rejected: Your seller application was rejected by Admin. You cannot add or sell products.'
-          : status === 'suspended'
-          ? '⚠️ Account Suspended: Your seller account has been suspended by Admin. You cannot add or sell products.'
-          : '⏳ Approval Pending: Your seller account is awaiting Admin approval. You cannot add or sell products until approved by Admin.';
-      alert(msg);
-      return;
-    }
-    onNavigateToAddSingleCatalog();
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!sellerProfile?.id) return;
+      try {
+        const [orders, products] = await Promise.all([
+          getOrders(sellerProfile.id),
+          getProducts(false, sellerProfile.id)
+        ]);
 
-  const handleBulkCatalogPress = () => {
-    if (!isApproved) {
-      const status = sellerProfile?.verificationStatus || 'pending';
-      const msg =
-        status === 'rejected'
-          ? '❌ Account Rejected: Your seller application was rejected by Admin. You cannot add or sell products.'
-          : status === 'suspended'
-          ? '⚠️ Account Suspended: Your seller account has been suspended by Admin. You cannot add or sell products.'
-          : '⏳ Approval Pending: Your seller account is awaiting Admin approval. You cannot add or sell products until approved by Admin.';
-      alert(msg);
-      return;
-    }
-    setShowBulkUploadModal(true);
-  };
+        let oos = 0;
+        let ls = 0;
+        products.forEach(p => {
+          if (p.stock === 0) oos++;
+          else if (p.stock > 0 && p.stock < 5) ls++;
+        });
+        setOutOfStock(oos);
+        setLowStock(ls);
+
+        let pending = 0;
+        let todayOrders = 0;
+        const salesMap: { [key: string]: number } = {};
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        orders.forEach(order => {
+          if (order.status === 'pending' || order.status === 'processing') pending++;
+
+          if (order.createdAt) {
+            const d = new Date(order.createdAt);
+            if (d >= today) todayOrders++;
+
+            const dateStr = d.toISOString().split('T')[0];
+            salesMap[dateStr] = (salesMap[dateStr] || 0) + (order.totalAmount || 0);
+          }
+        });
+
+        setPendingOrders(pending);
+        setTotalOrdersToday(todayOrders);
+        setViewsToday(todayOrders * 15 + 42); // mock realistic views proportional to orders
+
+        const newSales = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toISOString().split('T')[0];
+          newSales.push(salesMap[dateStr] || 0);
+        }
+        setDailySales(newSales);
+      } catch (err) {
+        console.error('Error fetching seller stats:', err);
+      }
+    };
+    fetchData();
+  }, [sellerProfile?.id]);
+
+  // Helper for Business Insights Chart
+  const chartHeight = 160;
+  const chartWidth = 450;
+  
+  const maxSales = Math.max(...dailySales, 1000);
+  const xStep = (chartWidth - 40) / 6;
+
+  const points = dailySales.map((val, i) => {
+    const y = chartHeight - 20 - (val / maxSales) * (chartHeight - 40);
+    return { x: 20 + i * xStep, y: isNaN(y) ? chartHeight - 20 : y };
+  });
+
+  const pathD = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
+  const areaD = `${pathD} L ${chartWidth},${chartHeight} L 0,${chartHeight} Z`;
+
+  // X axis labels for last 7 days
+  const last7Days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const day = d.getDate();
+    const month = d.toLocaleString('default', { month: 'short' });
+    let suffix = 'th';
+    if (day === 1 || day === 21 || day === 31) suffix = 'st';
+    else if (day === 2 || day === 22) suffix = 'nd';
+    else if (day === 3 || day === 23) suffix = 'rd';
+    last7Days.push(`${day}${suffix}`);
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       
-      {/* --- UNIFIED HEADER & ALERTS --- */}
-      <View style={styles.headerSection}>
-        {/* Welcome Header */}
-        <View style={styles.welcomeBanner}>
-          <View style={styles.welcomeContent}>
-            <Text style={styles.welcomeTitle}>Welcome back, {storeName}</Text>
-            <Text style={styles.welcomeSub}>Manage your catalog, track orders, and grow your business.</Text>
-          </View>
-          <View style={styles.welcomeIconBox}>
-            <LayoutDashboard size={40} color="#4F46E5" opacity={0.2} />
-          </View>
-        </View>
-
-        {/* Global Alerts */}
-        <View style={styles.alertsContainer}>
-          {/* E-Signature Alert */}
-          {!hasSignature ? (
-            <View style={[styles.alertBanner, styles.alertDanger]}>
-              <View style={styles.alertIconBox}>
-                <ShieldAlert size={20} color="#DC2626" />
-              </View>
-              <View style={styles.alertTextContent}>
-                <Text style={styles.alertTitle}>Action Required: Missing E-Signature</Text>
-                <Text style={styles.alertDesc}>Required for automated customer invoicing & credit notes.</Text>
-              </View>
-              <TouchableOpacity style={styles.alertActionBtn} onPress={() => setShowESignatureModal(true)}>
-                <Text style={styles.alertActionBtnText}>Add Signature</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={[styles.alertBanner, styles.alertSuccess]}>
-              <View style={styles.alertIconBox}>
-                <CheckCircle size={20} color="#16A34A" />
-              </View>
-              <View style={styles.alertTextContent}>
-                <Text style={[styles.alertTitle, { color: '#166534' }]}>E-Signature Verified</Text>
-                <Text style={[styles.alertDesc, { color: '#15803D' }]}>Active for automated GST customer invoices.</Text>
-              </View>
-              <TouchableOpacity style={styles.alertActionBtnOutline} onPress={() => setShowESignatureModal(true)}>
-                <Text style={styles.alertActionBtnTextOutline}>Edit</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Verification Status */}
-          {sellerProfile?.verificationStatus !== 'verified' ? (
-            <View style={[styles.alertBanner, sellerProfile?.verificationStatus === 'rejected' ? styles.alertDanger : styles.alertWarning]}>
-              <View style={styles.alertIconBox}>
-                <Clock size={20} color={sellerProfile?.verificationStatus === 'rejected' ? '#DC2626' : '#D97706'} />
-              </View>
-              <View style={styles.alertTextContent}>
-                <Text style={[styles.alertTitle, sellerProfile?.verificationStatus === 'rejected' && { color: '#991B1B' }]}>
-                  {sellerProfile?.verificationStatus === 'rejected' ? 'Account Rejected' : sellerProfile?.verificationStatus === 'suspended' ? 'Account Suspended' : 'Approval Pending'}
-                </Text>
-                <Text style={[styles.alertDesc, sellerProfile?.verificationStatus === 'rejected' && { color: '#7F1D1D' }]}>
-                  {sellerProfile?.verificationStatus === 'rejected'
-                    ? `Reason: ${sellerProfile.rejectionReason || 'Document verification failed'}`
-                    : sellerProfile?.verificationStatus === 'suspended'
-                    ? 'Account suspended by Admin. Selling disabled.'
-                    : 'Account under review. You cannot sell products yet.'}
-                </Text>
-              </View>
-            </View>
-          ) : (
-            <View style={[styles.alertBanner, styles.alertSuccess]}>
-              <View style={styles.alertIconBox}>
-                <CheckCircle size={20} color="#16A34A" />
-              </View>
-              <View style={styles.alertTextContent}>
-                <Text style={[styles.alertTitle, { color: '#166534' }]}>Store Approved & Live</Text>
-                <Text style={[styles.alertDesc, { color: '#15803D' }]}>Your store is verified. You can now publish catalogs.</Text>
-              </View>
-            </View>
-          )}
-        </View>
+      {/* Header section */}
+      <View style={styles.headerBox}>
+        <Text style={styles.welcomeTitle}>Welcome back, {storeName}</Text>
+        <Text style={styles.welcomeSub}>Manage and grow your business with Meesho</Text>
       </View>
 
-      {/* --- DASHBOARD MAIN CONTENT --- */}
-      <View style={styles.dashboardGrid}>
-        
-        {/* LEFT COLUMN: ACTION HUB */}
-        <View style={styles.leftCol}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <Text style={styles.sectionSub}>Select a method to upload your products</Text>
-          </View>
+      {/* Alert Banner */}
+      <View style={styles.alertBanner}>
+        <Text style={styles.alertEmoji}>🎉</Text>
+        <Text style={styles.alertText}>
+          <Text style={styles.alertTextBold}>Upcoming Policy Update:</Text> <Text style={styles.alertTextBoldBlack}>Next Day Dispatch</Text> is becoming the new platform standard for all orders.
+        </Text>
+        <TouchableOpacity>
+          <Text style={styles.knowMoreText}>Know more</Text>
+        </TouchableOpacity>
+      </View>
 
-          <View style={styles.actionCardsRow}>
-            {/* Single Catalog Card */}
-            <TouchableOpacity style={styles.actionCard} onPress={handleSingleCatalogPress} activeOpacity={0.8}>
-              <View style={[styles.actionIconWrapper, { backgroundColor: '#EEF2FF' }]}>
-                <FileText size={28} color="#4F46E5" />
-              </View>
-              <Text style={styles.actionCardTitle}>Upload Single Catalog</Text>
-              <Text style={styles.actionCardDesc}>Perfect for adding one product with multiple variants interactively.</Text>
-              <View style={styles.featureList}>
-                <View style={styles.featureItem}>
-                  <CheckCircle2 size={14} color="#64748B" />
-                  <Text style={styles.featureText}>Step-by-step wizard</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <CheckCircle2 size={14} color="#64748B" />
-                  <Text style={styles.featureText}>No excel required</Text>
-                </View>
-              </View>
-              <View style={styles.actionBtnPrimary}>
-                <Text style={styles.actionBtnPrimaryText}>Add Single Catalog</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Bulk Catalog Card */}
-            <TouchableOpacity style={styles.actionCard} onPress={handleBulkCatalogPress} activeOpacity={0.8}>
-              <View style={[styles.actionIconWrapper, { backgroundColor: '#F0FDF4' }]}>
-                <FileText size={28} color="#16A34A" />
-              </View>
-              <Text style={styles.actionCardTitle}>Upload Bulk Catalog</Text>
-              <Text style={styles.actionCardDesc}>Fastest way to upload hundreds of products via a spreadsheet.</Text>
-              <View style={styles.featureList}>
-                <View style={styles.featureItem}>
-                  <CheckCircle2 size={14} color="#64748B" />
-                  <Text style={styles.featureText}>Template provided</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <CheckCircle2 size={14} color="#64748B" />
-                  <Text style={styles.featureText}>Automated validation</Text>
-                </View>
-              </View>
-              <View style={[styles.actionBtnPrimary, styles.actionBtnOutline]}>
-                <Text style={[styles.actionBtnPrimaryText, styles.actionBtnOutlineText]}>Upload Excel File</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* RIGHT COLUMN: WIDGETS */}
-        <View style={styles.rightCol}>
+      {/* Grid Layout */}
+      <View style={styles.gridContainer}>
+        {/* LEFT COLUMN */}
+        <View style={styles.leftColumn}>
           
-          {/* Setup Checklist */}
-          <View style={styles.widgetCard}>
-            <View style={styles.widgetHeader}>
-              <Text style={styles.widgetTitle}>Account Setup</Text>
-              <Text style={styles.widgetBadge}>1/2 Complete</Text>
+          {/* To do list */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.iconBgGray}>
+                <ListTodo size={18} color="#64748B" />
+              </View>
+              <Text style={styles.cardTitle}>To do list</Text>
             </View>
-            <View style={styles.checklistContainer}>
-              <TouchableOpacity style={styles.checklistItem}>
-                <View style={[styles.checkCircle, styles.checkCircleDone]}>
-                  <CheckCircle2 size={16} color="#FFFFFF" />
+            
+            <View style={styles.todoCardsRow}>
+              <TouchableOpacity style={styles.todoItemCard} onPress={onNavigateToOrders}>
+                <View style={styles.todoIconWrapper}>
+                  <Package size={24} color="#854D0E" />
+                  <View style={styles.todoIconBadge}>
+                    <Clock size={12} color="#FFF" />
+                  </View>
                 </View>
-                <Text style={styles.checklistTextDone}>Set Password</Text>
+                <View>
+                  <Text style={styles.todoItemLabel}>Pending Orders</Text>
+                  <View style={styles.todoItemValueRow}>
+                    <Text style={styles.todoItemValueBlue}>{pendingOrders}</Text>
+                    <ChevronRight size={14} color="#4338CA" />
+                  </View>
+                </View>
               </TouchableOpacity>
 
-              {!hasSignature ? (
-                <TouchableOpacity style={styles.checklistItem} onPress={() => setShowESignatureModal(true)}>
-                  <View style={styles.checkCircle}>
-                    <Plus size={16} color="#4F46E5" />
+              <TouchableOpacity style={styles.todoItemCard}>
+                <View style={[styles.todoIconWrapper, { backgroundColor: '#F1F5F9' }]}>
+                  <Package size={24} color="#64748B" />
+                  <View style={[styles.todoIconBadge, { backgroundColor: '#3B82F6' }]}>
+                    <Download size={12} color="#FFF" />
                   </View>
-                  <Text style={styles.checklistTextPending}>Add E-Signature</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.checklistItem}>
-                  <View style={[styles.checkCircle, styles.checkCircleDone]}>
-                    <CheckCircle2 size={16} color="#FFFFFF" />
-                  </View>
-                  <Text style={styles.checklistTextDone}>Add E-Signature</Text>
                 </View>
-              )}
+                <View>
+                  <Text style={styles.todoItemLabel}>Download Labels</Text>
+                  <View style={styles.todoItemValueRow}>
+                    <Text style={styles.todoItemValueBlue}>0</Text>
+                    <ChevronRight size={14} color="#4338CA" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.todoItemCard}>
+                <View style={[styles.todoIconWrapper, { backgroundColor: '#FEF2F2' }]}>
+                  <ClipboardX size={24} color="#DC2626" />
+                </View>
+                <View>
+                  <Text style={styles.todoItemLabel}>Out of Stock</Text>
+                  <View style={styles.todoItemValueRow}>
+                    <Text style={styles.todoItemValueBlue}>{outOfStock}</Text>
+                    <ChevronRight size={14} color="#4338CA" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.todoItemCard}>
+                <View style={[styles.todoIconWrapper, { backgroundColor: '#FFFBEB' }]}>
+                  <ClipboardList size={24} color="#D97706" />
+                </View>
+                <View>
+                  <Text style={styles.todoItemLabel}>Low Stock</Text>
+                  <View style={styles.todoItemValueRow}>
+                    <Text style={styles.todoItemValueBlue}>{lowStock}</Text>
+                    <ChevronRight size={14} color="#4338CA" />
+                  </View>
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Resource Center */}
-          <View style={styles.widgetCard}>
-            <Text style={styles.widgetTitle}>Resource Center</Text>
-            <Text style={styles.widgetSub}>Learn how to grow your sales</Text>
-            
-            <View style={styles.resourcesList}>
-              <TouchableOpacity style={styles.resourceItem}>
-                <View style={[styles.resourceIcon, { backgroundColor: '#FDF2F8' }]}>
-                  <Book size={16} color="#DB2777" />
-                </View>
-                <View style={styles.resourceTextCol}>
-                  <Text style={styles.resourceTitle}>Seller Guidelines</Text>
-                  <Text style={styles.resourceDesc}>How to prepare your catalogs</Text>
-                </View>
-                <ArrowRight size={16} color="#CBD5E1" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.resourceItem}>
-                <View style={[styles.resourceIcon, { backgroundColor: '#FEF2F2' }]}>
-                  <Tag size={16} color="#DC2626" />
-                </View>
-                <View style={styles.resourceTextCol}>
-                  <Text style={styles.resourceTitle}>Pricing & Commission</Text>
-                  <Text style={styles.resourceDesc}>Understand your payouts</Text>
-                </View>
-                <ArrowRight size={16} color="#CBD5E1" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.resourceItem}>
-                <View style={[styles.resourceIcon, { backgroundColor: '#F0FDF4' }]}>
-                  <Truck size={16} color="#16A34A" />
-                </View>
-                <View style={styles.resourceTextCol}>
-                  <Text style={styles.resourceTitle}>Logistics & Returns</Text>
-                  <Text style={styles.resourceDesc}>Shipping procedures</Text>
-                </View>
-                <ArrowRight size={16} color="#CBD5E1" />
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.resourceItem, { borderBottomWidth: 0 }]}>
-                <View style={[styles.resourceIcon, { backgroundColor: '#EEF2FF' }]}>
-                  <TrendingUp size={16} color="#4F46E5" />
-                </View>
-                <View style={styles.resourceTextCol}>
-                  <Text style={styles.resourceTitle}>Live Training</Text>
-                  <Text style={styles.resourceDesc}>Book an expert-led session</Text>
-                </View>
-                <ArrowRight size={16} color="#CBD5E1" />
-              </TouchableOpacity>
+          {/* Business Insights */}
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.iconBgGray}>
+                <Activity size={18} color="#64748B" />
+              </View>
+              <Text style={styles.cardTitle}>Business Insights</Text>
             </View>
+
+            <View style={styles.insightsContent}>
+              {/* Left Chart Area */}
+              <View style={styles.chartArea}>
+                <Text style={styles.chartTab}>Daily</Text>
+                
+                <View style={styles.chartWrapper}>
+                  {/* Y Axis Labels */}
+                  <View style={styles.yAxis}>
+                    <Text style={styles.axisText}>₹{(maxSales).toLocaleString('en-IN')}</Text>
+                    <Text style={styles.axisText}>₹{Math.floor(maxSales * 0.66).toLocaleString('en-IN')}</Text>
+                    <Text style={styles.axisText}>₹{Math.floor(maxSales * 0.33).toLocaleString('en-IN')}</Text>
+                    <Text style={styles.axisText}>0</Text>
+                  </View>
+                  
+                  {/* SVG Chart */}
+                  <View style={styles.svgContainer}>
+                    <Svg width="100%" height={chartHeight} viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+                      <Defs>
+                        <LinearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+                          <Stop offset="0" stopColor="#EEF2FF" stopOpacity="0.8" />
+                          <Stop offset="1" stopColor="#EEF2FF" stopOpacity="0" />
+                        </LinearGradient>
+                      </Defs>
+                      
+                      {/* Grid Lines */}
+                      <Line x1="0" y1="10" x2={chartWidth} y2="10" stroke="#F1F5F9" strokeWidth="1" />
+                      <Line x1="0" y1="60" x2={chartWidth} y2="60" stroke="#F1F5F9" strokeWidth="1" />
+                      <Line x1="0" y1="110" x2={chartWidth} y2="110" stroke="#F1F5F9" strokeWidth="1" />
+                      <Line x1="0" y1="160" x2={chartWidth} y2="160" stroke="#F1F5F9" strokeWidth="1" />
+                      
+                      {/* Area & Line */}
+                      <Path d={areaD} fill="url(#grad)" />
+                      <Path d={pathD} fill="none" stroke="#6366F1" strokeWidth="2.5" />
+                      
+                      {/* Data Points */}
+                      {points.map((p, i) => (
+                        <Circle key={i} cx={p.x} cy={p.y} r="4" fill="#6366F1" stroke="#FFF" strokeWidth="2" />
+                      ))}
+                    </Svg>
+                    
+                    {/* X Axis Labels */}
+                    <View style={styles.xAxis}>
+                      <Text style={styles.axisText}>{last7Days[0]}</Text>
+                      <Text style={styles.axisText}>{last7Days[1]}</Text>
+                      <Text style={styles.axisText}>{last7Days[2]}</Text>
+                      <Text style={[styles.axisText, {marginLeft: 10}]}>{last7Days[3]}</Text>
+                      <Text style={styles.axisText}>{last7Days[4]}</Text>
+                      <Text style={styles.axisText}>{last7Days[5]}</Text>
+                      <Text style={styles.axisText}>{last7Days[6]}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.viewMoreBtn}>
+                  <Text style={styles.viewMoreText}>View More Details</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Right Stats Area */}
+              <View style={styles.statsArea}>
+                <View style={styles.statBox}>
+                  <Text style={styles.statBoxLabel}>Views <Text style={styles.statBoxDate}>(Today)</Text></Text>
+                  <View style={styles.statBoxValueRow}>
+                    <Text style={styles.statBoxValue}>{viewsToday.toLocaleString('en-IN')}</Text>
+                    <Text style={styles.statBoxGrowth}>▲ 4.59%</Text>
+                  </View>
+                </View>
+
+                <View style={styles.statBox}>
+                  <Text style={styles.statBoxLabel}>Orders <Text style={styles.statBoxDate}>(Today)</Text></Text>
+                  <View style={styles.statBoxValueRow}>
+                    <Text style={styles.statBoxValue}>{totalOrdersToday}</Text>
+                    <Text style={styles.statBoxGrowth}>▲ 32.14%</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+
+        </View>
+
+        {/* RIGHT COLUMN */}
+        <View style={styles.rightColumn}>
+          
+          {/* Account Setup */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitleLarge}>Complete your account setup</Text>
+            <Text style={styles.cardSubText}>Add the below information to improve your selling journey</Text>
+            
+            <TouchableOpacity style={styles.addBtnRow}>
+              <PlusCircle size={20} color="#4338CA" />
+              <Text style={styles.addBtnText}>Add Business Type</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Flash Sale Banner */}
+          <View style={styles.card}>
+            <View style={styles.flashHeaderRow}>
+              <View style={styles.timerBadge}>
+                <Clock size={12} color="#D97706" style={{marginRight: 4}} />
+                <Text style={styles.timerText}>2h : 21m : 23s</Text>
+              </View>
+              {/* Fake logo for mega blockbuster sale */}
+              <View style={styles.saleLogoMock}>
+                <Text style={styles.saleLogoMockText}>MEGA BLOCKBUSTER SALE</Text>
+              </View>
+            </View>
+
+            <Text style={styles.flashTitle}>
+              Add timer on Mega Blockbuster Sale! Get <Text style={styles.flashTitlePurple}>extra 50% growth*</Text>
+            </Text>
+
+            {/* Growth Curve SVG */}
+            <View style={styles.flashSvgContainer}>
+              <Svg width="100%" height={100} viewBox="0 0 300 100">
+                {/* Curved line (current to flash) */}
+                <Path d="M 10 70 Q 100 90, 150 50 T 280 30" fill="none" stroke="#22C55E" strokeWidth="2" />
+                <Path d="M 275 25 L 285 30 L 275 35 Z" fill="#22C55E" />
+                
+                {/* Points */}
+                <Circle cx="80" cy="73" r="4" fill="#22C55E" />
+                <Circle cx="240" cy="33" r="4" fill="#22C55E" />
+
+                {/* Text Labels */}
+                <SvgText x="80" y="90" fontSize="10" fill="#64748B" textAnchor="middle">150%</SvgText>
+                <SvgText x="80" y="102" fontSize="10" fill="#94A3B8" textAnchor="middle">current growth</SvgText>
+
+                <SvgText x="240" y="65" fontSize="12" fill="#334155" fontWeight="bold" textAnchor="middle">200%</SvgText>
+                <SvgText x="240" y="80" fontSize="10" fill="#64748B" textAnchor="middle">flash growth</SvgText>
+                
+                <SvgText x="160" y="30" fontSize="10" fill="#22C55E" fontWeight="bold" textAnchor="middle">+ 50%</SvgText>
+              </Svg>
+            </View>
+
+            <TouchableOpacity style={styles.flashBtn}>
+              <Text style={styles.flashBtnText}>Add flash discount</Text>
+            </TouchableOpacity>
+            
+            <Text style={styles.flashFooter}>*Based on internal projections. Actual figures may vary.</Text>
           </View>
 
         </View>
       </View>
 
-      {/* Modals */}
       <ESignatureModal
         visible={showESignatureModal}
         onClose={() => setShowESignatureModal(false)}
-        onSave={() => setIsSignatureAdded(true)}
+        onSave={() => {}}
       />
-
       <BulkCatalogUploadModal
         visible={showBulkUploadModal}
         onClose={() => setShowBulkUploadModal(false)}
@@ -323,313 +397,323 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 24,
-    gap: 24,
-  },
-  headerSection: {
     gap: 16,
   },
-  welcomeBanner: {
-    backgroundColor: '#4F46E5',
-    borderRadius: 16,
-    padding: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  welcomeContent: {
-    flex: 1,
-    zIndex: 1,
+  headerBox: {
+    marginBottom: 8,
   },
   welcomeTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#334155',
     marginBottom: 4,
   },
   welcomeSub: {
     fontSize: 14,
-    color: '#E0E7FF',
-    fontWeight: '500',
-  },
-  welcomeIconBox: {
-    position: 'absolute',
-    right: 20,
-    top: '50%',
-    transform: [{ translateY: -20 }],
-    zIndex: 0,
-  },
-  alertsContainer: {
-    gap: 12,
+    color: '#64748B',
   },
   alertBanner: {
+    backgroundColor: '#FEF9C3', // Light yellow
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
     borderWidth: 1,
-    gap: 12,
+    borderColor: '#FEF08A',
   },
-  alertDanger: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
+  alertEmoji: {
+    fontSize: 16,
+    marginRight: 8,
   },
-  alertSuccess: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#BBF7D0',
-  },
-  alertWarning: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
-  },
-  alertIconBox: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  alertTextContent: {
+  alertText: {
     flex: 1,
-  },
-  alertTitle: {
     fontSize: 14,
+    color: '#334155',
+  },
+  alertTextBold: {
     fontWeight: '700',
-    color: '#991B1B',
+    color: '#D97706',
   },
-  alertDesc: {
-    fontSize: 12,
-    color: '#7F1D1D',
-    marginTop: 2,
-  },
-  alertActionBtn: {
-    backgroundColor: '#DC2626',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  alertActionBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
+  alertTextBoldBlack: {
     fontWeight: '700',
+    color: '#1E293B',
   },
-  alertActionBtnOutline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#16A34A',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+  knowMoreText: {
+    fontSize: 14,
+    color: '#4338CA',
+    textDecorationLine: 'underline',
+    textDecorationStyle: 'dotted',
+    fontWeight: '500',
+    marginLeft: 8,
   },
-  alertActionBtnTextOutline: {
-    color: '#16A34A',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  dashboardGrid: {
-    flexDirection: 'row',
-    gap: 24,
-    flexWrap: 'wrap',
-  },
-  leftCol: {
-    flex: 2,
-    minWidth: 280,
-  },
-  rightCol: {
-    flex: 1,
-    minWidth: 260,
-    gap: 24,
-  },
-  sectionHeader: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  sectionSub: {
-    fontSize: 13,
-    color: '#64748B',
-    marginTop: 4,
-  },
-  actionCardsRow: {
-    flexDirection: 'row',
+  gridContainer: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
     gap: 16,
-    flexWrap: 'wrap',
   },
-  actionCard: {
+  leftColumn: {
+    flex: 2,
+    gap: 16,
+  },
+  rightColumn: {
     flex: 1,
-    minWidth: 240,
+    gap: 16,
+  },
+  card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
     elevation: 2,
   },
-  actionIconWrapper: {
-    width: 56,
-    height: 56,
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
+  iconBgGray: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  todoCardsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  todoItemCard: {
+    flex: 1,
+    minWidth: 140,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 16,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  todoIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#FEF3C7', // default brown/yellow
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  todoIconBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: '#D97706',
+    borderRadius: 10,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: '#FFF',
+  },
+  todoItemLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  todoItemValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  todoItemValueBlue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4338CA', // Indigo
+  },
+  insightsContent: {
+    flexDirection: 'row',
+    gap: 24,
+    flexWrap: 'wrap',
+  },
+  chartArea: {
+    flex: 3,
+    minWidth: 300,
+  },
+  chartTab: {
+    color: '#4338CA',
+    fontWeight: '600',
+    fontSize: 14,
+    alignSelf: 'center',
     marginBottom: 16,
   },
-  actionCardTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 8,
+  chartWrapper: {
+    flexDirection: 'row',
+    height: 180,
   },
-  actionCardDesc: {
+  yAxis: {
+    justifyContent: 'space-between',
+    paddingRight: 12,
+    paddingBottom: 20, // leave space for X axis
+  },
+  svgContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  xAxis: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    position: 'absolute',
+    bottom: -15,
+    left: 0,
+    right: 0,
+  },
+  axisText: {
+    fontSize: 11,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  viewMoreBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#4338CA',
+    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 20,
+  },
+  viewMoreText: {
+    color: '#4338CA',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  statsArea: {
+    flex: 1,
+    minWidth: 150,
+    gap: 16,
+  },
+  statBox: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 16,
+  },
+  statBoxLabel: {
+    fontSize: 13,
+    color: '#475569',
+    marginBottom: 12,
+  },
+  statBoxDate: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  statBoxValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  statBoxValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  statBoxGrowth: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#16A34A',
+  },
+  cardTitleLarge: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  cardSubText: {
     fontSize: 13,
     color: '#64748B',
     lineHeight: 18,
-    marginBottom: 16,
-    minHeight: 40,
+    marginBottom: 20,
   },
-  featureList: {
-    gap: 8,
-    marginBottom: 24,
-  },
-  featureItem: {
+  addBtnRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  featureText: {
-    fontSize: 12,
-    color: '#475569',
-    fontWeight: '500',
-  },
-  actionBtnPrimary: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  actionBtnPrimaryText: {
-    color: '#FFFFFF',
+  addBtnText: {
+    color: '#4338CA',
+    fontWeight: '600',
     fontSize: 14,
-    fontWeight: '700',
   },
-  actionBtnOutline: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#16A34A',
-  },
-  actionBtnOutlineText: {
-    color: '#16A34A',
-  },
-  widgetCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  widgetHeader: {
+  flashHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  timerBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  widgetTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  widgetBadge: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#4F46E5',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FEF3C7',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 16,
   },
-  widgetSub: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 16,
-  },
-  checklistContainer: {
-    gap: 12,
-  },
-  checklistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 4,
-  },
-  checkCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#EEF2FF',
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkCircleDone: {
-    backgroundColor: '#16A34A',
-    borderColor: '#16A34A',
-  },
-  checklistTextDone: {
-    fontSize: 14,
-    color: '#0F172A',
-    fontWeight: '600',
-    textDecorationLine: 'line-through',
-  },
-  checklistTextPending: {
-    fontSize: 14,
-    color: '#4F46E5',
+  timerText: {
+    color: '#D97706',
     fontWeight: '700',
+    fontSize: 12,
   },
-  resourcesList: {
-    marginTop: 8,
+  saleLogoMock: {
+    backgroundColor: '#DB2777',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    transform: [{ rotate: '5deg' }],
   },
-  resourceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+  saleLogoMockText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '900',
+    fontStyle: 'italic',
   },
-  resourceIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  resourceTextCol: {
-    flex: 1,
-  },
-  resourceTitle: {
-    fontSize: 14,
+  flashTitle: {
+    fontSize: 15,
     fontWeight: '700',
     color: '#1E293B',
+    lineHeight: 22,
+    marginBottom: 8,
   },
-  resourceDesc: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
+  flashTitlePurple: {
+    color: '#4338CA',
+  },
+  flashSvgContainer: {
+    height: 100,
+    marginVertical: 8,
+  },
+  flashBtn: {
+    backgroundColor: '#4338CA',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  flashBtnText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  flashFooter: {
+    fontSize: 10,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
 });
-
-

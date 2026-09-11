@@ -46,7 +46,7 @@ export const SellerQualityScreen: React.FC<SellerQualityScreenProps> = ({ onBack
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <ShieldCheck size={20} color="#16A34A" />
-            <Text style={styles.cardTitle}>DigiSewa Quality Verification Standard</Text>
+            <Text style={styles.cardTitle}>TafDeal Quality Verification Standard</Text>
           </View>
           <Text style={styles.bulletText}>✓ Clear front and back view images with clean backgrounds</Text>
           <Text style={styles.bulletText}>✓ Accurate measurement tables (Chest for Men's Upper, Breast for Women's Upper, Waist for Lower wear) provided for all apparel</Text>

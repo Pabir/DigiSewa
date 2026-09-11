@@ -55,7 +55,7 @@ export const AdminLoginModal: React.FC = () => {
               <View style={styles.iconCircle}>
                 <ShieldAlert size={28} color="#4F46E5" />
               </View>
-              <Text style={styles.securityHeaderTitle}>DigiSewa Staff & Admin Portal</Text>
+              <Text style={styles.securityHeaderTitle}>TafDeal Staff & Admin Portal</Text>
               <Text style={styles.securityHeaderSubtitle}>Restricted Area — Authorized Personnel Only</Text>
 
               <TouchableOpacity

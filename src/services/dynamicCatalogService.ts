@@ -11,20 +11,20 @@ import {
   ProductVariant,
   DeletionRequest,
 } from '../types/dynamicCatalog';
-import { doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db, ensureFirebaseAuth } from '../config/firebaseConfig';
 import { addProduct } from './firebaseService';
 import { getWearType, getGenderType } from '../utils/productSizeUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
-  CATEGORIES: 'DigiSewa_dynamic_categories_v2',
-  ATTRIBUTES: 'DigiSewa_dynamic_attributes_v1',
-  MAPPINGS: 'DigiSewa_dynamic_mappings_v1',
-  TEMPLATES: 'DigiSewa_dynamic_templates_v1',
-  DRAFTS: 'DigiSewa_dynamic_drafts_v1',
-  PRODUCTS: 'DigiSewa_dynamic_products_v1',
-  DELETION_REQUESTS: 'DigiSewa_deletion_requests_v1',
+  CATEGORIES: 'TafDeal_dynamic_categories_v2',
+  ATTRIBUTES: 'TafDeal_dynamic_attributes_v1',
+  MAPPINGS: 'TafDeal_dynamic_mappings_v1',
+  TEMPLATES: 'TafDeal_dynamic_templates_v1',
+  DRAFTS: 'TafDeal_dynamic_drafts_v1',
+  PRODUCTS: 'TafDeal_dynamic_products_v1',
+  DELETION_REQUESTS: 'TafDeal_deletion_requests_v1',
 };
 
 // ==========================================
@@ -8671,36 +8671,47 @@ export const deduplicateAttributes = (list: AttributeDefinition[]): AttributeDef
     result.push(attr);
   }
 
+  // Ensure options are alphabetically ordered for all global attributes
+  result.forEach(attr => {
+    if (attr.options && attr.options.length > 0) {
+      attr.options.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+    }
+  });
+
   return result;
 };
 
 export const syncFromFirestore = async (): Promise<{ success: boolean; attrCount: number; catCount: number }> => {
   try {
     await ensureFirebaseAuth();
-    const fetchedAttrs: AttributeDefinition[] = [...SEED_ATTRIBUTES, ...memoryAttributes];
+    let latestAttrs: AttributeDefinition[] = [...SEED_ATTRIBUTES];
+    let collSuccess = false;
 
-    // 1. Fetch from catalog_settings/attributes_repository doc
-    try {
-      const attrDoc = await getDoc(doc(db, 'catalog_settings', 'attributes_repository'));
-      if (attrDoc.exists() && Array.isArray(attrDoc.data()?.attributes)) {
-        fetchedAttrs.push(...attrDoc.data()?.attributes);
-      }
-    } catch (e) {}
-
-    // 2. Fetch from catalog_attributes collection docs
+    // 1. Fetch from catalog_attributes collection docs (Primary Source of Truth)
     try {
       const collSnap = await getDocs(collection(db, 'catalog_attributes'));
-      if (!collSnap.empty) {
-        collSnap.docs.forEach((d) => {
-          const data = d.data() as AttributeDefinition;
-          if (data && data.id && data.label) {
-            fetchedAttrs.push(data);
-          }
-        });
-      }
+      collSnap.docs.forEach((d) => {
+        const data = d.data() as AttributeDefinition;
+        if (data && data.id && data.label) {
+          latestAttrs.push(data);
+        }
+      });
+      collSuccess = true;
     } catch (e) {}
 
-    memoryAttributes = deduplicateAttributes(fetchedAttrs);
+    // 2. Fetch from catalog_settings/attributes_repository doc (Fallback)
+    if (!collSuccess) {
+      try {
+        const attrDoc = await getDoc(doc(db, 'catalog_settings', 'attributes_repository'));
+        if (attrDoc.exists() && Array.isArray(attrDoc.data()?.attributes)) {
+          latestAttrs.push(...attrDoc.data()?.attributes);
+        }
+      } catch (e) {}
+      // retain memory if both fail
+      latestAttrs.push(...memoryAttributes);
+    }
+
+    memoryAttributes = deduplicateAttributes(latestAttrs);
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(STORAGE_KEYS.ATTRIBUTES, JSON.stringify(memoryAttributes));
     }
@@ -8746,15 +8757,35 @@ export const syncFromFirestore = async (): Promise<{ success: boolean; attrCount
 
 export const pushAllSettingsToFirestore = async (): Promise<boolean> => {
   try {
-    await setDoc(doc(db, 'catalog_settings', 'attributes_repository'), { attributes: memoryAttributes, updatedAt: new Date().toISOString() });
-    await setDoc(doc(db, 'catalog_settings', 'categories_tree'), { categories: memoryCategories, updatedAt: new Date().toISOString() });
-    await setDoc(doc(db, 'catalog_settings', 'category_mappings'), { mappings: memoryMappings, updatedAt: new Date().toISOString() });
+    const CHUNK_SIZE = 400;
+    const commitPromises: Promise<void>[] = [];
+    let currentBatch = writeBatch(db);
+    let operationCount = 0;
+
+    const addOperationToBatch = (docRef: any, data: any) => {
+      currentBatch.set(docRef, data);
+      operationCount++;
+      if (operationCount >= CHUNK_SIZE) {
+        commitPromises.push(currentBatch.commit());
+        currentBatch = writeBatch(db);
+        operationCount = 0;
+      }
+    };
+
+    addOperationToBatch(doc(db, 'catalog_settings', 'attributes_repository'), { attributes: memoryAttributes, updatedAt: new Date().toISOString() });
+    addOperationToBatch(doc(db, 'catalog_settings', 'categories_tree'), { categories: memoryCategories, updatedAt: new Date().toISOString() });
+    addOperationToBatch(doc(db, 'catalog_settings', 'category_mappings'), { mappings: memoryMappings, updatedAt: new Date().toISOString() });
 
     for (const attr of memoryAttributes) {
-      try {
-        await setDoc(doc(db, 'catalog_attributes', attr.id), attr);
-      } catch (e) {}
+      addOperationToBatch(doc(db, 'catalog_attributes', attr.id), attr);
     }
+
+    if (operationCount > 0) {
+      commitPromises.push(currentBatch.commit());
+    }
+
+    await Promise.all(commitPromises);
+
     return true;
   } catch (e) {
     console.error('Push to firestore error:', e);
@@ -8806,7 +8837,7 @@ export const subscribeToCatalogSettings = (onUpdate: () => void) => {
     const unsubAttrs = onSnapshot(doc(db, 'catalog_settings', 'attributes_repository'), (snapshot) => {
       if (snapshot.exists() && Array.isArray(snapshot.data()?.attributes)) {
         const cloudAttrs: AttributeDefinition[] = snapshot.data()?.attributes;
-        memoryAttributes = deduplicateAttributes([...SEED_ATTRIBUTES, ...memoryAttributes, ...cloudAttrs]);
+        memoryAttributes = deduplicateAttributes([...SEED_ATTRIBUTES, ...cloudAttrs]);
         if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.setItem(STORAGE_KEYS.ATTRIBUTES, JSON.stringify(memoryAttributes));
         }
@@ -8839,14 +8870,12 @@ export const subscribeToCatalogSettings = (onUpdate: () => void) => {
     });
 
     const unsubAttrsCollection = onSnapshot(collection(db, 'catalog_attributes'), (snapshot) => {
-      if (!snapshot.empty) {
-        const cloudAttrs: AttributeDefinition[] = snapshot.docs.map((doc) => doc.data() as AttributeDefinition);
-        memoryAttributes = deduplicateAttributes([...SEED_ATTRIBUTES, ...memoryAttributes, ...cloudAttrs]);
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(STORAGE_KEYS.ATTRIBUTES, JSON.stringify(memoryAttributes));
-        }
-        onUpdate();
+      const cloudAttrs: AttributeDefinition[] = snapshot.docs.map((doc) => doc.data() as AttributeDefinition);
+      memoryAttributes = deduplicateAttributes([...SEED_ATTRIBUTES, ...cloudAttrs]);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEYS.ATTRIBUTES, JSON.stringify(memoryAttributes));
       }
+      onUpdate();
     });
 
     return () => {
@@ -9006,6 +9035,7 @@ export const saveCategoryNode = (category: Partial<CategoryNode>): CategoryNode 
   }
 
   persistLocal(STORAGE_KEYS.CATEGORIES, memoryCategories);
+  pushAllSettingsToFirestore().catch(e => console.warn(e));
   return newCat;
 };
 
@@ -9024,8 +9054,33 @@ export const deleteCategoryNode = (categoryId: string): boolean => {
   };
 
   const removed = removeRecursive(memoryCategories);
-  if (removed) persistLocal(STORAGE_KEYS.CATEGORIES, memoryCategories);
+  if (removed) {
+    persistLocal(STORAGE_KEYS.CATEGORIES, memoryCategories);
+    pushAllSettingsToFirestore().catch(e => console.warn(e));
+  }
   return removed;
+};
+
+export const toggleCategoryAttributeVariant = (
+  categoryId: string,
+  attributeId: string,
+  adminInfo?: { uid: string; email: string }
+): boolean => {
+  let mapping = memoryMappings.find(
+    (m) => m.categoryId === categoryId && m.attributeId === attributeId
+  );
+  
+  const timestamp = new Date().toISOString();
+  
+  if (mapping) {
+    mapping.isVariantAttribute = !mapping.isVariantAttribute;
+    mapping.updatedByAdminId = adminInfo?.uid;
+    mapping.updatedByAdminEmail = adminInfo?.email;
+    mapping.updatedAt = timestamp;
+    persistLocal(STORAGE_KEYS.MAPPINGS, memoryMappings);
+    pushAllSettingsToFirestore().catch(e => console.warn(e));
+  }
+  return true;
 };
 
 // ==========================================
@@ -9034,6 +9089,11 @@ export const deleteCategoryNode = (categoryId: string): boolean => {
 export const getAllAttributes = (): AttributeDefinition[] => {
   initializeStore();
   memoryAttributes = deduplicateAttributes(memoryAttributes);
+  memoryAttributes.forEach(attr => {
+    if (attr.options && attr.options.length > 0) {
+      attr.options.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+    }
+  });
   return memoryAttributes;
 };
 
@@ -9134,7 +9194,7 @@ export const mapAttributeToCategory = (
       categoryId,
       attributeId,
       isRequired,
-      sortOrder: memoryMappings.length + 1,
+      sortOrder: memoryMappings.length > 0 ? Math.max(...memoryMappings.map(m => m.sortOrder || 0)) + 1 : 1,
       isVariantAttribute: isVariant,
       createdByAdminId: adminInfo?.uid,
       createdByAdminEmail: adminInfo?.email,
@@ -9153,6 +9213,7 @@ export const mapAttributeToCategory = (
   }
 
   persistLocal(STORAGE_KEYS.MAPPINGS, memoryMappings);
+  pushAllSettingsToFirestore().catch(e => console.warn(e));
   return mapping;
 };
 
@@ -9161,6 +9222,7 @@ export const unmapAttributeFromCategory = (categoryId: string, attributeId: stri
     (m) => !(m.categoryId === categoryId && m.attributeId === attributeId)
   );
   persistLocal(STORAGE_KEYS.MAPPINGS, memoryMappings);
+  pushAllSettingsToFirestore().catch(e => console.warn(e));
 };
 
 export const toggleCategoryAttributeRequired = (
@@ -9180,6 +9242,7 @@ export const toggleCategoryAttributeRequired = (
     mapping.updatedByAdminEmail = adminInfo?.email;
     mapping.updatedAt = timestamp;
     persistLocal(STORAGE_KEYS.MAPPINGS, memoryMappings);
+    pushAllSettingsToFirestore().catch(e => console.warn(e));
   }
 };
 
@@ -9199,14 +9262,22 @@ export const reorderCategoryAttributeMapping = (
 
   if (direction === 'up' && currentIndex > 0) {
     const swapMapping = mappings[currentIndex - 1];
-    const temp = currentMapping.sortOrder;
-    currentMapping.sortOrder = swapMapping.sortOrder;
-    swapMapping.sortOrder = temp;
+    if (currentMapping.sortOrder === swapMapping.sortOrder) {
+      currentMapping.sortOrder = swapMapping.sortOrder - 0.001;
+    } else {
+      const temp = currentMapping.sortOrder;
+      currentMapping.sortOrder = swapMapping.sortOrder;
+      swapMapping.sortOrder = temp;
+    }
   } else if (direction === 'down' && currentIndex < mappings.length - 1) {
     const swapMapping = mappings[currentIndex + 1];
-    const temp = currentMapping.sortOrder;
-    currentMapping.sortOrder = swapMapping.sortOrder;
-    swapMapping.sortOrder = temp;
+    if (currentMapping.sortOrder === swapMapping.sortOrder) {
+      currentMapping.sortOrder = swapMapping.sortOrder + 0.001;
+    } else {
+      const temp = currentMapping.sortOrder;
+      currentMapping.sortOrder = swapMapping.sortOrder;
+      swapMapping.sortOrder = temp;
+    }
   } else {
     return; // Nothing to do (already at top/bottom)
   }
@@ -9218,6 +9289,7 @@ export const reorderCategoryAttributeMapping = (
   });
 
   persistLocal(STORAGE_KEYS.MAPPINGS, memoryMappings);
+  pushAllSettingsToFirestore().catch(e => console.warn(e));
 };
 
 export const getToggleCategoryAttributeRequiredResult = (
@@ -9440,7 +9512,7 @@ export const saveCatalogProduct = async (productData: Partial<DynamicProductData
   const newProduct: DynamicProductData = {
     id: productData.id || `prod-${Date.now()}`,
     sellerId: productData.sellerId || 'seller-default',
-    sellerName: productData.sellerName || 'Verified DigiSewa Seller',
+    sellerName: productData.sellerName || 'Verified TafDeal Seller',
     title: productData.title || 'Dynamic Catalog Product',
     brand: productData.brand || 'Generic',
     description: productData.description || '',
@@ -9468,9 +9540,8 @@ export const saveCatalogProduct = async (productData: Partial<DynamicProductData
     offerFreeShipping: productData.offerFreeShipping || false,
   };
 
-  memoryProducts.unshift(newProduct);
-  persistLocal(STORAGE_KEYS.PRODUCTS, memoryProducts);
-
+  // We do NOT add to memoryProducts yet. We'll wait for the sync to finish so we have the proper ID.
+  
   // Determine context for standard size mapping
   const cLevel1 = newProduct.categoryPath[0];
   const cLevel2 = newProduct.categoryPath[1];
@@ -9522,7 +9593,7 @@ export const saveCatalogProduct = async (productData: Partial<DynamicProductData
 
   // Sync to Firebase Firestore asynchronously
   try {
-    await addProduct({
+    const syncedProduct = await addProduct({
       id: newProduct.id,
       sellerId: newProduct.sellerId,
       sellerName: newProduct.sellerName,
@@ -9540,6 +9611,7 @@ export const saveCatalogProduct = async (productData: Partial<DynamicProductData
       reviewCount: newProduct.reviewCount,
       tags: newProduct.tags,
       isHyperlocalAvailable: true,
+      offerFreeShipping: newProduct.offerFreeShipping,
       createdAt: newProduct.createdAt,
       fabric: newProduct.attributeValues.fabric,
       pattern: newProduct.attributeValues.pattern,
@@ -9548,10 +9620,8 @@ export const saveCatalogProduct = async (productData: Partial<DynamicProductData
       variants: newProduct.variants,
       sizes: newProduct.variants.length > 0 
         ? newProduct.variants.map((v) => {
-            // Attempt to extract size from various possible attribute names
             const sizeVal = v.attributeValues?.Size || v.attributeValues?.size || v.attributeValues?.['Shirt Size'] || v.attributeValues?.['Tshirt Size'] || v.title?.split('-')?.pop()?.trim() || 'Free Size';
             const sMeas = inferMeasurements(String(sizeVal));
-            
             return {
               size: sizeVal,
               price: v.price,
@@ -9566,10 +9636,8 @@ export const saveCatalogProduct = async (productData: Partial<DynamicProductData
             };
           })
         : (() => {
-            // Fallback if user skipped matrix generation but selected sizes in the form
             const fallbackSizes = newProduct.attributeValues?.size || newProduct.attributeValues?.Size || [];
             const sizeArray = Array.isArray(fallbackSizes) ? fallbackSizes : [fallbackSizes].filter(Boolean);
-            
             return sizeArray.length > 0 
               ? sizeArray.map((sz) => {
                   const sMeas = inferMeasurements(String(sz));
@@ -9589,10 +9657,23 @@ export const saveCatalogProduct = async (productData: Partial<DynamicProductData
               : [];
           })()
     } as any);
+
+    if (syncedProduct && syncedProduct.id) {
+      newProduct.id = syncedProduct.id;
+    }
   } catch (err) {
     console.warn('Firebase sync warning:', err);
     throw err;
   }
+
+  // Update memory store with final ID
+  const idx = memoryProducts.findIndex(p => p.id === productData.id || p.id === newProduct.id);
+  if (idx !== -1) {
+    memoryProducts[idx] = newProduct;
+  } else {
+    memoryProducts.unshift(newProduct);
+  }
+  persistLocal(STORAGE_KEYS.PRODUCTS, memoryProducts);
 
   return newProduct;
 };

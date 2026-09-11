@@ -14,6 +14,7 @@ import { ImageQualityCheckModal } from '../seller/ImageQualityCheckModal';
 
 interface VariantMatrixBuilderProps {
   variantAttributes: AttributeDefinition[];
+  defaultVariantAttributeCodes?: string[];
   attributeValues: Record<string, any>;
   variants: ProductVariant[];
   basePrice: number;
@@ -23,6 +24,7 @@ interface VariantMatrixBuilderProps {
 
 export const VariantMatrixBuilder: React.FC<VariantMatrixBuilderProps> = ({
   variantAttributes,
+  defaultVariantAttributeCodes,
   attributeValues,
   variants,
   basePrice,
@@ -30,7 +32,7 @@ export const VariantMatrixBuilder: React.FC<VariantMatrixBuilderProps> = ({
   onUpdateVariants,
 }) => {
   const [selectedAttributeCodes, setSelectedAttributeCodes] = useState<string[]>(
-    variantAttributes.map((a) => a.code)
+    defaultVariantAttributeCodes || variantAttributes.map((a) => a.code)
   );
 
   const [bulkPrice, setBulkPrice] = useState<string>(String(basePrice || ''));

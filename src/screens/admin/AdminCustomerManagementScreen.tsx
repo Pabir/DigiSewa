@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
+  Image,
 } from 'react-native';
 import { AdminCustomer } from '../../types/adminTypes';
 import { Search, IndianRupee, AlertTriangle, CheckCircle2 } from 'lucide-react-native';
@@ -172,7 +173,9 @@ export const AdminCustomerManagementScreen: React.FC<AdminCustomerManagementScre
                           {order.status ? order.status.toUpperCase() : 'PENDING'}
                         </Text>
                       </View>
-                      <Text style={{ fontSize: 12, color: '#475569', marginBottom: 2 }}>Amount: ₹{order.totalAmount}</Text>
+                      <Text style={{ fontSize: 12, color: '#475569', marginBottom: 2 }}>
+                        Amount: ₹{order.productTotal || (order.totalAmount - (order.shippingFee || 0))} (Items) + ₹{order.shippingFee || 0} ({order.shippingFee === 0 || order.sellerOffersFreeShipping ? 'Free Shipping' : 'Shipping'}) = <Text style={{fontWeight: 'bold', color: '#0F172A'}}>₹{order.totalAmount}</Text>
+                      </Text>
                       <Text style={{ fontSize: 12, color: '#475569', marginBottom: order.razorpayPaymentId ? 2 : 6 }}>Date: {new Date(order.createdAt).toLocaleDateString()}</Text>
                       {order.razorpayPaymentId && (
                         <Text style={{ fontSize: 12, color: '#4338CA', marginBottom: 6, fontWeight: '600' }}>
@@ -181,9 +184,26 @@ export const AdminCustomerManagementScreen: React.FC<AdminCustomerManagementScre
                       )}
                       
                       {order.items && order.items.map((item: any, i: number) => (
-                        <Text key={i} style={{ fontSize: 11, color: '#64748B' }}>
-                          • {item.product?.title} (x{item.quantity})
-                        </Text>
+                        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                          {item.product?.imageUrl ? (
+                            <Image 
+                              source={{ uri: item.product.imageUrl }} 
+                              style={{ width: 32, height: 32, borderRadius: 4, marginRight: 8, backgroundColor: '#F1F5F9' }} 
+                            />
+                          ) : (
+                            <View style={{ width: 32, height: 32, borderRadius: 4, backgroundColor: '#E2E8F0', marginRight: 8, justifyContent: 'center', alignItems: 'center' }}>
+                              <Text style={{ fontSize: 10, color: '#94A3B8' }}>No Img</Text>
+                            </View>
+                          )}
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 12, color: '#334155', fontWeight: '500' }}>
+                              {item.product?.title}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                              ID: {item.product?.id} | Qty: {item.quantity} {item.product?.selectedSize ? `| Size: ${item.product.selectedSize}` : ''}
+                            </Text>
+                          </View>
+                        </View>
                       ))}
                     </View>
                   ))
@@ -211,7 +231,7 @@ export const AdminCustomerManagementScreen: React.FC<AdminCustomerManagementScre
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>Issue Wallet Refund / Credit</Text>
               <Text style={styles.modalSub}>
-                Adding wallet credits to {selectedCustomer.name}'s DigiSewa Wallet.
+                Adding wallet credits to {selectedCustomer.name}'s TafDeal Wallet.
               </Text>
 
               <View style={styles.currentWalletCard}>

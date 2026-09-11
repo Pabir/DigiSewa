@@ -1,5 +1,5 @@
 {
-  "name": "digisewa-functions",
+  "name": "tafdeal-functions",
   "description": "Cloud Functions for DigiSewa",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
@@ -9,7 +9,7 @@
     "logs": "firebase functions:log"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "main": "index.js",
   "dependencies": {

@@ -74,12 +74,7 @@ export const ManageCatalogsScreen: React.FC<ManageCatalogsScreenProps> = ({ onBa
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={{backgroundColor: '#DC2626', padding: 16, margin: 16, borderRadius: 8, alignItems: 'center'}} 
-        onPress={handleWipeProducts}
-      >
-        <Text style={{color: 'white', fontWeight: '900', fontSize: 16}}>CLICK HERE TO WIPE DUMMY PRODUCTS FROM DATABASE</Text>
-      </TouchableOpacity>
+
 
       {/* Header */}
       <View style={styles.topHeader}>
@@ -90,7 +85,7 @@ export const ManageCatalogsScreen: React.FC<ManageCatalogsScreenProps> = ({ onBa
             </TouchableOpacity>
           )}
           <View>
-            <Text style={styles.title}>DigiSewa Catalog Manager</Text>
+            <Text style={styles.title}>TafDeal Catalog Manager</Text>
             <Text style={styles.subtitle}>Update stock per size, waist measurements, and pricing</Text>
           </View>
         </View>

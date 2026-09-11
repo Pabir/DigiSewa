@@ -12,6 +12,25 @@ const getApiUrl = (endpoint: string) => {
   }
   return url;
 };
+
+const formatPhone = (phone?: string): string => {
+  if (!phone) return '9898989898';
+  let digits = phone.replace(/\D/g, '');
+  
+  if (digits.length > 10) {
+    if (digits.startsWith('91') && digits.length === 12) {
+      digits = digits.substring(2);
+    } else {
+      digits = digits.slice(-10);
+    }
+  }
+  
+  if (digits.length === 10 && /^[6-9]/.test(digits)) {
+    return digits;
+  }
+  
+  return '9898989898';
+};
 const TOKEN_STORAGE_KEY = 'shiprocket_token_cache';
 
 interface TokenCache {
@@ -108,7 +127,7 @@ export async function createShiprocketOrder(
     billing_state: 'Delhi',
     billing_country: 'India',
     billing_email: 'test@example.com',
-    billing_phone: order.buyerPhone || '9999999999',
+    billing_phone: formatPhone(order.buyerPhone),
     shipping_is_billing: true,
     order_items: order.items.map(item => ({
       name: item.product.title,
@@ -153,6 +172,78 @@ export async function createShiprocketOrder(
     awb_code: responseData.awb_code
   };
 }
+
+export async function createShiprocketReturnOrder(
+  order: Order,
+  token: string
+): Promise<{ return_order_id: string; return_shipment_id: string; return_awb_code?: string }> {
+  
+  const payload = {
+    order_id: `RET-${order.id}-${Date.now()}`,
+    order_date: new Date().toISOString().split('T')[0],
+    channel_id: '',
+    pickup_customer_name: order.buyerName?.split(' ')[0] || 'Buyer',
+    pickup_last_name: order.buyerName?.split(' ').slice(1).join(' ') || '.',
+    pickup_address: order.deliveryAddress || 'Test Address',
+    pickup_address_2: '',
+    pickup_city: 'New Delhi',
+    pickup_state: 'Delhi',
+    pickup_country: 'India',
+    pickup_pincode: '110001',
+    pickup_email: 'buyer@example.com',
+    pickup_phone: formatPhone(order.buyerPhone),
+    pickup_is_billing_same: true,
+    billing_customer_name: 'TafDeal Return Hub',
+    billing_last_name: '.',
+    billing_address: 'Warehouse 123',
+    billing_address_2: '',
+    billing_city: 'New Delhi',
+    billing_pincode: '110020',
+    billing_state: 'Delhi',
+    billing_country: 'India',
+    billing_email: 'returns@tafdeal.in',
+    billing_phone: '9876543210',
+    shipping_is_billing: true,
+    order_items: order.items.map(item => ({
+      name: item.product.title,
+      sku: item.product.id,
+      units: item.quantity,
+      selling_price: item.product.price,
+      discount: 0,
+      tax: 0,
+      hsn: 441122
+    })),
+    payment_method: 'Prepaid',
+    sub_total: order.totalAmount,
+    length: 10,
+    breadth: 10,
+    height: 10,
+    weight: 0.5
+  };
+
+  const response = await fetch(getApiUrl('/orders/create/return'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const responseData = await response.json();
+
+  if (!response.ok || !responseData.order_id) {
+    console.error('Shiprocket return order error:', responseData);
+    throw new Error(`Return generation failed: ${responseData.message || 'Unknown error'}`);
+  }
+
+  return {
+    return_order_id: responseData.order_id.toString(),
+    return_shipment_id: responseData.shipment_id.toString(),
+    return_awb_code: responseData.awb_code
+  };
+}
+
 
 export async function checkServiceability(pickupPincode: string, deliveryPincode: string, weight: number, token: string, isCod: boolean = false) {
   const codParam = isCod ? 1 : 0;

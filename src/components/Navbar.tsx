@@ -1,11 +1,14 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { MapPin, ShoppingCart, Store, UserCheck, LogOut, Menu, X, LogIn, User as UserIcon } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import TafdealLogo from '../../assets/TAFDEAL_logo.svg';
+import { MapPin, ShoppingCart, Store, UserCheck, LogOut, Menu, X, LogIn, User as UserIcon, Heart } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 
 interface NavbarProps {
   onOpenCart?: () => void;
+  onOpenWishlist?: () => void;
   onToggleSidebar?: () => void;
   isSidebarOpen?: boolean;
   isDesktop?: boolean;
@@ -13,6 +16,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   onOpenCart,
+  onOpenWishlist,
   onToggleSidebar,
   isSidebarOpen = true,
   isDesktop = false,
@@ -29,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     logout,
   } = useAuth();
   const { totalItems } = useCart();
+  const { totalItems: wishlistTotal } = useWishlist();
 
   return (
     <View style={[styles.navHeader, isDesktop && styles.desktopNav]}>
@@ -60,19 +65,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
           activeOpacity={0.8}
         >
-          <Image source={require('../../assets/logo.png')} style={styles.logoBadge} resizeMode="contain" />
+          <TafdealLogo width={38} height={38} style={styles.logoBadge} />
           <View>
             <View style={styles.titleWithBadge}>
-              <Text style={styles.brandTitle}>DigiSewa</Text>
+              <Text style={styles.brandTitle}>TafDeal</Text>
               <View style={styles.taglineBadge}>
-                <Text style={styles.taglineText}>Har Sewa, Ab Digital</Text>
+                <Text style={styles.taglineText}>Your Deal, Simplified</Text>
               </View>
             </View>
 
             <View style={styles.locationRow}>
               <MapPin size={12} color="#4F46E5" />
               <Text numberOfLines={1} style={styles.locationText}>
-                {user?.address || 'Guwahati, Assam'}
+                {user?.address || 'Bauria, West Bengal'}
               </Text>
             </View>
           </View>
@@ -141,6 +146,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Text style={styles.loginCtaText}>Login</Text>
             </TouchableOpacity>
           )
+        )}
+
+        {/* Wishlist Button with Counter */}
+        {activeRole === 'buyer' && (
+          <TouchableOpacity activeOpacity={0.8} style={styles.cartButton} onPress={onOpenWishlist}>
+            <Heart size={20} color="#0F172A" />
+            {wishlistTotal > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{wishlistTotal}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         )}
 
         {/* Shopping Cart Button with Counter */}

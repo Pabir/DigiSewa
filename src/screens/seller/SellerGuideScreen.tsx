@@ -46,7 +46,7 @@ export const SellerGuideScreen: React.FC<SellerGuideScreenProps> = ({
       category: 'ifsc',
       question: 'Why is Bank Name not displaying or showing an incorrect bank after entering IFSC Code?',
       answer:
-        'DigiSewa uses the free Razorpay IFSC Open API for real-time verification. Make sure you enter all 11 characters of your IFSC code (e.g. SBIN0001122, UTIB0000123, HDFC0000123). As soon as 11 valid characters are typed, the app automatically fetches and displays the exact Bank Name and Branch location.',
+        'TafDeal uses the free Razorpay IFSC Open API for real-time verification. Make sure you enter all 11 characters of your IFSC code (e.g. SBIN0001122, UTIB0000123, HDFC0000123). As soon as 11 valid characters are typed, the app automatically fetches and displays the exact Bank Name and Branch location.',
     },
     {
       id: 1,
@@ -60,7 +60,7 @@ export const SellerGuideScreen: React.FC<SellerGuideScreenProps> = ({
       category: 'registration',
       question: 'Can I register as a supplier if I do not have a GSTIN number?',
       answer:
-        'Yes! DigiSewa supports non-GST and micro-suppliers. On Step 2 of registration, select "Enrollment ID / EID" or enter your PAN details to complete onboarding.',
+        'Yes! TafDeal supports non-GST and micro-suppliers. On Step 2 of registration, select "Enrollment ID / EID" or enter your PAN details to complete onboarding.',
     },
     {
       id: 3,
@@ -74,7 +74,7 @@ export const SellerGuideScreen: React.FC<SellerGuideScreenProps> = ({
       category: 'account',
       question: 'How long does account approval take after submission?',
       answer:
-        'Your application enters "Pending Review" status immediately after submission. DigiSewa Admins review supplier documents within 24 hours. Once verified, your status updates to "Approved" and you can start listing catalogs.',
+        'Your application enters "Pending Review" status immediately after submission. TafDeal Admins review supplier documents within 24 hours. Once verified, your status updates to "Approved" and you can start listing catalogs.',
     },
   ];
 
@@ -98,7 +98,7 @@ export const SellerGuideScreen: React.FC<SellerGuideScreenProps> = ({
 
           <View style={styles.headerTitleRow}>
             <Store size={28} color="#FDE047" />
-            <Text style={styles.headerTitle}>DigiSewa Supplier Help & Onboarding Guide</Text>
+            <Text style={styles.headerTitle}>TafDeal Supplier Help & Onboarding Guide</Text>
           </View>
           <Text style={styles.headerSubtitle}>
             Complete step-by-step documentation for supplier registration, login, IFSC verification, and account setup.
@@ -242,7 +242,7 @@ export const SellerGuideScreen: React.FC<SellerGuideScreenProps> = ({
               <Text style={styles.sectionTitle}>2. Automatic Bank & IFSC Verification</Text>
             </View>
             <Text style={styles.sectionParagraph}>
-              DigiSewa features automated IFSC code resolution powered by free public API verification:
+              TafDeal features automated IFSC code resolution powered by free public API verification:
             </Text>
 
             <View style={styles.featureBoxGreen}>
@@ -306,13 +306,13 @@ export const SellerGuideScreen: React.FC<SellerGuideScreenProps> = ({
             <Text style={styles.supportHeaderTitle}>Need Direct Supplier Assistance?</Text>
           </View>
           <Text style={styles.supportHeaderSub}>
-            Our DigiSewa supplier operations team is here to assist you with onboarding, catalog publishing, and account verification.
+            Our TafDeal supplier operations team is here to assist you with onboarding, catalog publishing, and account verification.
           </Text>
 
           <View style={styles.supportInfoGrid}>
             <View style={styles.supportItem}>
               <Mail size={18} color="#FDE047" />
-              <Text style={styles.supportItemText}>support@DigiSewa.org</Text>
+              <Text style={styles.supportItemText}>support@TafDeal.org</Text>
             </View>
             <View style={styles.supportItem}>
               <Phone size={18} color="#FDE047" />

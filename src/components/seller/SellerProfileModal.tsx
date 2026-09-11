@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  TextInput,
 } from 'react-native';
 import {
   User,
@@ -28,12 +29,14 @@ import { useAuth } from '../../context/AuthContext';
 import { ESignatureModal } from './ESignatureModal';
 
 export const SellerProfileModal: React.FC = () => {
-  const { sellerProfile, isSellerProfileModalOpen, closeSellerProfileModal } = useAuth();
+  const { sellerProfile, isSellerProfileModalOpen, closeSellerProfileModal, requestGstAddition } = useAuth();
   const [showESignatureModal, setShowESignatureModal] = React.useState<boolean>(false);
+  const [showGstModal, setShowGstModal] = React.useState<boolean>(false);
+  const [gstinInput, setGstinInput] = React.useState<string>('');
 
   if (!sellerProfile) return null;
 
-  const sellerIdCode = `DigiSewa-SLR-${sellerProfile.id.replace(/[^0-9]/g, '') || '98421'}`;
+  const sellerIdCode = `TafDeal-SLR-${sellerProfile.id.replace(/[^0-9]/g, '') || '98421'}`;
 
   const renderStatusBadge = () => {
     switch (sellerProfile.verificationStatus) {
@@ -179,9 +182,25 @@ export const SellerProfileModal: React.FC = () => {
               <View style={styles.detailsGrid}>
                 <View style={styles.detailItem}>
                   <Text style={styles.fieldLabel}>GSTIN Certificate</Text>
-                  <Text style={styles.fieldValueHighlight}>
-                    {sellerProfile.hasGst && sellerProfile.gstin ? sellerProfile.gstin : 'GST Not Registered'}
-                  </Text>
+                  {sellerProfile.hasGst && sellerProfile.gstin ? (
+                    <Text style={styles.fieldValueHighlight}>{sellerProfile.gstin}</Text>
+                  ) : sellerProfile.gstAdditionRequest && sellerProfile.gstAdditionRequest.status === 'pending' ? (
+                    <View style={{ marginTop: 4 }}>
+                      <Text style={[styles.fieldValueHighlight, { color: '#D97706' }]}>
+                        Pending Approval ({sellerProfile.gstAdditionRequest.gstin})
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                      <Text style={[styles.fieldValueHighlight, { color: '#DC2626' }]}>Not Registered</Text>
+                      <TouchableOpacity
+                        style={{ backgroundColor: '#EEF2FF', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}
+                        onPress={() => setShowGstModal(true)}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#4F46E5' }}>+ Add GSTIN</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
 
                 {sellerProfile.eidNumber && (
@@ -337,6 +356,58 @@ export const SellerProfileModal: React.FC = () => {
         visible={showESignatureModal}
         onClose={() => setShowESignatureModal(false)}
       />
+
+      {/* GST Addition Request Modal */}
+      {showGstModal && (
+        <Modal transparent animationType="fade" visible={true}>
+          <View style={styles.overlay}>
+            <View style={[styles.modalCard, { maxWidth: 400 }]}>
+              <View style={styles.header}>
+                <Text style={styles.modalTitle}>Request GSTIN Addition</Text>
+                <TouchableOpacity onPress={() => { setShowGstModal(false); setGstinInput(''); }}>
+                  <X size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              <View style={{ paddingVertical: 10, paddingHorizontal: 20 }}>
+                <Text style={{ fontSize: 12, color: '#475569', marginBottom: 10 }}>
+                  If you have registered for a GST number, you can request to add it to your profile. An admin will review and approve the update.
+                </Text>
+                <Text style={styles.fieldLabel}>Enter 15-character GSTIN *</Text>
+                <TextInput
+                  style={{ borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 6, padding: 10, fontSize: 13, color: '#0F172A', marginTop: 6 }}
+                  placeholder="e.g. 27AADCB2230M1Z2"
+                  value={gstinInput}
+                  onChangeText={(t) => setGstinInput(t.toUpperCase())}
+                  maxLength={15}
+                  autoCapitalize="characters"
+                />
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16, padding: 20 }}>
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6, borderWidth: 1, borderColor: '#CBD5E1' }}
+                  onPress={() => { setShowGstModal(false); setGstinInput(''); }}
+                >
+                  <Text style={{ fontSize: 12, color: '#475569', fontWeight: '700' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#4F46E5', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 6 }}
+                  onPress={async () => {
+                    if (gstinInput.trim().length !== 15) {
+                      alert('Please enter a valid 15-character GSTIN.');
+                      return;
+                    }
+                    await requestGstAddition(gstinInput.trim());
+                    setShowGstModal(false);
+                    setGstinInput('');
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: '#FFFFFF', fontWeight: '700' }}>Submit Request</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </Modal>
   );
 };

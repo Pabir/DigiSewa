@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,8 @@ export const DynamicFormEngine: React.FC<DynamicFormEngineProps> = ({
   sectionFilter = 'all',
   renderCustomInsert,
 }) => {
+  const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
+
   // Filter fields based on optional section and active status
   const visibleFields = fields.filter((f) => {
     if (!f.attribute.isActive) return false;
@@ -141,7 +143,7 @@ export const DynamicFormEngine: React.FC<DynamicFormEngineProps> = ({
         );
 
       case 'color':
-        const options: AttributeOption[] = attribute.options || [];
+        const options: AttributeOption[] = [...(attribute.options || [])].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
         return (
           <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.scrollContainer}>
             {options.map((opt) => {
@@ -176,7 +178,7 @@ export const DynamicFormEngine: React.FC<DynamicFormEngineProps> = ({
         );
 
       case 'size_selector':
-        const sizeOptions: AttributeOption[] = attribute.options || [];
+        const sizeOptions: AttributeOption[] = [...(attribute.options || [])].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
         const selectedSizes: string[] = Array.isArray(value) ? value : value ? [String(value)] : [];
 
         return (
@@ -209,11 +211,26 @@ export const DynamicFormEngine: React.FC<DynamicFormEngineProps> = ({
         );
 
       case 'select':
-      case 'radio':
-        const selectOpts: AttributeOption[] = attribute.options || [];
+      case 'radio': {
+        const selectOpts: AttributeOption[] = [...(attribute.options || [])].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+        const searchQuery = searchQueries[attribute.code] || '';
+        const filteredOpts = attribute.isSearchable && searchQuery
+          ? selectOpts.filter((opt) => opt.label.toLowerCase().includes(searchQuery.toLowerCase()))
+          : selectOpts;
+
         return (
-          <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.scrollContainer}>
-            {selectOpts.map((opt) => {
+          <View>
+            {attribute.isSearchable && (
+              <TextInput
+                style={[styles.input, { marginBottom: 8, paddingVertical: 8 }]}
+                placeholder={`Search ${attribute.label}...`}
+                placeholderTextColor="#94A3B8"
+                value={searchQuery}
+                onChangeText={(text) => setSearchQueries((prev) => ({ ...prev, [attribute.code]: text }))}
+              />
+            )}
+            <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.scrollContainer}>
+              {filteredOpts.map((opt) => {
               const isSelected = value === opt.value;
               const colorHex = isColorAttribute ? getColorHex(opt.label) : null;
               
@@ -241,17 +258,33 @@ export const DynamicFormEngine: React.FC<DynamicFormEngineProps> = ({
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+            </ScrollView>
+          </View>
         );
+      }
 
       case 'multiselect':
-      case 'checkbox':
-        const multiOpts: AttributeOption[] = attribute.options || [];
+      case 'checkbox': {
+        const multiOpts: AttributeOption[] = [...(attribute.options || [])].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
         const multiVals: string[] = Array.isArray(value) ? value : [];
+        const searchQuery = searchQueries[attribute.code] || '';
+        const filteredOpts = attribute.isSearchable && searchQuery
+          ? multiOpts.filter((opt) => opt.label.toLowerCase().includes(searchQuery.toLowerCase()))
+          : multiOpts;
 
         return (
-          <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.scrollContainer}>
-            {multiOpts.map((opt) => {
+          <View>
+            {attribute.isSearchable && (
+              <TextInput
+                style={[styles.input, { marginBottom: 8, paddingVertical: 8 }]}
+                placeholder={`Search ${attribute.label}...`}
+                placeholderTextColor="#94A3B8"
+                value={searchQuery}
+                onChangeText={(text) => setSearchQueries((prev) => ({ ...prev, [attribute.code]: text }))}
+              />
+            )}
+            <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.scrollContainer}>
+              {filteredOpts.map((opt) => {
               const isSelected = multiVals.includes(opt.value);
               const colorHex = isColorAttribute ? getColorHex(opt.label) : null;
 
@@ -284,8 +317,10 @@ export const DynamicFormEngine: React.FC<DynamicFormEngineProps> = ({
                 </TouchableOpacity>
               );
             })}
-          </ScrollView>
+            </ScrollView>
+          </View>
         );
+      }
 
       case 'text':
       case 'url':

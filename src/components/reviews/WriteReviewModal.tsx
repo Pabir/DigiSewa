@@ -45,7 +45,7 @@ export const WriteReviewModal: React.FC<WriteReviewModalProps> = ({ visible, onC
         productId,
         sellerId,
         userId: user.id,
-        userName: user.name || 'DigiSewa Customer',
+        userName: user.name || 'TafDeal Customer',
         rating,
         title: title.trim(),
         comment: comment.trim(),

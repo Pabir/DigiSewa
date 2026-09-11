@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Image, Linking } from 'react-native';
-import { PackageCheck, ArrowRight, AlertCircle, ArrowLeft, Megaphone, ChevronDown, Search, CheckSquare, Download } from 'lucide-react-native';
+import { PackageCheck, ArrowRight, AlertCircle, ArrowLeft, Megaphone, ChevronDown, Search, CheckSquare, Download, Activity } from 'lucide-react-native';
 import { Order, OrderStatus } from '../../types';
 import { getOrders, updateOrderStatus, wipeAllOrders } from '../../services/firebaseService';
 import { shiprocketLogin, createShiprocketOrder, generateShiprocketLabel } from '../../services/shiprocketService';
+import { createShadowfaxOrder } from '../../services/shadowfaxService';
 import { useAuth } from '../../context/AuthContext';
-import { createSettlement } from '../../services/settlementService';
+import { createSettlement, chargeRTOPenalty } from '../../services/settlementService';
+import ShippingLabelModal from '../../components/seller/ShippingLabelModal';
+import { DispatchHealthModal } from '../../components/seller/DispatchHealthModal';
 
 interface ManageOrdersScreenProps {
   onBack?: () => void;
@@ -16,6 +19,9 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'>('all');
+  const [labelModalVisible, setLabelModalVisible] = useState(false);
+  const [selectedOrderForLabel, setSelectedOrderForLabel] = useState<Order | null>(null);
+  const [healthModalVisible, setHealthModalVisible] = useState(false);
 
   useEffect(() => {
     if (sellerProfile?.id) {
@@ -54,23 +60,32 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
 
     try {
       setLoading(true);
-      let shiprocketData = {};
+      let courierData = {};
 
       if (currentStatus === 'pending' && nextStatus === 'processing' && sellerProfile) {
         const order = orders.find(o => o.id === orderId);
         if (order) {
-          const token = await shiprocketLogin();
-          const shiprocketResult = await createShiprocketOrder(order, sellerProfile, token);
-          shiprocketData = {
-            shiprocketOrderId: shiprocketResult.order_id,
-            shiprocketShipmentId: shiprocketResult.shipment_id,
-            awbCode: shiprocketResult.awb_code
-          };
-          alert(`Shiprocket Order created! ID: ${shiprocketResult.order_id}`);
+          if (order.courierPartner === 'shadowfax') {
+            const result = await createShadowfaxOrder(order, sellerProfile);
+            courierData = {
+              shadowfaxAwb: result.awb_number,
+              awbCode: result.awb_number
+            };
+            alert(`Shadowfax Order created! AWB: ${result.awb_number}`);
+          } else {
+            const token = await shiprocketLogin();
+            const shiprocketResult = await createShiprocketOrder(order, sellerProfile, token);
+            courierData = {
+              shiprocketOrderId: shiprocketResult.order_id,
+              shiprocketShipmentId: shiprocketResult.shipment_id,
+              awbCode: shiprocketResult.awb_code
+            };
+            alert(`Shiprocket Order created! ID: ${shiprocketResult.order_id}`);
+          }
         }
       }
 
-      await updateOrderStatus(orderId, nextStatus, shiprocketData);
+      await updateOrderStatus(orderId, nextStatus, courierData);
       
       if (nextStatus === 'delivered' && sellerProfile) {
         const order = orders.find(o => o.id === orderId);
@@ -80,11 +95,38 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
       }
 
       setOrders(prev =>
-        prev.map(o => (o.id === orderId ? { ...o, status: nextStatus, ...shiprocketData } : o))
+        prev.map(o => (o.id === orderId ? { ...o, status: nextStatus, ...courierData } : o))
       );
     } catch (err: any) {
       console.error(err);
       alert(`Failed to update order: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkRTO = async (orderId: string, isDelivered: boolean) => {
+    try {
+      setLoading(true);
+      const nextStatus = isDelivered ? 'rto_delivered_to_seller' : 'rto_in_transit';
+      await updateOrderStatus(orderId, nextStatus);
+      
+      if (isDelivered) {
+        // Trigger penalty using settlementService (we need to make sure order object is passed if required)
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+           // We will import chargeRTOPenalty and call it here.
+           await chargeRTOPenalty(order);
+        }
+      }
+
+      setOrders(prev =>
+        prev.map(o => (o.id === orderId ? { ...o, status: nextStatus } : o))
+      );
+      alert(`Order marked as ${isDelivered ? 'RTO Delivered' : 'RTO In Transit'}`);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Failed to update RTO status: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -135,6 +177,16 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
     }
   };
 
+  const handlePrintShadowfaxLabel = (order: Order) => {
+    setSelectedOrderForLabel(order);
+    setLabelModalVisible(true);
+    // Mark as downloaded so they can proceed to Dispatch
+    if (!order.isLabelDownloaded) {
+      updateOrderStatus(order.id, 'processing', { isLabelDownloaded: true });
+      setOrders(prev => prev.map(o => (o.id === order.id ? { ...o, isLabelDownloaded: true } : o)));
+    }
+  };
+
   const handleWipeData = async () => {
     setLoading(true);
     await wipeAllOrders();
@@ -145,7 +197,7 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
 
   const filteredOrders = orders.filter(o => {
     if (activeFilter === 'all') return true;
-    if (activeFilter === 'shipped') return ['shipped', 'reached_hub', 'out_for_delivery'].includes(o.status);
+    if (activeFilter === 'shipped') return ['shipped', 'reached_hub', 'out_for_delivery', 'rto_in_transit'].includes(o.status);
     return o.status === activeFilter;
   });
 
@@ -192,12 +244,7 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
     <View style={styles.container}>
       {/* Scrollable Container for main page content */}
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        <TouchableOpacity 
-          style={{backgroundColor: '#DC2626', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 16}} 
-          onPress={handleWipeData}
-        >
-          <Text style={{color: 'white', fontWeight: '900', fontSize: 14}}>CLICK HERE TO WIPE DUMMY ORDERS FROM DATABASE</Text>
-        </TouchableOpacity>
+
 
         {/* Banners */}
         <View style={styles.policyBanner}>
@@ -213,14 +260,14 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
         <View style={styles.healthBanner}>
           <View style={styles.healthLeft}>
             <View style={styles.healthIconPlaceholder}>
-              <ActivityIndicator size="small" color="#10B981" />
+              <Activity size={24} color="#10B981" />
             </View>
             <View>
               <Text style={styles.healthTitle}>Get better visibility into your dispatch health</Text>
               <Text style={styles.healthSubtext}>Track dispatch health, catalog status and key order performance insights in one place.</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.healthBtn}>
+          <TouchableOpacity style={styles.healthBtn} onPress={() => setHealthModalVisible(true)}>
             <Text style={styles.healthBtnText}>Check Dispatch health</Text>
           </TouchableOpacity>
         </View>
@@ -255,23 +302,23 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
           </View>
         </View>
 
-        {/* Horizontal Scroll for Table */}
-        <ScrollView horizontal style={styles.tableWrapper} showsHorizontalScrollIndicator={true}>
+        {/* Table Container */}
+        <View style={styles.tableWrapper}>
           <View style={styles.table}>
             {/* Table Header */}
             <View style={styles.tableHeader}>
               <View style={[styles.thCell, { width: 40 }]}><CheckSquare size={16} color="#94A3B8" /></View>
-              <View style={[styles.thCell, { width: 250 }]}><Text style={styles.thText}>Product Details</Text></View>
-              <View style={[styles.thCell, { width: 150 }]}><Text style={styles.thText}>Sub-order ID</Text></View>
-              <View style={[styles.thCell, { width: 120 }]}><Text style={styles.thText}>SKU ID</Text></View>
-              <View style={[styles.thCell, { width: 120 }]}><Text style={styles.thText}>DigiSewa ID</Text></View>
-              <View style={[styles.thCell, { width: 80 }]}><Text style={styles.thText}>Quantity</Text></View>
-              <View style={[styles.thCell, { width: 80 }]}><Text style={styles.thText}>Size</Text></View>
-              <View style={[styles.thCell, { width: 150 }]}><Text style={styles.thText}>Dispatch Date/SLA</Text></View>
-              <View style={[styles.thCell, { width: 150, alignItems: 'center' }]}><Text style={styles.thText}>Action</Text></View>
+              <View style={[styles.thCell, { flex: 2 }]}><Text style={styles.thText}>Product Details</Text></View>
+              <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.thText}>Sub-order ID</Text></View>
+              <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.thText}>SKU ID</Text></View>
+              <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.thText}>TafDeal ID</Text></View>
+              <View style={[styles.thCell, { width: 50 }]}><Text style={styles.thText}>Qty</Text></View>
+              <View style={[styles.thCell, { width: 50 }]}><Text style={styles.thText}>Size</Text></View>
+              <View style={[styles.thCell, { flex: 1.2 }]}><Text style={styles.thText}>Order Date</Text></View>
+              <View style={[styles.thCell, { flex: 1.2 }]}><Text style={styles.thText}>SLA</Text></View>
+              <View style={[styles.thCell, { width: 110, alignItems: 'center' }]}><Text style={styles.thText}>Action</Text></View>
             </View>
 
-            {/* Table Body */}
             {loading ? (
               <ActivityIndicator size="large" color="#4F46E5" style={{ marginVertical: 40 }} />
             ) : flatItems.length === 0 ? (
@@ -282,12 +329,25 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
             ) : (
               flatItems.map(({ order, item, subOrderId }, index) => {
                 const isPending = order.status === 'pending';
+                const orderDate = new Date(order.createdAt || Date.now());
+                const slaDate = new Date(orderDate);
+                slaDate.setDate(slaDate.getDate() + 2);
+                const displaySla = slaDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                
+                const formattedOrderDate = orderDate.toLocaleString('en-IN', { 
+                  day: '2-digit', 
+                  month: 'short', 
+                  year: 'numeric', 
+                  hour: '2-digit', 
+                  minute: '2-digit', 
+                  hour12: true 
+                });
                 
                 return (
                   <View key={subOrderId} style={styles.tableRow}>
                     <View style={[styles.tdCell, { width: 40 }]}><View style={styles.checkboxPlaceholder} /></View>
                     
-                    <View style={[styles.tdCell, { width: 250, flexDirection: 'row', gap: 10 }]}>
+                    <View style={[styles.tdCell, { flex: 2, flexDirection: 'row', gap: 10 }]}>
                       {item.product.imageUrl && <Image source={{ uri: item.product.imageUrl }} style={styles.productImage} />}
                       <View style={{ flex: 1, justifyContent: 'center' }}>
                         <Text style={styles.productTitle} numberOfLines={2}>{item.product.title}</Text>
@@ -295,27 +355,50 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
                       </View>
                     </View>
 
-                    <View style={[styles.tdCell, { width: 150 }]}><Text style={styles.tdText}>{subOrderId}</Text></View>
+                    <View style={[styles.tdCell, { flex: 1 }]}><Text style={styles.tdText} numberOfLines={2}>{subOrderId}</Text></View>
                     {(() => {
-                      const selectedSizeSku = item.product.sizes?.find(s => s.size === item.product.selectedSize)?.sku;
-                      const displaySku = selectedSizeSku || item.product.sellerCode || item.product.catalogId || 'N/A';
-                      return <View style={[styles.tdCell, { width: 120 }]}><Text style={styles.tdText}>{displaySku}</Text></View>;
+                      let displaySku = item.product.sellerCode || item.product.catalogId || 'N/A';
+                      
+                      if (item.product.variants && item.product.variants.length > 0) {
+                        const matchedVariant = item.product.variants.find((v: any) => {
+                          const vColor = v.attributeValues?.color || v.attributeValues?.Color;
+                          const vSize = v.attributeValues?.size || v.attributeValues?.Size;
+                          // Match only if the property exists and matches, or if it wasn't selected
+                          const colorMatch = !item.product.color || vColor === item.product.color;
+                          const sizeMatch = !item.product.selectedSize || vSize === item.product.selectedSize;
+                          return colorMatch && sizeMatch;
+                        });
+                        if (matchedVariant?.sku) {
+                          displaySku = matchedVariant.sku;
+                        }
+                      } else if (item.product.sizes) {
+                        const selectedSizeSku = item.product.sizes.find((s: any) => s.size === item.product.selectedSize)?.sku;
+                        if (selectedSizeSku) {
+                          displaySku = selectedSizeSku;
+                        }
+                      }
+                      
+                      return <View style={[styles.tdCell, { flex: 1 }]}><Text style={styles.tdText} numberOfLines={2}>{displaySku}</Text></View>;
                     })()}
-                    <View style={[styles.tdCell, { width: 120 }]}><Text style={styles.tdText}>{order.id}</Text></View>
-                    <View style={[styles.tdCell, { width: 80 }]}><Text style={styles.tdText}>{item.quantity}</Text></View>
-                    <View style={[styles.tdCell, { width: 80 }]}><Text style={styles.tdText}>{item.product.selectedSize || 'Free Size'}</Text></View>
+                    <View style={[styles.tdCell, { flex: 1 }]}><Text style={styles.tdText} numberOfLines={2}>{order.id}</Text></View>
+                    <View style={[styles.tdCell, { width: 50 }]}><Text style={styles.tdText}>{item.quantity}</Text></View>
+                    <View style={[styles.tdCell, { width: 50 }]}><Text style={styles.tdText} numberOfLines={1}>{item.product.selectedSize || 'Free Size'}</Text></View>
                     
-                    <View style={[styles.tdCell, { width: 150 }]}>
-                      <Text style={styles.tdText}>07 Aug</Text>
+                    <View style={[styles.tdCell, { flex: 1.2 }]}>
+                      <Text style={styles.tdText} numberOfLines={2}>{formattedOrderDate}</Text>
+                    </View>
+                    
+                    <View style={[styles.tdCell, { flex: 1.2 }]}>
+                      <Text style={styles.tdText} numberOfLines={2}>{displaySla}</Text>
                       {isPending && (
                         <View style={styles.slaBadge}>
                           <AlertCircle size={10} color="#4F46E5" />
-                          <Text style={styles.slaBadgeText}>Breaching Soon</Text>
+                          <Text style={styles.slaBadgeText}>Breaching</Text>
                         </View>
                       )}
                     </View>
 
-                    <View style={[styles.tdCell, { width: 150, paddingRight: 10, justifyContent: 'center' }]}>
+                    <View style={[styles.tdCell, { width: 110, paddingRight: 10, justifyContent: 'center' }]}>
                       {isPending ? (
                         <View style={{ gap: 8 }}>
                           <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
@@ -327,13 +410,23 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
                         </View>
                       ) : order.status === 'processing' ? (
                         <View style={{ gap: 8, alignItems: 'center', width: '100%' }}>
-                          <TouchableOpacity 
-                            style={[styles.btnPrimary, { flexDirection: 'row', gap: 6, width: '100%', justifyContent: 'center' }]} 
-                            onPress={() => handleDownloadLabel(order.id, order.shiprocketShipmentId)}
-                          >
-                            <Download size={14} color="#FFF" />
-                            <Text style={styles.btnPrimaryText}>Label</Text>
-                          </TouchableOpacity>
+                          {order.courierPartner === 'shadowfax' ? (
+                            <TouchableOpacity 
+                              style={[styles.btnPrimary, { flexDirection: 'row', gap: 6, width: '100%', justifyContent: 'center' }]} 
+                              onPress={() => handlePrintShadowfaxLabel(order)}
+                            >
+                              <Download size={14} color="#FFF" />
+                              <Text style={styles.btnPrimaryText}>Print Label</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity 
+                              style={[styles.btnPrimary, { flexDirection: 'row', gap: 6, width: '100%', justifyContent: 'center' }]} 
+                              onPress={() => handleDownloadLabel(order.id, order.shiprocketShipmentId)}
+                            >
+                              <Download size={14} color="#FFF" />
+                              <Text style={styles.btnPrimaryText}>Label</Text>
+                            </TouchableOpacity>
+                          )}
                           <Text style={order.isLabelDownloaded ? styles.labelSuccess : styles.labelPending}>
                             {order.isLabelDownloaded ? 'Downloaded' : 'Not Downloaded'}
                           </Text>
@@ -344,16 +437,35 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
                           )}
                         </View>
                       ) : order.status === 'shipped' ? (
-                        <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
-                          <Text style={styles.btnPrimaryText}>Mark at Hub</Text>
-                        </TouchableOpacity>
+                        <View style={{ gap: 8 }}>
+                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
+                            <Text style={styles.btnPrimaryText}>Mark at Hub</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.btnSecondary} onPress={() => handleMarkRTO(order.id, false)}>
+                            <Text style={styles.btnSecondaryText}>Mark RTO</Text>
+                          </TouchableOpacity>
+                        </View>
                       ) : order.status === 'reached_hub' ? (
-                        <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
-                          <Text style={styles.btnPrimaryText}>Out for Delivery</Text>
-                        </TouchableOpacity>
+                        <View style={{ gap: 8 }}>
+                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
+                            <Text style={styles.btnPrimaryText}>Out for Delivery</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.btnSecondary} onPress={() => handleMarkRTO(order.id, false)}>
+                            <Text style={styles.btnSecondaryText}>Mark RTO</Text>
+                          </TouchableOpacity>
+                        </View>
                       ) : order.status === 'out_for_delivery' ? (
-                        <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
-                          <Text style={styles.btnPrimaryText}>Mark Delivered</Text>
+                        <View style={{ gap: 8 }}>
+                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
+                            <Text style={styles.btnPrimaryText}>Mark Delivered</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.btnSecondary} onPress={() => handleMarkRTO(order.id, false)}>
+                            <Text style={styles.btnSecondaryText}>Mark RTO</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : order.status === 'rto_in_transit' ? (
+                        <TouchableOpacity style={styles.btnPrimary} onPress={() => handleMarkRTO(order.id, true)}>
+                          <Text style={styles.btnPrimaryText}>RTO Delivered</Text>
                         </TouchableOpacity>
                       ) : (
                         <Text style={styles.statusCompletedText}>{order.status.toUpperCase()}</Text>
@@ -364,8 +476,20 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
               })
             )}
           </View>
-        </ScrollView>
+        </View>
       </ScrollView>
+
+      <ShippingLabelModal 
+        visible={labelModalVisible} 
+        onClose={() => setLabelModalVisible(false)}
+        order={selectedOrderForLabel}
+        seller={sellerProfile}
+      />
+
+      <DispatchHealthModal 
+        visible={healthModalVisible} 
+        onClose={() => setHealthModalVisible(false)} 
+      />
     </View>
   );
 };
@@ -531,9 +655,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
+    width: '100%',
   },
   table: {
-    minWidth: 1000,
+    width: '100%',
   },
   tableHeader: {
     flexDirection: 'row',

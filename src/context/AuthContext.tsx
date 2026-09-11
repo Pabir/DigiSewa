@@ -56,6 +56,16 @@ export interface AuthContextType {
   closeCustomerProfileModal: () => void;
   updateUserProfile: (name: string, phone: string, address: string) => void;
   
+  addDeliveryAddress: (address: Omit<DeliveryAddress, 'id'>) => void;
+  requestGstAddition: (gstin: string) => Promise<void>;
+  updateDeliveryAddress: (id: string, address: Partial<DeliveryAddress>) => void;
+  deleteDeliveryAddress: (id: string) => void;
+  setDefaultDeliveryAddress: (id: string) => void;
+  
+  addPaymentMethod: (method: Omit<PaymentMethod, 'id'>) => void;
+  deletePaymentMethod: (id: string) => void;
+  setDefaultPaymentMethod: (id: string) => void;
+  
   // Auth Operations
   loginAsCustomer: (name: string, phone: string, email?: string, address?: string, password?: string) => void;
   loginCustomerWithPassword: (identifier: string, password: string) => { success: boolean; message: string };
@@ -81,7 +91,7 @@ export interface AuthContextType {
   updateUserAddress: (address: string) => void;
 }
 
-const STORAGE_KEY = 'DigiSewa_auth_session';
+const STORAGE_KEY = 'TafDeal_auth_session';
 
 const getInitialAuthState = (): { user: User | null; sellerProfile: Seller | null; activeRole: UserRole; isAuthenticated: boolean } | null => {
   try {
@@ -111,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     {
       id: 'usr-admin-001',
       name: 'Super Admin',
-      email: 'superadmin@DigiSewa.in',
+      email: 'superadmin@TafDeal.in',
       phone: '+91 90000 00000',
       role: 'super_admin',
       password: 'SuperAdmin@123',
@@ -123,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getInitialAdmins = (): SystemAdmin[] => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('DigiSewa_registered_admins');
+        const saved = window.localStorage.getItem('TafDeal_registered_admins');
         if (saved) {
           const parsed = JSON.parse(saved);
           // Ensure Super Admin is always present
@@ -143,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('DigiSewa_registered_admins', JSON.stringify(registeredAdmins));
+      window.localStorage.setItem('TafDeal_registered_admins', JSON.stringify(registeredAdmins));
     }
   }, [registeredAdmins]);
 
@@ -263,7 +273,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (cleanPhone && (c.phone || '').replace(/\D/g, '').includes(cleanPhone.replace(/\D/g, '')))
     );
 
-    const defaultEmail = cleanEmail || existingMatch?.email || (cleanPhone ? `${cleanPhone.replace(/\D/g, '')}@DigiSewa.in` : 'customer@DigiSewa.in');
+    const defaultEmail = cleanEmail || existingMatch?.email || (cleanPhone ? `${cleanPhone.replace(/\D/g, '')}@TafDeal.in` : 'customer@TafDeal.in');
 
     const resolvedName = (name && name.trim() && name.trim() !== 'Valued Customer')
       ? name.trim()
@@ -473,7 +483,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: payload.email,
       phone: payload.phone,
       password: payload.password || 'password123',
-      tagline: 'DigiSewa Express Supplier',
+      tagline: 'TafDeal Express Supplier',
       businessAddress: `${payload.pickupAddress.building}, ${payload.pickupAddress.street}, ${payload.pickupAddress.city}, ${payload.pickupAddress.state} - ${payload.pickupAddress.pincode}`,
       rating: 5.0,
       totalSales: 0,
@@ -508,7 +518,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newUser: User = {
         id: defaultSeller.userId,
         name: defaultSeller.storeName,
-        email: defaultSeller.email || 'seller@DigiSewa.in',
+        email: defaultSeller.email || 'seller@TafDeal.in',
         phone: defaultSeller.phone,
         role: 'seller',
         address: defaultSeller.businessAddress,
@@ -539,7 +549,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newUser: User = {
         id: match.userId,
         name: match.ownerName || match.storeName,
-        email: match.email || 'seller@DigiSewa.in',
+        email: match.email || 'seller@TafDeal.in',
         phone: match.phone,
         role: 'seller',
         address: match.businessAddress,
@@ -622,12 +632,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginAsAdmin = (email: string, password?: string): { success: boolean; message: string; role?: UserRole } => {
     let admin = registeredAdmins.find(a => a.email.toLowerCase() === email.toLowerCase());
     
-    // HARD FALLBACK: Ensure superadmin@DigiSewa.in can ALWAYS log in
-    if (email.toLowerCase() === 'superadmin@DigiSewa.in' && password === 'SuperAdmin@123') {
+    // HARD FALLBACK: Ensure superadmin@TafDeal.in can ALWAYS log in
+    if (email.toLowerCase() === 'superadmin@TafDeal.in' && password === 'SuperAdmin@123') {
       admin = {
         id: admin ? admin.id : 'usr-admin-001',
         name: 'Super Admin',
-        email: 'superadmin@DigiSewa.in',
+        email: 'superadmin@TafDeal.in',
         phone: '+91 90000 00000',
         role: 'super_admin',
         password: 'SuperAdmin@123',
@@ -640,7 +650,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Overwrite the in-memory array just in case
       setRegisteredAdmins(prev => {
-        const others = prev.filter(a => a.email.toLowerCase() !== 'superadmin@DigiSewa.in');
+        const others = prev.filter(a => a.email.toLowerCase() !== 'superadmin@TafDeal.in');
         return [...others, admin!];
       });
     }
@@ -648,7 +658,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (admin) {
       // The superadmin above will have role 'super_admin' and status 'active', so it won't hit this.
       // But just in case, we add the explicit email check.
-      if (admin.status === 'suspended' && email.toLowerCase() !== 'superadmin@DigiSewa.in') {
+      if (admin.status === 'suspended' && email.toLowerCase() !== 'superadmin@TafDeal.in') {
         return { success: false, message: 'This admin account is suspended.' };
       }
       if (admin.password && admin.password !== password) {
@@ -689,6 +699,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const requestGstAddition = async (gstin: string) => {
+    if (sellerProfile) {
+      const updatedSeller: Seller = {
+        ...sellerProfile,
+        gstAdditionRequest: {
+          gstin: gstin.toUpperCase(),
+          status: 'pending',
+          submittedAt: new Date().toISOString(),
+        }
+      };
+      setSellerProfile(updatedSeller);
+      await saveSellerToFirestore(updatedSeller);
+      persistSession(user, updatedSeller, activeRole, isAuthenticated);
+      alert('GSTIN addition request submitted successfully. Awaiting admin approval.');
+    }
+  };
+
   const updateUserProfile = (name: string, phone: string, address: string) => {
     if (user) {
       const updatedUser: User = {
@@ -701,6 +728,116 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRegisteredCustomers(prev =>
         prev.map(c => (c.id === updatedUser.id ? updatedUser : c))
       );
+      saveUserToFirestore(updatedUser);
+      persistSession(updatedUser, sellerProfile, activeRole, isAuthenticated);
+    }
+  };
+
+  const addDeliveryAddress = (address: Omit<DeliveryAddress, 'id'>) => {
+    if (user) {
+      const newAddress: DeliveryAddress = {
+        ...address,
+        id: `addr-${Date.now()}`
+      };
+      const existingAddresses = user.addresses || [];
+      const isFirst = existingAddresses.length === 0;
+      if (isFirst) newAddress.isDefault = true;
+
+      let updatedAddresses = [...existingAddresses, newAddress];
+      if (newAddress.isDefault && !isFirst) {
+        updatedAddresses = updatedAddresses.map(a => ({ ...a, isDefault: a.id === newAddress.id }));
+      }
+
+      const updatedUser: User = { ...user, addresses: updatedAddresses };
+      setUser(updatedUser);
+      setRegisteredCustomers(prev => prev.map(c => (c.id === updatedUser.id ? updatedUser : c)));
+      saveUserToFirestore(updatedUser);
+      persistSession(updatedUser, sellerProfile, activeRole, isAuthenticated);
+    }
+  };
+
+  const updateDeliveryAddress = (id: string, address: Partial<DeliveryAddress>) => {
+    if (user && user.addresses) {
+      let updatedAddresses = user.addresses.map(a => (a.id === id ? { ...a, ...address } : a));
+      if (address.isDefault) {
+        updatedAddresses = updatedAddresses.map(a => ({ ...a, isDefault: a.id === id }));
+      }
+      const updatedUser: User = { ...user, addresses: updatedAddresses };
+      setUser(updatedUser);
+      setRegisteredCustomers(prev => prev.map(c => (c.id === updatedUser.id ? updatedUser : c)));
+      saveUserToFirestore(updatedUser);
+      persistSession(updatedUser, sellerProfile, activeRole, isAuthenticated);
+    }
+  };
+
+  const deleteDeliveryAddress = (id: string) => {
+    if (user && user.addresses) {
+      let updatedAddresses = user.addresses.filter(a => a.id !== id);
+      if (updatedAddresses.length > 0 && !updatedAddresses.some(a => a.isDefault)) {
+        updatedAddresses[0].isDefault = true; // ensure one is default
+      }
+      const updatedUser: User = { ...user, addresses: updatedAddresses };
+      setUser(updatedUser);
+      setRegisteredCustomers(prev => prev.map(c => (c.id === updatedUser.id ? updatedUser : c)));
+      saveUserToFirestore(updatedUser);
+      persistSession(updatedUser, sellerProfile, activeRole, isAuthenticated);
+    }
+  };
+
+  const setDefaultDeliveryAddress = (id: string) => {
+    if (user && user.addresses) {
+      const updatedAddresses = user.addresses.map(a => ({ ...a, isDefault: a.id === id }));
+      const updatedUser: User = { ...user, addresses: updatedAddresses };
+      setUser(updatedUser);
+      setRegisteredCustomers(prev => prev.map(c => (c.id === updatedUser.id ? updatedUser : c)));
+      saveUserToFirestore(updatedUser);
+      persistSession(updatedUser, sellerProfile, activeRole, isAuthenticated);
+    }
+  };
+
+  const addPaymentMethod = (method: Omit<PaymentMethod, 'id'>) => {
+    if (user) {
+      const newMethod: PaymentMethod = {
+        ...method,
+        id: `pay-${Date.now()}`
+      };
+      const existingMethods = user.paymentMethods || [];
+      const isFirst = existingMethods.length === 0;
+      if (isFirst) newMethod.isDefault = true;
+
+      let updatedMethods = [...existingMethods, newMethod];
+      if (newMethod.isDefault && !isFirst) {
+        updatedMethods = updatedMethods.map(m => ({ ...m, isDefault: m.id === newMethod.id }));
+      }
+
+      const updatedUser: User = { ...user, paymentMethods: updatedMethods };
+      setUser(updatedUser);
+      setRegisteredCustomers(prev => prev.map(c => (c.id === updatedUser.id ? updatedUser : c)));
+      saveUserToFirestore(updatedUser);
+      persistSession(updatedUser, sellerProfile, activeRole, isAuthenticated);
+    }
+  };
+
+  const deletePaymentMethod = (id: string) => {
+    if (user && user.paymentMethods) {
+      let updatedMethods = user.paymentMethods.filter(m => m.id !== id);
+      if (updatedMethods.length > 0 && !updatedMethods.some(m => m.isDefault)) {
+        updatedMethods[0].isDefault = true;
+      }
+      const updatedUser: User = { ...user, paymentMethods: updatedMethods };
+      setUser(updatedUser);
+      setRegisteredCustomers(prev => prev.map(c => (c.id === updatedUser.id ? updatedUser : c)));
+      saveUserToFirestore(updatedUser);
+      persistSession(updatedUser, sellerProfile, activeRole, isAuthenticated);
+    }
+  };
+
+  const setDefaultPaymentMethod = (id: string) => {
+    if (user && user.paymentMethods) {
+      const updatedMethods = user.paymentMethods.map(m => ({ ...m, isDefault: m.id === id }));
+      const updatedUser: User = { ...user, paymentMethods: updatedMethods };
+      setUser(updatedUser);
+      setRegisteredCustomers(prev => prev.map(c => (c.id === updatedUser.id ? updatedUser : c)));
       saveUserToFirestore(updatedUser);
       persistSession(updatedUser, sellerProfile, activeRole, isAuthenticated);
     }
@@ -783,6 +920,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         openCustomerProfileModal,
         closeCustomerProfileModal,
         updateUserProfile,
+        addDeliveryAddress,
+        updateDeliveryAddress,
+        deleteDeliveryAddress,
+        setDefaultDeliveryAddress,
+        addPaymentMethod,
+        deletePaymentMethod,
+        setDefaultPaymentMethod,
+        requestGstAddition,
         loginAsCustomer,
         loginCustomerWithPassword,
         resetCustomerPassword,

@@ -26,7 +26,7 @@ export const BulkCatalogUploadModal: React.FC<BulkCatalogUploadModalProps> = ({
   const handleSelectDemoExcel = () => {
     setIsParsing(true);
     setTimeout(() => {
-      setSelectedFile('DigiSewa_Apparel_Catalog_Template_v2.xlsx (28.4 KB)');
+      setSelectedFile('TafDeal_Apparel_Catalog_Template_v2.xlsx (28.4 KB)');
       setParsedItems(DEMO_BULK_ITEMS);
       setIsParsing(false);
     }, 1200);
@@ -53,7 +53,7 @@ export const BulkCatalogUploadModal: React.FC<BulkCatalogUploadModalProps> = ({
         await addProduct(
           {
             sellerId: sellerProfile.id || 'sel-104',
-            sellerName: sellerProfile.storeName || 'DigiSewa Express Store',
+            sellerName: sellerProfile.storeName || 'TafDeal Express Store',
             title: item.title,
             description: `Bulk Catalog Import: ${item.fabric} ${item.fit} ${item.subcategory}.`,
             category: item.category,
@@ -65,7 +65,7 @@ export const BulkCatalogUploadModal: React.FC<BulkCatalogUploadModalProps> = ({
             imageUrl: item.imageUrl,
             rating: 5.0,
             reviewCount: 1,
-            tags: ['Bulk Import', 'DigiSewa Catalog', item.category],
+            tags: ['Bulk Import', 'TafDeal Catalog', item.category],
             isHyperlocalAvailable: false,
             fabric: item.fabric,
             fitType: item.fit,
@@ -106,7 +106,7 @@ export const BulkCatalogUploadModal: React.FC<BulkCatalogUploadModalProps> = ({
           {/* Download Template Banner */}
           <TouchableOpacity style={styles.templateBox}>
             <Sparkles size={16} color="#2563EB" />
-            <Text style={styles.templateText}>Download DigiSewa Bulk Catalog Template (.xlsx)</Text>
+            <Text style={styles.templateText}>Download TafDeal Bulk Catalog Template (.xlsx)</Text>
           </TouchableOpacity>
 
           {/* Drag & Drop Upload Zone */}

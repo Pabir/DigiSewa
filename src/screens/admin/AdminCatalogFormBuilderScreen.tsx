@@ -8,6 +8,7 @@ import {
   TextInput,
   Modal,
   Alert,
+  Platform,
 } from 'react-native';
 import {
   CategoryNode,
@@ -31,6 +32,7 @@ import {
   mapAttributeToCategory,
   unmapAttributeFromCategory,
   toggleCategoryAttributeRequired,
+  toggleCategoryAttributeVariant,
   saveCategoryTemplate,
   applyTemplateToCategory,
   syncFromFirestore,
@@ -102,6 +104,9 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
 
   // Mapped Categories Modal State
   const [showMappedCategoriesModal, setShowMappedCategoriesModal] = useState<boolean>(false);
+  const [mappedFilterAdmin, setMappedFilterAdmin] = useState<string>('');
+  const [mappedFilterCategory, setMappedFilterCategory] = useState<string>('');
+  const [mappedFilterDate, setMappedFilterDate] = useState<string>('');
 
   // Mapper State
   const [mappings, setMappings] = useState<CategoryAttributeMapping[]>(getCategoryAttributeMappings(selectedCatId));
@@ -220,6 +225,10 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
   };
 
   const handleDeleteCat = (catId: string) => {
+    if (activeRole !== 'super_admin') {
+      alert('Only Super Admins can delete categories.');
+      return;
+    }
     deleteCategoryNode(catId);
     setCategories([...getCategoryHierarchy()]);
   };
@@ -261,12 +270,23 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
   // Handlers for Attribute Options
   const handleAddOption = () => {
     if (!newOptLabel.trim()) return;
-    const val = newOptValue.trim() || newOptLabel.trim();
+    
     const currentOptions: AttributeOption[] = editingAttr.options || [];
+    
+    // Prevent duplicate options (case-insensitive check)
+    const isDuplicate = currentOptions.some(opt => opt.label.toLowerCase() === newOptLabel.trim().toLowerCase());
+    if (isDuplicate) {
+      alert('This option already exists!');
+      return;
+    }
+
+    const val = newOptValue.trim() || newOptLabel.trim();
+    const newOptions = [...currentOptions, { label: newOptLabel.trim(), value: val }];
+    newOptions.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
 
     setEditingAttr((prev) => ({
       ...prev,
-      options: [...currentOptions, { label: newOptLabel.trim(), value: val }],
+      options: newOptions,
     }));
 
     setNewOptLabel('');
@@ -282,6 +302,13 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
   // Handlers for Category Mapping & Required Toggle
   const handleAddMapping = () => {
     if (!selectedAttrToMap) return;
+
+    const isAlreadyMapped = mappings.some(m => m.attributeId === selectedAttrToMap);
+    if (isAlreadyMapped) {
+      alert('This field is already mapped to the selected category!');
+      return;
+    }
+
     mapAttributeToCategory(selectedCatId, selectedAttrToMap, mapIsRequired, mapIsVariant, adminInfo);
     setMappings([...getCategoryAttributeMappings(selectedCatId)]);
     setSelectedAttrToMap('');
@@ -289,6 +316,11 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
 
   const handleToggleRequired = (attrId: string) => {
     toggleCategoryAttributeRequired(selectedCatId, attrId, adminInfo);
+    setMappings([...getCategoryAttributeMappings(selectedCatId)]);
+  };
+
+  const handleToggleVariantMapping = (attrId: string) => {
+    toggleCategoryAttributeVariant(selectedCatId, attrId, adminInfo);
     setMappings([...getCategoryAttributeMappings(selectedCatId)]);
   };
 
@@ -568,16 +600,22 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                       <TouchableOpacity
                         style={styles.editFieldBtn}
                         onPress={() => {
-                          setEditingAttr(attr);
+                          const sortedAttr = { ...attr };
+                          if (sortedAttr.options) {
+                            sortedAttr.options = [...sortedAttr.options].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+                          }
+                          setEditingAttr(sortedAttr);
                           setShowAttrModal(true);
                         }}
                       >
                         <Sparkles size={15} color="#4338CA" />
                         <Text style={styles.editFieldBtnText}>Edit</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleDeleteAttr(attr.id)}>
-                        <Trash2 size={16} color="#EF4444" />
-                      </TouchableOpacity>
+                      {activeRole === 'super_admin' && (
+                        <TouchableOpacity onPress={() => handleDeleteAttr(attr.id)}>
+                          <Trash2 size={16} color="#EF4444" />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 ))
@@ -845,9 +883,22 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
+                      style={f.attribute.isVariantAttribute ? [styles.badgeOptional, {backgroundColor: '#FEF3C7', borderColor: '#F59E0B'}] : styles.badgeOptional}
+                      onPress={() => handleToggleVariantMapping(f.attribute.id)}
+                    >
+                      <Text style={f.attribute.isVariantAttribute ? [styles.badgeOptionalText, {color: '#D97706'}] : styles.badgeOptionalText}>
+                        {f.attribute.isVariantAttribute ? 'VARIANT ✓' : 'NORMAL'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
                       style={styles.editFieldBtn}
                       onPress={() => {
-                        setEditingAttr(f.attribute);
+                        const sortedAttr = { ...f.attribute };
+                        if (sortedAttr.options) {
+                          sortedAttr.options = [...sortedAttr.options].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' }));
+                        }
+                        setEditingAttr(sortedAttr);
                         setShowAttrModal(true);
                       }}
                     >
@@ -855,9 +906,11 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                       <Text style={styles.editFieldBtnText}>Edit Field</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity onPress={() => handleRemoveMapping(f.attribute.id)}>
-                      <Trash2 size={16} color="#EF4444" />
-                    </TouchableOpacity>
+                    {activeRole === 'super_admin' && (
+                      <TouchableOpacity onPress={() => handleRemoveMapping(f.attribute.id)}>
+                        <Trash2 size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               ))}
@@ -906,9 +959,11 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                         <Text style={[styles.actionPillBtnText, { color: '#059669' }]}>+ Sub Category (L2)</Text>
                       </TouchableOpacity>
 
-                      <TouchableOpacity onPress={() => handleDeleteCat(lvl1.id)}>
-                        <Trash2 size={15} color="#EF4444" />
-                      </TouchableOpacity>
+                      {activeRole === 'super_admin' && (
+                        <TouchableOpacity onPress={() => handleDeleteCat(lvl1.id)}>
+                          <Trash2 size={15} color="#EF4444" />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
 
@@ -933,9 +988,11 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                             <Text style={[styles.actionPillBtnText, { color: '#059669' }]}>+ Sub Category (L3)</Text>
                           </TouchableOpacity>
 
-                          <TouchableOpacity onPress={() => handleDeleteCat(lvl2.id)}>
-                            <Trash2 size={15} color="#EF4444" />
-                          </TouchableOpacity>
+                          {activeRole === 'super_admin' && (
+                            <TouchableOpacity onPress={() => handleDeleteCat(lvl2.id)}>
+                              <Trash2 size={15} color="#EF4444" />
+                            </TouchableOpacity>
+                          )}
                         </View>
                       </View>
 
@@ -960,9 +1017,11 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                                 <Text style={[styles.actionPillBtnText, { color: '#059669' }]}>+ Product Type (L4)</Text>
                               </TouchableOpacity>
 
-                              <TouchableOpacity onPress={() => handleDeleteCat(lvl3.id)}>
-                                <Trash2 size={14} color="#EF4444" />
-                              </TouchableOpacity>
+                              {activeRole === 'super_admin' && (
+                                <TouchableOpacity onPress={() => handleDeleteCat(lvl3.id)}>
+                                  <Trash2 size={14} color="#EF4444" />
+                                </TouchableOpacity>
+                              )}
                             </View>
                           </View>
 
@@ -978,9 +1037,11 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                                   <Text style={styles.actionPillBtnText}>Rename</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity onPress={() => handleDeleteCat(lvl4.id)}>
-                                  <Trash2 size={14} color="#EF4444" />
-                                </TouchableOpacity>
+                                {activeRole === 'super_admin' && (
+                                  <TouchableOpacity onPress={() => handleDeleteCat(lvl4.id)}>
+                                    <Trash2 size={14} color="#EF4444" />
+                                  </TouchableOpacity>
+                                )}
                               </View>
                             </View>
                           ))}
@@ -1028,25 +1089,142 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
         {/* TAB 5: LIVE FORM PREVIEW */}
         {/* ==================================================== */}
         {activeTab === 'preview' && (
-          <View style={styles.card}>
-            <View style={styles.previewHeader}>
-              <Sparkles size={20} color="#4338CA" />
-              <View>
-                <Text style={styles.cardTitle}>Seller Dynamic Form Engine Live Preview</Text>
-                <Text style={styles.cardDesc}>
-                  Schema Path: {schema.categoryPath.join(' → ')}
-                </Text>
+          <View style={{ gap: 16 }}>
+            <View style={styles.card}>
+              <View style={styles.previewHeader}>
+                <Sparkles size={20} color="#4338CA" />
+                <View>
+                  <Text style={styles.cardTitle}>Seller Dynamic Form Engine Live Preview</Text>
+                  <Text style={styles.cardDesc}>
+                    Schema Path: {schema.categoryPath.join(' → ')}
+                  </Text>
+                </View>
               </View>
             </View>
 
-            <View style={styles.previewContainer}>
-              <DynamicFormEngine
-                fields={schema.fields}
-                formValues={previewValues}
-                onChangeField={(code, val) => {
-                  setPreviewValues((prev) => ({ ...prev, [code]: val }));
-                }}
-              />
+            {/* 1. Product Basic Information (Preview) */}
+            <View style={styles.card}>
+              <Text style={styles.sectionHeader}>1. Product Basic Information</Text>
+              
+              <View style={{ marginBottom: 12 }}>
+                <Text style={styles.modalLabel}>Product Title / Name *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Women Printed Cotton Kurti With Dupatta"
+                  editable={false}
+                />
+              </View>
+
+              <View style={{ marginBottom: 12 }}>
+                <Text style={styles.modalLabel}>Brand Name *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Royal Handlooms, Custom Brand"
+                  editable={false}
+                />
+              </View>
+
+              <View style={{ marginBottom: 12 }}>
+                <Text style={styles.modalLabel}>Product Description</Text>
+                <TextInput
+                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                  multiline
+                  placeholder="Detailed description of fabric, comfort, and design..."
+                  editable={false}
+                />
+              </View>
+
+              <View style={{ marginBottom: 12 }}>
+                <Text style={styles.modalLabel}>Search Tags (Type comma to add, max 15)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. red, cotton, summer"
+                  editable={false}
+                />
+              </View>
+            </View>
+
+            {/* 2. Dynamic Category Specifications (Preview) */}
+            <View style={styles.card}>
+              <Text style={styles.sectionHeader}>2. {schema.categoryName} Dynamic Category Specifications</Text>
+              <View style={styles.previewContainer}>
+                <DynamicFormEngine
+                  fields={schema.fields}
+                  formValues={previewValues}
+                  onChangeField={(code, val) => {
+                    setPreviewValues((prev) => ({ ...prev, [code]: val }));
+                  }}
+                />
+              </View>
+            </View>
+
+            {/* 3. Pricing, GST Tax & Settlement Payout (Preview) */}
+            <View style={styles.card}>
+              <Text style={styles.sectionHeader}>3. Pricing, GST Tax & Settlement Payout</Text>
+              
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalLabel}>MRP Price (₹) *</Text>
+                  <TextInput style={styles.input} placeholder="1499" editable={false} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalLabel}>Supplier Selling Price (₹) *</Text>
+                  <TextInput style={styles.input} placeholder="599" editable={false} />
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalLabel}>HSN Code *</Text>
+                  <TextInput style={styles.input} placeholder="e.g. 6211" editable={false} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalLabel}>GST Percentage (%) *</Text>
+                  <TextInput style={styles.input} placeholder="e.g. 5, 12, 18, 28" editable={false} />
+                </View>
+              </View>
+            </View>
+
+            {/* 4. Package Weight & Shipping Cost Estimate (Preview) */}
+            <View style={styles.card}>
+              <Text style={styles.sectionHeader}>4. Package Weight & Shipping Cost Estimate</Text>
+              
+              <View style={{ marginBottom: 12 }}>
+                <Text style={styles.modalLabel}>Applicable Weight (Grams) *</Text>
+                <TextInput style={styles.input} placeholder="e.g. 500 for 0.5 kg" editable={false} />
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalLabel}>Length (cm)</Text>
+                  <TextInput style={styles.input} placeholder="e.g. 25" editable={false} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalLabel}>Width (cm)</Text>
+                  <TextInput style={styles.input} placeholder="e.g. 20" editable={false} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalLabel}>Height (cm)</Text>
+                  <TextInput style={styles.input} placeholder="e.g. 5" editable={false} />
+                </View>
+              </View>
+            </View>
+
+            {/* 5. Image Uploads (Preview) */}
+            <View style={styles.card}>
+              <Text style={styles.sectionHeader}>Image Uploads & Angles</Text>
+              
+              <Text style={styles.modalLabel}>1. Front View (Main Image) *</Text>
+              <View style={{ backgroundColor: '#EEF2FF', padding: 16, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: '#C7D2FE', borderStyle: 'dashed', marginBottom: 12 }}>
+                <ShoppingBag size={24} color="#4F46E5" style={{ marginBottom: 8 }} />
+                <Text style={{ color: '#4F46E5', fontWeight: '600', fontSize: 13 }}>Upload Main Image</Text>
+              </View>
+
+              <Text style={styles.modalLabel}>2. Additional Angle Photos</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: '#E2E8F0', alignSelf: 'flex-start', marginTop: 6 }}>
+                <Plus size={14} color="#4F46E5" style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#4F46E5' }}>Manage Images</Text>
+              </View>
             </View>
           </View>
         )}
@@ -1244,6 +1422,27 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                     {editingAttr.isVariantAttribute ? '✓ Variant Generator' : 'Normal Spec'}
                   </Text>
                 </TouchableOpacity>
+
+                {['select', 'multiselect', 'radio', 'checkbox'].includes(editingAttr.type || '') && (
+                  <TouchableOpacity
+                    style={[styles.toggleBtn, editingAttr.isSearchable && styles.toggleBtnActive]}
+                    onPress={() =>
+                      setEditingAttr((prev) => ({
+                        ...prev,
+                        isSearchable: !prev.isSearchable,
+                      }))
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.toggleText,
+                        editingAttr.isSearchable && styles.toggleTextActive,
+                      ]}
+                    >
+                      {editingAttr.isSearchable ? '✓ Searchable' : 'Enable Search'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* OPTIONS MANAGER FOR SELECT/MULTISELECT/RADIO */}
@@ -1257,23 +1456,49 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                       style={[styles.input, { flex: 1 }]}
                       value={newOptLabel}
                       onChangeText={setNewOptLabel}
-                      placeholder="Option Display Label (e.g. 100% Pure Cotton)"
+                      placeholder="Search or Create Option (e.g. 100% Pure Cotton)"
                     />
-                    <TouchableOpacity style={styles.primaryBtn} onPress={handleAddOption}>
-                      <Plus size={14} color="#FFFFFF" />
-                      <Text style={styles.primaryBtnText}>Add Option</Text>
-                    </TouchableOpacity>
+                    {(() => {
+                        const exactMatch = (editingAttr.options || []).find(o => o.label.toLowerCase() === newOptLabel.trim().toLowerCase());
+                        if (newOptLabel.trim() && exactMatch) {
+                            return (
+                                <View style={[styles.primaryBtn, { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#D1D5DB' }]}>
+                                  <Text style={[styles.primaryBtnText, { color: '#9CA3AF' }]}>Already Exists</Text>
+                                </View>
+                            )
+                        }
+                        return (
+                            <TouchableOpacity style={styles.primaryBtn} onPress={handleAddOption}>
+                              <Plus size={14} color="#FFFFFF" />
+                              <Text style={styles.primaryBtnText}>Add Option</Text>
+                            </TouchableOpacity>
+                        )
+                    })()}
                   </View>
+                  
+                  {newOptLabel.trim().length > 0 && !(editingAttr.options || []).find(o => o.label.toLowerCase() === newOptLabel.trim().toLowerCase()) && (
+                      <View style={{ backgroundColor: '#EEF2FF', padding: 8, borderRadius: 6, marginBottom: 12, borderWidth: 1, borderColor: '#C7D2FE' }}>
+                          <Text style={{ color: '#4338CA', fontSize: 13 }}>
+                              Press "Add Option" to create <Text style={{ fontWeight: 'bold' }}>"{newOptLabel.trim()}"</Text>
+                          </Text>
+                      </View>
+                  )}
 
                   <View style={styles.optChipGrid}>
-                    {(editingAttr.options || []).map((opt, idx) => (
-                      <View key={idx} style={styles.optChip}>
-                        <Text style={styles.optChipText}>{opt.label}</Text>
-                        <TouchableOpacity onPress={() => handleRemoveOption(idx)}>
-                          <X size={12} color="#EF4444" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
+                    {(editingAttr.options || [])
+                      .map((opt, originalIndex) => ({ opt, originalIndex }))
+                      .filter(({ opt }) => opt.label.toLowerCase().includes(newOptLabel.toLowerCase()))
+                      .map(({ opt, originalIndex }) => {
+                        const isExactMatch = newOptLabel.trim() !== '' && newOptLabel.trim().toLowerCase() === opt.label.toLowerCase();
+                        return (
+                          <View key={originalIndex} style={[styles.optChip, isExactMatch && { borderColor: '#EF4444', borderWidth: 1, backgroundColor: '#FEF2F2' }]}>
+                            <Text style={[styles.optChipText, isExactMatch && { color: '#EF4444', fontWeight: 'bold' }]}>{opt.label}</Text>
+                            <TouchableOpacity onPress={() => handleRemoveOption(originalIndex)}>
+                              <X size={12} color="#EF4444" />
+                            </TouchableOpacity>
+                          </View>
+                        );
+                    })}
                   </View>
                 </View>
               )}
@@ -1319,18 +1544,115 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
 
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 10, borderRadius: 6, borderWidth: 1, borderColor: '#E2E8F0', flex: 1, minWidth: 120 }}>
+                <Search size={14} color="#94A3B8" />
+                <TextInput
+                  style={{ flex: 1, paddingVertical: 6, paddingHorizontal: 8, fontSize: 12 }}
+                  placeholder="Filter by Category..."
+                  placeholderTextColor="#94A3B8"
+                  value={mappedFilterCategory}
+                  onChangeText={setMappedFilterCategory}
+                />
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 10, borderRadius: 6, borderWidth: 1, borderColor: '#E2E8F0', flex: 1, minWidth: 120 }}>
+                <Search size={14} color="#94A3B8" />
+                <TextInput
+                  style={{ flex: 1, paddingVertical: 6, paddingHorizontal: 8, fontSize: 12 }}
+                  placeholder="Filter by Admin Email..."
+                  placeholderTextColor="#94A3B8"
+                  value={mappedFilterAdmin}
+                  onChangeText={setMappedFilterAdmin}
+                />
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 10, borderRadius: 6, borderWidth: 1, borderColor: '#E2E8F0', flex: 1, minWidth: 120 }}>
+                <Search size={14} color="#94A3B8" />
+                {Platform.OS === 'web' ? (
+                  <input
+                    type="date"
+                    value={mappedFilterDate}
+                    onChange={(e) => setMappedFilterDate(e.target.value)}
+                    style={{ flex: 1, padding: '6px 8px', fontSize: '12px', border: 'none', outline: 'none', backgroundColor: 'transparent', color: '#334155' }}
+                  />
+                ) : (
+                  <TextInput
+                    style={{ flex: 1, paddingVertical: 6, paddingHorizontal: 8, fontSize: 12 }}
+                    placeholder="Filter by Date (e.g. Aug 21)..."
+                    placeholderTextColor="#94A3B8"
+                    value={mappedFilterDate}
+                    onChangeText={setMappedFilterDate}
+                  />
+                )}
+              </View>
+            </View>
+
             <ScrollView style={{ marginTop: 10 }}>
-              {l4Categories.filter(cat => getCategoryAttributeMappings(cat.id).length > 0).map((cat) => {
+              {l4Categories.filter(cat => getCategoryAttributeMappings(cat.id).length > 0)
+                .filter(cat => {
+                  const mappings = getCategoryAttributeMappings(cat.id);
+                  const admins = Array.from(new Set(mappings.map(m => m.updatedByAdminEmail).filter(Boolean)));
+                  
+                  const adminUpdates = admins.map(admin => {
+                    const adminMappings = mappings.filter(m => m.updatedByAdminEmail === admin);
+                    const adminTimestamps = adminMappings.map(m => m.updatedAt).filter(Boolean).sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime());
+                    const latestDate = adminTimestamps.length > 0 ? adminTimestamps[0] : null;
+                    return { admin, latestDate };
+                  });
+
+                  let matchesCategory = true;
+                  let matchesAdmin = true;
+                  let matchesDate = true;
+
+                  if (mappedFilterCategory.trim()) {
+                    matchesCategory = cat.label.toLowerCase().includes(mappedFilterCategory.toLowerCase());
+                  }
+                  
+                  if (mappedFilterAdmin.trim()) {
+                    matchesAdmin = admins.some(admin => admin?.toLowerCase().includes(mappedFilterAdmin.toLowerCase()));
+                  }
+
+                  if (mappedFilterDate.trim()) {
+                    if (Platform.OS === 'web') {
+                      matchesDate = adminUpdates.some(au => {
+                        if (!au.latestDate) return false;
+                        const d = new Date(au.latestDate);
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        const localDateStr = `${y}-${m}-${day}`;
+                        return localDateStr === mappedFilterDate;
+                      });
+                    } else {
+                      matchesDate = adminUpdates.some(au => {
+                        if (!au.latestDate) return false;
+                        const formatted = new Date(au.latestDate).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+                        return formatted.toLowerCase().includes(mappedFilterDate.toLowerCase());
+                      });
+                    }
+                  }
+
+                  return matchesCategory && matchesAdmin && matchesDate;
+                })
+                .map((cat) => {
                 const mappings = getCategoryAttributeMappings(cat.id);
                 const mappedCount = mappings.length;
                 const admins = Array.from(new Set(mappings.map(m => m.updatedByAdminEmail).filter(Boolean)));
+                
+                const adminUpdates = admins.map(admin => {
+                  const adminMappings = mappings.filter(m => m.updatedByAdminEmail === admin);
+                  const adminTimestamps = adminMappings.map(m => m.updatedAt).filter(Boolean).sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime());
+                  const latestDate = adminTimestamps.length > 0 ? adminTimestamps[0] : null;
+                  const formatted = latestDate ? new Date(latestDate).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+                  return `${admin}${formatted ? ` on ${formatted}` : ''}`;
+                });
+
                 return (
                   <View key={cat.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' }}>
                     <View style={{ flex: 1, paddingRight: 10 }}>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: '#334155' }}>{cat.label}</Text>
-                      {admins.length > 0 && (
+                      {adminUpdates.length > 0 && (
                         <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                          Mapped by: {admins.join(', ')}
+                          Mapped by: {adminUpdates.join(', ')}
                         </Text>
                       )}
                     </View>

@@ -38,6 +38,7 @@ import {
   User,
   Footprints,
   Check,
+  X,
 } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -131,6 +132,26 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
   const [hsnCode, setHsnCode] = useState<string>('6211');
   const [gstPercentage, setGstPercentage] = useState<string>('5');
   const [stockQty, setStockQty] = useState<string>('40');
+  const [tagsList, setTagsList] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState<string>('');
+  
+  const handleTagInputChange = (text: string) => {
+    if (text.includes(',')) {
+      const newTags = text.split(',')
+                          .map(t => t.trim())
+                          .filter(t => t.length > 0 && !tagsList.includes(t));
+      if (newTags.length > 0) {
+        setTagsList(prev => [...prev, ...newTags].slice(0, 15));
+      }
+      setTagInput('');
+    } else {
+      setTagInput(text);
+    }
+  };
+
+  const removeTag = (indexToRemove: number) => {
+    setTagsList(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
 
   // Dynamic Attribute Values State
   const [attributeValues, setAttributeValues] = useState<Record<string, any>>({
@@ -432,6 +453,25 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
       return;
     }
 
+    // Validate that variants have images uploaded per primary color / group
+    if (variants && variants.length > 0) {
+      const variantAttributes = schema.fields.filter(f => f.isVariant).map(f => f.attribute);
+      const imageGroupAttr = variantAttributes.find(a => a.type === 'color' || a.code === 'color') || variantAttributes[0];
+      const imageGroupAttributeCode = imageGroupAttr?.code;
+
+      if (imageGroupAttributeCode) {
+        const imageGroups = Array.from(new Set(variants.map(v => v.attributeValues[imageGroupAttributeCode]).filter(Boolean)));
+        for (const group of imageGroups) {
+          const sampleVariant = variants.find(v => v.attributeValues[imageGroupAttributeCode] === group);
+          if (!sampleVariant?.images || sampleVariant.images.length === 0) {
+            setSubmitError(`Validation Error: Missing images for ${imageGroupAttr.label || 'Variant'} '${group}'`);
+            Alert.alert('Missing Variant Images', `Please upload at least one product photo for ${imageGroupAttr.label || 'Variant'} '${group}' in the Variant Matrix section before submitting.`);
+            return;
+          }
+        }
+      }
+    }
+
     const parsedSelling = Number(sellingPrice) || 599;
     const parsedMrp = Number(mrpPrice) || 1499;
     
@@ -443,7 +483,7 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
     try {
       await saveCatalogProduct({
         sellerId: sellerProfile?.id || user?.id || 'seller-1',
-        sellerName: sellerProfile?.storeName || 'DigiSewa Marketplace Seller',
+        sellerName: sellerProfile?.storeName || 'TafDeal Marketplace Seller',
         title: productTitle,
         brand: productBrand,
         description: productDescription,
@@ -455,6 +495,7 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
         unit: 'piece',
         imageUrl: mainImageUrl,
         additionalImages,
+        tags: tagsList,
         hsn: hsnCode,
         gstPercentage: Number(gstPercentage) || 5,
         weightGrams: Number(weightGrams) || 350,
@@ -549,7 +590,7 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
             <View style={styles.card}>
               <Text style={styles.exploreTitle}>Explore Marketplace Categories</Text>
               <Text style={styles.exploreSubTitle}>
-                Search across 3,700+ verified DigiSewa subcategories for fast listing
+                Search across 3,700+ verified TafDeal subcategories for fast listing
               </Text>
 
               {/* Search Box Input */}
@@ -801,6 +842,30 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
                     numberOfLines={3}
                     placeholder="Detailed description of fabric, comfort, and design..."
                   />
+                </View>
+
+                <View style={styles.formField}>
+                  <Text style={styles.label}>Search Tags (Type comma to add, max 15)</Text>
+                  
+                  <View style={[styles.tagsContainer, tagsList.length > 0 && { marginBottom: 12 }]}>
+                    {tagsList.map((tag, index) => (
+                      <View key={index} style={styles.tagChip}>
+                        <Text style={styles.tagChipText}>{tag}</Text>
+                        <TouchableOpacity onPress={() => removeTag(index)} style={styles.tagChipRemove}>
+                          <X size={12} color="#4F46E5" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+
+                  {tagsList.length < 15 && (
+                    <TextInput
+                      style={styles.input}
+                      value={tagInput}
+                      onChangeText={handleTagInputChange}
+                      placeholder="e.g. red, cotton, summer"
+                    />
+                  )}
                 </View>
               </View>
 
@@ -1083,16 +1148,19 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
               </View>
 
               {/* VECTOR SIZE GUIDE CARD (MEN / WOMEN / FOOTWEAR) */}
-              <View style={styles.card}>
-                <Text style={styles.cardSectionHeader}>5. Measurement & Size Guide Reference</Text>
-                {renderSizeGuideCard()}
-              </View>
+              {schema.fields.some(f => f.attribute.code.toLowerCase().includes('size') || f.attribute.type === 'size_selector') && (
+                <View style={styles.card}>
+                  <Text style={styles.cardSectionHeader}>5. Measurement & Size Guide Reference</Text>
+                  {renderSizeGuideCard()}
+                </View>
+              )}
 
               {/* VARIANT MATRIX BUILDER CARD */}
               <View style={styles.card}>
                 <Text style={styles.cardSectionHeader}>6. Size & Color Variant Matrix</Text>
                 <VariantMatrixBuilder
-                  variantAttributes={schema.fields.map((f) => f.attribute).filter((a) => a.isVariantAttribute || a.type === 'color' || a.type === 'size_selector')}
+                  variantAttributes={schema.fields.map((f) => f.attribute).filter((a) => a.type === 'dropdown' || a.type === 'color' || a.type === 'size_selector' || a.type === 'radio' || a.isVariantAttribute)}
+                  defaultVariantAttributeCodes={schema.fields.map((f) => f.attribute).filter((a) => a.isVariantAttribute || a.type === 'color' || a.type === 'size_selector').map(a => a.code)}
                   attributeValues={attributeValues}
                   variants={variants}
                   basePrice={Number(sellingPrice) > Number(mrpPrice) ? (Number(mrpPrice) || 1499) : (Number(sellingPrice) || 599)}
@@ -1462,6 +1530,30 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     color: '#CBD5E1',
     fontSize: 12,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  tagChipText: {
+    fontSize: 12,
+    color: '#4F46E5',
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  tagChipRemove: {
+    padding: 2,
   },
   drillDownContainer: {
     flex: 1,

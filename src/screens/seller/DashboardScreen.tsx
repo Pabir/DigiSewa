@@ -107,7 +107,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
             <View style={[styles.actionIconBg, { backgroundColor: '#FDF2F8' }]}>
               <PlusCircle size={22} color="#E00A67" />
             </View>
-            <Text style={styles.actionTitle}>Add DigiSewa Catalog</Text>
+            <Text style={styles.actionTitle}>Add TafDeal Catalog</Text>
             <Text style={styles.actionSubtitle}>Clothing, Chest/Breast/Waist sizes & prices</Text>
           </TouchableOpacity>
 
@@ -178,13 +178,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
   return (
     <View style={styles.rootLayout}>
-      {isDesktop && (
-        <MeeshoSupplierSidebar
-          currentTab={activeTab}
-          onSelectTab={handleSelectSidebarTab}
-          storeName={sellerProfile.storeName}
-        />
-      )}
+
       <View style={styles.mainContentArea}>{renderContent()}</View>
     </View>
   );

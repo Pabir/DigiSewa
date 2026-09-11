@@ -7,13 +7,16 @@ import { Footer } from '../components/Footer';
 import { AuthModal } from '../components/auth/AuthModal';
 import { AdminLoginScreen } from '../screens/admin/AdminLoginScreen';
 import { useAuth } from '../context/AuthContext';
-import { Product } from '../types';
+import { Product, Order } from '../types';
 
 // Buyer Screens
 import { HomeScreen } from '../screens/buyer/HomeScreen';
 import { ProductDetailScreen } from '../screens/buyer/ProductDetailScreen';
 import { CartScreen } from '../screens/buyer/CartScreen';
 import { OrderHistoryScreen } from '../screens/buyer/OrderHistoryScreen';
+import { OrderTrackingScreen } from '../screens/buyer/OrderTrackingScreen';
+import { WishlistScreen } from '../screens/buyer/WishlistScreen';
+import { CompareScreen } from '../screens/buyer/CompareScreen';
 
 // Seller Screens
 import { SellerLoginScreen } from '../screens/seller/SellerLoginScreen';
@@ -51,6 +54,7 @@ export const AppNavigator: React.FC = () => {
   // Active Selected Product for Detail Screen
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isViewingCart, setIsViewingCart] = useState<boolean>(false);
+  const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [isCustomerSupportOpen, setIsCustomerSupportOpen] = useState<boolean>(false);
   const [supportOrderId, setSupportOrderId] = useState<string | undefined>(undefined);
   const [isCustomerWalletOpen, setIsCustomerWalletOpen] = useState<boolean>(false);
@@ -104,6 +108,10 @@ export const AppNavigator: React.FC = () => {
         return true;
       }
     } else if (activeRole === 'buyer') {
+      if (trackingOrder) {
+        setTrackingOrder(null);
+        return true;
+      }
       if (isViewingCart) {
         setIsViewingCart(false);
         return true;
@@ -118,7 +126,7 @@ export const AppNavigator: React.FC = () => {
       }
     }
     return false;
-  }, [activeRole, sellerTab, buyerTab, isViewingCart, selectedProduct]);
+  }, [activeRole, sellerTab, buyerTab, isViewingCart, selectedProduct, trackingOrder]);
 
   // 1. Hardware Back Button on Android / React Native
   useEffect(() => {
@@ -157,12 +165,12 @@ export const AppNavigator: React.FC = () => {
 
     const isRoot = activeRole === 'seller'
       ? (sellerTab === 'dashboard' || sellerTab === 'home')
-      : (buyerTab === 'home' && !isViewingCart && !selectedProduct);
+      : (buyerTab === 'home' && !isViewingCart && !selectedProduct && !trackingOrder);
 
     if (!isRoot) {
-      window.history.pushState({ activeRole, sellerTab, buyerTab, isViewingCart, hasSelectedProduct: !!selectedProduct }, '');
+      window.history.pushState({ activeRole, sellerTab, buyerTab, isViewingCart, hasSelectedProduct: !!selectedProduct, hasTrackingOrder: !!trackingOrder }, '');
     }
-  }, [activeRole, sellerTab, buyerTab, isViewingCart, selectedProduct]);
+  }, [activeRole, sellerTab, buyerTab, isViewingCart, selectedProduct, trackingOrder]);
 
   // 1. ADMIN FLOW (Requires authenticated admin user)
   const isAdminRole = activeRole === 'admin' || activeRole === 'super_admin';
@@ -205,6 +213,15 @@ export const AppNavigator: React.FC = () => {
   const renderScreenContent = () => {
     // 2. BUYER FLOW (Guests & Logged in customers)
     if (activeRole === 'buyer') {
+      if (trackingOrder) {
+        return (
+          <OrderTrackingScreen
+            order={trackingOrder}
+            onBack={() => setTrackingOrder(null)}
+          />
+        );
+      }
+
       if (isViewingCart) {
         return (
           <CartScreen
@@ -235,16 +252,21 @@ export const AppNavigator: React.FC = () => {
           return (
             <HomeScreen
               onSelectProduct={p => setSelectedProduct(p)}
+              onNavigateToCompare={() => setBuyerTab('compare')}
               isDesktop={isDesktop}
             />
           );
         case 'orders':
-          return <OrderHistoryScreen onBack={() => setBuyerTab('home')} onOpenSupport={(orderId) => {
+          return <OrderHistoryScreen onBack={() => setBuyerTab('home')} onTrackOrder={setTrackingOrder} onOpenSupport={(orderId) => {
             setSupportOrderId(orderId);
             setIsCustomerSupportOpen(true);
           }} />;
+        case 'wishlist':
+          return <WishlistScreen onSelectProduct={p => setSelectedProduct(p)} onBack={() => setBuyerTab('home')} />;
+        case 'compare':
+          return <CompareScreen onBack={() => setBuyerTab('home')} onNavigateToCart={() => { setIsViewingCart(true); setBuyerTab('home'); }} />;
         default:
-          return <HomeScreen onSelectProduct={p => setSelectedProduct(p)} isDesktop={isDesktop} />;
+          return <HomeScreen onSelectProduct={p => setSelectedProduct(p)} onNavigateToCompare={() => setBuyerTab('compare')} isDesktop={isDesktop} />;
       }
     }
 
@@ -329,6 +351,7 @@ export const AppNavigator: React.FC = () => {
       {/* Top Header Navbar */}
       <Navbar
         onOpenCart={() => setIsViewingCart(true)}
+        onOpenWishlist={() => handleSelectTab('wishlist')}
         onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
         isSidebarOpen={isSidebarOpen}
         isDesktop={isDesktop}
@@ -349,6 +372,15 @@ export const AppNavigator: React.FC = () => {
             }}
             onOpenWallet={() => setIsCustomerWalletOpen(true)}
             isDesktop={true}
+          />
+        )}
+
+        {isDesktop && isSidebarOpen && activeRole === 'seller' && isAuthenticated && user?.role === 'seller' && (
+          <MeeshoSupplierSidebar
+            currentTab={sellerTab}
+            onSelectTab={handleSelectTab}
+            storeName={user?.storeName || 'My Store'}
+            onCloseSidebar={() => setIsSidebarOpen(false)}
           />
         )}
 

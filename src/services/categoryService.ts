@@ -19,7 +19,7 @@ export interface CategoryTreeData {
 }
 
 const CATEGORY_SERVER_URL = 'https://digisewa-ac3c4.firebaseapp.com/category.json';
-const CACHE_STORAGE_KEY = 'DigiSewa_cached_category_tree_v2';
+const CACHE_STORAGE_KEY = 'TafDeal_cached_category_tree_v2';
 
 let inMemoryCategoryTree: CategoryTreeData[] = meeshoTreeData as CategoryTreeData[];
 

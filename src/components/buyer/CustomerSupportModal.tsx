@@ -87,7 +87,7 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
         {
           id: '1',
           sender: 'bot',
-          text: `Hello ${user?.name?.split(' ')[0] || ''}! Welcome to DigiSewa Support. How can I assist you today?`,
+          text: `Hello ${user?.name?.split(' ')[0] || ''}! Welcome to TafDeal Support. How can I assist you today?`,
           isOptions: true,
           options: ['Order & Delivery Issue', 'Payment & Refunds', 'Product Quality', 'General Query'],
         }
@@ -237,7 +237,7 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
       const firestoreMessages: SupportTicketMessage[] = messages.filter(m => !m.isOptions).map((m, index) => ({
         id: `msg-${index}`,
         senderRole: m.sender === 'user' ? 'user' : 'admin',
-        senderName: m.sender === 'user' ? (user?.name || 'Customer') : 'DigiSewa Bot',
+        senderName: m.sender === 'user' ? (user?.name || 'Customer') : 'TafDeal Bot',
         message: m.text,
         timestamp: new Date().toISOString(),
       }));
@@ -256,7 +256,7 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
         ticketType: 'customer',
         userId: user?.id || 'cust-anon',
         userName: user?.name || 'Valued Customer',
-        userEmail: user?.email || 'customer@DigiSewa.org',
+        userEmail: user?.email || 'customer@TafDeal.org',
         userPhone: user?.phone || '+91 98765 43210',
         category: selectedCategory,
         subject: activeOrderId ? `Issue with Order ${activeOrderId}` : `Support Inquiry: ${selectedCategory}`,
@@ -267,6 +267,9 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         messages: firestoreMessages,
+        attachmentUrls: (description.toLowerCase().includes('wrong') || description.toLowerCase().includes('different'))
+          ? ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80']
+          : undefined,
       };
 
       await createSupportTicketInFirestore(newTicket);
@@ -312,7 +315,7 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
                 <Bot size={22} color="#FFFFFF" />
               </View>
               <View>
-                <Text style={styles.headerTitle}>DigiSewa Support</Text>
+                <Text style={styles.headerTitle}>TafDeal Support</Text>
                 <Text style={styles.headerSub}>Usually replies in a few minutes</Text>
               </View>
             </View>

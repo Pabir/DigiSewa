@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import TafdealLogo from '../../../assets/TAFDEAL_logo.svg';
 import { Sparkles, ArrowRight, Menu, X } from 'lucide-react-native';
 
 import { UserRole } from '../../types';
@@ -40,10 +41,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           </TouchableOpacity>
         )}
 
-        <Image source={require('../../../assets/logo.png')} style={styles.logoBadge} resizeMode="contain" />
+        <TafdealLogo width={24} height={24} style={styles.logoBadge} />
         <View>
           <View style={styles.titleRow}>
-            <Text style={styles.brandTitle}>DigiSewa</Text>
+            <Text style={styles.brandTitle}>TafDeal</Text>
             <View style={styles.adminRoleTag}>
               <Text style={styles.adminRoleTagText}>ADMIN</Text>
             </View>

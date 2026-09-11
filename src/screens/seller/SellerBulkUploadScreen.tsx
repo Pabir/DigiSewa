@@ -56,7 +56,7 @@ export const SellerBulkUploadScreen: React.FC<SellerBulkUploadScreenProps> = ({ 
           <Text style={styles.cardTitle}>Download Catalog Excel Templates</Text>
           <View style={styles.templateRow}>
             <Sparkles size={20} color="#16A34A" />
-            <Text style={styles.templateName}>DigiSewa_Apparel_Catalog_Template_v2.xlsx</Text>
+            <Text style={styles.templateName}>TafDeal_Apparel_Catalog_Template_v2.xlsx</Text>
             <TouchableOpacity style={styles.downloadBtn}>
               <Text style={styles.downloadBtnText}>Download</Text>
             </TouchableOpacity>

@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { ArrowLeft, Star, Store, ShieldCheck, Zap, Minus, Plus, ShoppingBag, MapPin, Check, Truck } from 'lucide-react-native';
+import { ArrowLeft, Star, Store, ShieldCheck, Zap, Minus, Plus, ShoppingBag, MapPin, Check, Truck, Heart, Scale } from 'lucide-react-native';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
+import { useCompare } from '../../context/CompareContext';
 import { getMeasurementInfo, getSizeVariantMeasurement } from '../../utils/productSizeUtils';
 import { DynamicProductAttributes } from '../../components/buyer/DynamicProductAttributes';
 import { shiprocketLogin, checkServiceability } from '../../services/shiprocketService';
-import { getSellersFromFirestore } from '../../services/firebaseService';
+import { getSellersFromFirestore, recordProductView } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
 import { ProductReview } from '../../types';
 import { getProductReviews, checkVerifiedBuyer } from '../../services/reviewService';
@@ -82,6 +84,20 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
     displaySizes.length > 0 ? displaySizes[0].size : 'M'
   );
   const { addToCart } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { isInCompare, addToCompare, removeFromCompare } = useCompare();
+
+  const isWished = isInWishlist(product.id);
+  const toggleWishlist = () => {
+    if (isWished) removeFromWishlist(product.id);
+    else addToWishlist(product);
+  };
+
+  const isCompared = isInCompare(product.id);
+  const toggleCompare = () => {
+    if (isCompared) removeFromCompare(product.id);
+    else addToCompare(product);
+  };
 
   const measInfo = getMeasurementInfo(
     product.category,
@@ -101,6 +117,7 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
     loadReviews();
     if (user?.id) {
       checkVerifiedBuyer(user.id, product.id).then(setIsVerifiedBuyer);
+      recordProductView(user.id, product.id);
     }
   }, [product.id, user?.id]);
 
@@ -160,11 +177,11 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
   };
 
   const handleAddToCart = () => {
-    addToCart({ ...product, selectedSize, color: selectedColor || product.color }, quantity, selectedDeliveryPreference);
+    addToCart({ ...product, selectedSize, color: selectedColor || product.color, imageUrl: allImages[0] || product.imageUrl, price: activePrice, originalPrice: activeOriginalPrice }, quantity, selectedDeliveryPreference);
   };
 
   const handleBuyNow = () => {
-    addToCart({ ...product, selectedSize, color: selectedColor || product.color }, quantity, selectedDeliveryPreference);
+    addToCart({ ...product, selectedSize, color: selectedColor || product.color, imageUrl: allImages[0] || product.imageUrl, price: activePrice, originalPrice: activeOriginalPrice }, quantity, selectedDeliveryPreference);
     onNavigateToCart();
   };
 
@@ -643,6 +660,15 @@ export const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({
 
       {/* Sticky Bottom Actions */}
       <View style={styles.bottomBar}>
+        <View style={styles.iconActionsContainer}>
+          <TouchableOpacity style={styles.wishlistIconBtn} onPress={toggleWishlist}>
+            <Heart size={24} color={isWished ? "#EF4444" : "#64748B"} fill={isWished ? "#EF4444" : "transparent"} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.compareIconBtn} onPress={toggleCompare}>
+            <Scale size={24} color={isCompared ? "#4F46E5" : "#64748B"} />
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart}>
           <ShoppingBag size={18} color="#4F46E5" />
           <Text style={styles.cartBtnText}>Add to Cart</Text>
@@ -683,6 +709,41 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  bottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingBottom: 24, // extra padding for iOS home indicator
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 12,
+  },
+  iconActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  wishlistIconBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  compareIconBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
   },
   headerBar: {
     flexDirection: 'row',

@@ -45,7 +45,7 @@ export const ESignatureModal: React.FC<ESignatureModalProps> = ({
     if (onSave) {
       onSave(signatureText, finalUrl);
     }
-    alert('✅ E-Signature saved & attached to your DigiSewa Seller Account!');
+    alert('✅ E-Signature saved & attached to your TafDeal Seller Account!');
     onClose();
   };
 
@@ -71,7 +71,7 @@ export const ESignatureModal: React.FC<ESignatureModalProps> = ({
           </View>
 
           <Text style={styles.description}>
-            As per DigiSewa & Indian GST compliance, an official E-signature is required for generating automatic customer tax invoices & credit notes.
+            As per TafDeal & Indian GST compliance, an official E-signature is required for generating automatic customer tax invoices & credit notes.
           </Text>
 
           {/* Mode Switcher Tabs */}
@@ -139,10 +139,10 @@ export const ESignatureModal: React.FC<ESignatureModalProps> = ({
                 >
                   {signatureText || 'Your Signature'}
                 </Text>
-                <Text style={styles.sealSubtext}>Authorized Signatory • DigiSewa Partner</Text>
+                <Text style={styles.sealSubtext}>Authorized Signatory • TafDeal Partner</Text>
                 <View style={styles.verifiedRow}>
                   <ShieldCheck size={14} color="#059669" />
-                  <Text style={styles.verifiedText}>Encrypted & Digitally Sealed for DigiSewa Invoices</Text>
+                  <Text style={styles.verifiedText}>Encrypted & Digitally Sealed for TafDeal Invoices</Text>
                 </View>
               </View>
             </View>

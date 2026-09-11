@@ -9,8 +9,8 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
-  Image,
 } from 'react-native';
+import TafdealLogo from '../../../assets/TAFDEAL_logo.svg';
 import {
   Store,
   CheckCircle2,
@@ -88,6 +88,14 @@ export const SellerLoginScreen: React.FC = () => {
   const [loginError, setLoginError] = useState<string>('');
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
   const [showForgotModal, setShowForgotModal] = useState<boolean>(false);
+
+  // LOGIN OTP STATE
+  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
+  const [loginOtpCode, setLoginOtpCode] = useState<string>('');
+  const [isLoginOtpSent, setIsLoginOtpSent] = useState<boolean>(false);
+  const [isSendingLoginOtp, setIsSendingLoginOtp] = useState<boolean>(false);
+  const [loginResendTimer, setLoginResendTimer] = useState<number>(30);
+  const [loginConfirmationResult, setLoginConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   // FORGOT PASSWORD WIZARD STATE
   // steps: 1 = Identifier, 2 = Verify OTP, 3 = Set Password, 4 = Success
@@ -172,7 +180,7 @@ export const SellerLoginScreen: React.FC = () => {
         savedIntent === 'customerResetPassword';
 
       if (isEmailLink && !isCustomerLink) {
-        const savedEmail = (window.localStorage && window.localStorage.getItem('emailForSignIn')) || registerEmail || 'seller@DigiSewa.com';
+        const savedEmail = (window.localStorage && window.localStorage.getItem('emailForSignIn')) || registerEmail || 'seller@TafDeal.com';
 
         const completeVerificationAndRedirect = (verifiedEmail: string) => {
           if (isSellerResetLink) {
@@ -233,6 +241,17 @@ export const SellerLoginScreen: React.FC = () => {
     }
     return () => clearInterval(timer);
   }, [showForgotModal, forgotStep, forgotTimer]);
+
+  // Timer for Login OTP Resend
+  useEffect(() => {
+    let timer: any;
+    if (isLoginOtpSent && loginResendTimer > 0) {
+      timer = setInterval(() => {
+        setLoginResendTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isLoginOtpSent, loginResendTimer]);
 
   // Step 2: GST Choice
   const [hasGst, setHasGst] = useState<boolean>(true);
@@ -322,7 +341,7 @@ export const SellerLoginScreen: React.FC = () => {
           </View>
           <Text style={styles.statusTitle}>Application Under Admin Verification</Text>
           <Text style={styles.statusSub}>
-            Thank you for registering with DigiSewa! Your store registration is submitted and currently under review by our platform compliance team.
+            Thank you for registering with TafDeal! Your store registration is submitted and currently under review by our platform compliance team.
           </Text>
 
           <View style={styles.summaryBox}>
@@ -410,6 +429,74 @@ export const SellerLoginScreen: React.FC = () => {
   }
 
   // HANDLERS FOR LOGIN
+  const handleSendLoginOtp = async () => {
+    if (!loginIdentifier.trim()) {
+      setLoginError('Please enter your Mobile Number.');
+      return;
+    }
+
+    try {
+      setLoginError('');
+      setIsSendingLoginOtp(true);
+      const cleanPhone = loginIdentifier.replace(/\D/g, '');
+      const formattedNumber = `+91${cleanPhone.slice(-10)}`;
+
+      let recaptchaElem = document.getElementById('recaptcha-container-login');
+      if (!recaptchaElem && Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
+        recaptchaElem = document.createElement('div');
+        recaptchaElem.id = 'recaptcha-container-login';
+        document.body.appendChild(recaptchaElem);
+      }
+
+      const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-login', {
+        size: 'invisible'
+      });
+
+      const confirmation = await signInWithPhoneNumber(auth, formattedNumber, verifier);
+      setLoginConfirmationResult(confirmation);
+      setIsLoginOtpSent(true);
+      setLoginResendTimer(30);
+
+    } catch (err: any) {
+      console.error('Send Login OTP Error:', err);
+      setLoginError(err.message || 'Failed to send OTP. Please check your mobile number and try again.');
+    } finally {
+      setIsSendingLoginOtp(false);
+    }
+  };
+
+  const handleVerifyLoginOtp = async () => {
+    if (!loginOtpCode || loginOtpCode.length !== 6) {
+      setLoginError('Please enter a valid 6-digit OTP code.');
+      return;
+    }
+    
+    if (!loginConfirmationResult) {
+      setLoginError('Verification session expired. Please resend OTP.');
+      return;
+    }
+
+    try {
+      setIsLoggingIn(true);
+      setLoginError('');
+      
+      const result = await loginConfirmationResult.confirm(loginOtpCode);
+      
+      if (result.user) {
+        const success = loginAsSeller(loginIdentifier);
+        if (!success) {
+          setLoginError('No registered seller account found for this mobile number.');
+          auth.signOut();
+        }
+      }
+    } catch (err: any) {
+      console.error('Verify Login OTP Error:', err);
+      setLoginError('Invalid OTP code. Please check and try again.');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
   const handleLoginSubmit = () => {
     if (!loginIdentifier.trim()) {
       setLoginError('Please enter your Mobile Number or Email ID.');
@@ -810,7 +897,7 @@ export const SellerLoginScreen: React.FC = () => {
       return;
     }
     if (!agreeTerms) {
-      setErrorMsg('You must agree to DigiSewa Supplier Terms & Agreement.');
+      setErrorMsg('You must agree to TafDeal Supplier Terms & Agreement.');
       return;
     }
 
@@ -820,7 +907,7 @@ export const SellerLoginScreen: React.FC = () => {
     const payload: SellerApplicationPayload = {
       storeName,
       ownerName: fullName,
-      email: email || `${activePhone.replace(/\D/g, '')}@DigiSewa.in`,
+      email: email || `${activePhone.replace(/\D/g, '')}@TafDeal.in`,
       phone: activePhone,
       password: registerPassword,
       hasGst,
@@ -873,7 +960,7 @@ export const SellerLoginScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.meeshoLoginPageContainer}>
         {/* Top Brand Logo Container */}
         <View style={styles.meeshoLogoHeader}>
-          <Image source={require('../../../assets/logo.png')} style={styles.sellerLogoImage} resizeMode="contain" />
+          <TafdealLogo width={50} height={50} style={styles.sellerLogoImage} />
         </View>
 
         {/* Center White Login Card */}
@@ -888,77 +975,155 @@ export const SellerLoginScreen: React.FC = () => {
             </View>
           ) : null}
 
-          {/* Email / Mobile Input */}
+          {/* Method Selector Tabs */}
+          <View style={{ flexDirection: 'row', marginBottom: 16, backgroundColor: '#F1F5F9', borderRadius: 8, padding: 4 }}>
+            <TouchableOpacity 
+              style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6, backgroundColor: loginMethod === 'password' ? '#FFFFFF' : 'transparent', shadowOpacity: loginMethod === 'password' ? 0.1 : 0 }}
+              onPress={() => { setLoginMethod('password'); setLoginError(''); setIsLoginOtpSent(false); }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '700', color: loginMethod === 'password' ? '#0F172A' : '#64748B' }}>Password</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6, backgroundColor: loginMethod === 'otp' ? '#FFFFFF' : 'transparent', shadowOpacity: loginMethod === 'otp' ? 0.1 : 0 }}
+              onPress={() => { setLoginMethod('otp'); setLoginError(''); }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: '700', color: loginMethod === 'otp' ? '#0F172A' : '#64748B' }}>OTP SMS</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Mobile Input */}
           <View style={styles.meeshoInputGroup}>
             <TextInput
               style={styles.meeshoTextInput}
-              placeholder="Email Id or mobile number"
+              placeholder={loginMethod === 'password' ? "Mobile Number or Email ID" : "Mobile Number"}
               placeholderTextColor="#9CA3AF"
               value={loginIdentifier}
               onChangeText={setLoginIdentifier}
               autoCapitalize="none"
-              keyboardType="email-address"
+              keyboardType={loginMethod === 'password' ? "default" : "phone-pad"}
             />
           </View>
 
-          {/* Password Input with Show/Hide Toggle */}
-          <View style={styles.meeshoInputGroup}>
-            <View style={styles.meeshoPasswordWrapper}>
-              <TextInput
-                style={[styles.meeshoTextInput, { paddingRight: 60 }]}
-                placeholder="Password"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry={!showLoginPassword}
-                value={loginPassword}
-                onChangeText={setLoginPassword}
-              />
+          {loginMethod === 'password' && (
+            <>
+              {/* Password Input with Show/Hide Toggle */}
+              <View style={styles.meeshoInputGroup}>
+                <View style={styles.meeshoPasswordWrapper}>
+                  <TextInput
+                    style={[styles.meeshoTextInput, { paddingRight: 60 }]}
+                    placeholder="Password"
+                    placeholderTextColor="#9CA3AF"
+                    secureTextEntry={!showLoginPassword}
+                    value={loginPassword}
+                    onChangeText={setLoginPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.meeshoShowBtn}
+                    onPress={() => setShowLoginPassword(!showLoginPassword)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.meeshoShowBtnText}>
+                      {showLoginPassword ? 'Hide' : 'Show'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Forgot Password Link */}
               <TouchableOpacity
-                style={styles.meeshoShowBtn}
-                onPress={() => setShowLoginPassword(!showLoginPassword)}
-                activeOpacity={0.7}
+                style={styles.meeshoForgotWrapper}
+                onPress={() => {
+                  setForgotStep(1);
+                  setForgotIdentifier(loginIdentifier || '');
+                  setForgotOtp('');
+                  setForgotError('');
+                  setNewPassword('');
+                  setConfirmNewPassword('');
+                  setForgotConfirmationResult(null);
+                  setSentForgotOtpCode('');
+                  setShowForgotModal(true);
+                }}
+                activeOpacity={0.8}
               >
-                <Text style={styles.meeshoShowBtnText}>
-                  {showLoginPassword ? 'Hide' : 'Show'}
-                </Text>
+                <Text style={styles.meeshoForgotText}>Forgot password?</Text>
               </TouchableOpacity>
-            </View>
-          </View>
 
-          {/* Forgot Password Link */}
-          <TouchableOpacity
-            style={styles.meeshoForgotWrapper}
-            onPress={() => {
-              setForgotStep(1);
-              setForgotIdentifier(loginIdentifier || '');
-              setForgotOtp('');
-              setForgotError('');
-              setNewPassword('');
-              setConfirmNewPassword('');
-              setForgotConfirmationResult(null);
-              setSentForgotOtpCode('');
-              setShowForgotModal(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.meeshoForgotText}>Forgot password?</Text>
-          </TouchableOpacity>
+              {/* Log In Button */}
+              <TouchableOpacity
+                style={[
+                  styles.meeshoLoginBtn,
+                  !(loginIdentifier.trim() && loginPassword.trim()) && styles.meeshoLoginBtnDisabled,
+                ]}
+                onPress={handleLoginSubmit}
+                disabled={isLoggingIn}
+                activeOpacity={0.85}
+              >
+                {isLoggingIn ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.meeshoLoginBtnText}>Log in</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
 
-          {/* Log In Button */}
-          <TouchableOpacity
-            style={[
-              styles.meeshoLoginBtn,
-              !(loginIdentifier.trim() && loginPassword.trim()) && styles.meeshoLoginBtnDisabled,
-            ]}
-            onPress={handleLoginSubmit}
-            disabled={isLoggingIn}
-            activeOpacity={0.85}
-          >
-            {isLoggingIn ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
-            ) : (
-              <Text style={styles.meeshoLoginBtnText}>Log in</Text>
-            )}
-          </TouchableOpacity>
+          {loginMethod === 'otp' && (
+            <>
+              {isLoginOtpSent ? (
+                <>
+                  <View style={styles.meeshoInputGroup}>
+                    <TextInput
+                      style={[styles.meeshoTextInput, { letterSpacing: 6, fontWeight: '700' }]}
+                      placeholder="Enter 6-Digit OTP"
+                      placeholderTextColor="#9CA3AF"
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      value={loginOtpCode}
+                      onChangeText={setLoginOtpCode}
+                    />
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 }}>
+                    <TouchableOpacity onPress={handleSendLoginOtp} disabled={loginResendTimer > 0}>
+                      <Text style={{ fontSize: 12, color: loginResendTimer > 0 ? '#94A3B8' : '#7C3AED', fontWeight: '700' }}>
+                        {loginResendTimer > 0 ? `Resend OTP in ${loginResendTimer}s` : 'Resend OTP'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.meeshoLoginBtn,
+                      loginOtpCode.length !== 6 && styles.meeshoLoginBtnDisabled,
+                    ]}
+                    onPress={handleVerifyLoginOtp}
+                    disabled={isLoggingIn || loginOtpCode.length !== 6}
+                    activeOpacity={0.85}
+                  >
+                    {isLoggingIn ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text style={styles.meeshoLoginBtnText}>Verify & Log in</Text>
+                    )}
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.meeshoLoginBtn,
+                    !loginIdentifier.trim() && styles.meeshoLoginBtnDisabled,
+                  ]}
+                  onPress={handleSendLoginOtp}
+                  disabled={isSendingLoginOtp || !loginIdentifier.trim()}
+                  activeOpacity={0.85}
+                >
+                  {isSendingLoginOtp ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.meeshoLoginBtnText}>Send OTP</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </>
+          )}
 
           {/* OR Divider */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 14 }}>
@@ -985,9 +1150,9 @@ export const SellerLoginScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Bottom Section: New to DigiSewa? -> Create Account / View Guide */}
+        {/* Bottom Section: New to TafDeal? -> Create Account / View Guide */}
         <View style={styles.meeshoFooterSection}>
-          <Text style={styles.meeshoNewText}>New to DigiSewa?</Text>
+          <Text style={styles.meeshoNewText}>New to TafDeal?</Text>
           <TouchableOpacity
             style={styles.meeshoCreateAccountBtn}
             onPress={() => {
@@ -1052,17 +1217,18 @@ export const SellerLoginScreen: React.FC = () => {
               {forgotStep === 1 && (
                 <View style={{ paddingVertical: 12, gap: 14 }}>
                   <Text style={{ fontSize: 13, color: '#475569', lineHeight: 18 }}>
-                    Enter your registered DigiSewa mobile number or email address. We'll send a 6-digit verification code to verify your identity.
+                    Enter your registered TafDeal mobile number. We'll send a 6-digit verification code to verify your identity.
                   </Text>
                   
                   <View style={styles.meeshoInputGroup}>
                     <TextInput
                       style={styles.meeshoTextInput}
-                      placeholder="Registered Mobile Number or Email ID"
+                      placeholder="Registered Mobile Number"
                       placeholderTextColor="#94A3B8"
                       value={forgotIdentifier}
                       onChangeText={setForgotIdentifier}
                       autoCapitalize="none"
+                      keyboardType="phone-pad"
                     />
                   </View>
 
@@ -1070,7 +1236,7 @@ export const SellerLoginScreen: React.FC = () => {
                     style={[styles.continueBtn, { backgroundColor: '#7C3AED' }]}
                     onPress={async () => {
                       if (!forgotIdentifier.trim()) {
-                        setForgotError('Please enter your registered Mobile Number or Email ID.');
+                        setForgotError('Please enter your registered Mobile Number.');
                         return;
                       }
 
@@ -1418,7 +1584,7 @@ export const SellerLoginScreen: React.FC = () => {
                     Password Reset Successful!
                   </Text>
                   <Text style={{ fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 20 }}>
-                    {resetSuccessMessage || 'Your password has been updated in DigiSewa database. You can now log into your supplier panel with your new password.'}
+                    {resetSuccessMessage || 'Your password has been updated in TafDeal database. You can now log into your supplier panel with your new password.'}
                   </Text>
 
                   <TouchableOpacity
@@ -1532,7 +1698,7 @@ export const SellerLoginScreen: React.FC = () => {
           <View id="recaptcha-container" />
           <Text style={styles.cardHeaderTitle}>Verify Account Identity</Text>
           <Text style={styles.cardHeaderSub}>
-            Step 1 of 5: Choose your preferred verification method (Mobile OTP or Email Verification) to confirm your seller identity.
+            Step 1 of 5: Choose your preferred verification method (Mobile OTP or Google Sign Up) to confirm your seller identity.
           </Text>
 
           {/* Auth Method Selector Tabs */}
@@ -1548,20 +1714,6 @@ export const SellerLoginScreen: React.FC = () => {
               <Phone size={16} color={authMethod === 'mobile' ? '#4338CA' : '#64748B'} />
               <Text style={[styles.authMethodTabText, authMethod === 'mobile' && styles.authMethodTabTextActive]}>
                 Mobile Number (SMS)
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.authMethodTab, authMethod === 'email' && styles.authMethodTabActive]}
-              onPress={() => {
-                setAuthMethod('email');
-                setErrorMsg('');
-                setOtpError('');
-              }}
-            >
-              <Mail size={16} color={authMethod === 'email' ? '#4338CA' : '#64748B'} />
-              <Text style={[styles.authMethodTabText, authMethod === 'email' && styles.authMethodTabTextActive]}>
-                Email Address
               </Text>
             </TouchableOpacity>
 
@@ -1659,7 +1811,7 @@ export const SellerLoginScreen: React.FC = () => {
                   <CheckCircle2 size={24} color="#059669" />
                   <View>
                     <Text style={styles.otpSuccessTitle}>Mobile Number Verified!</Text>
-                    <Text style={styles.otpSuccessSub}>{registerMobile} is verified for your DigiSewa supplier account.</Text>
+                    <Text style={styles.otpSuccessSub}>{registerMobile} is verified for your TafDeal supplier account.</Text>
                   </View>
                 </View>
 
@@ -1673,87 +1825,15 @@ export const SellerLoginScreen: React.FC = () => {
             )
           )}
 
-          {/* METHOD B: EMAIL AUTH */}
-          {authMethod === 'email' && (
-            !isEmailVerified ? (
-              <View style={styles.formGroupGap}>
-                <Text style={styles.inputLabel}>Enter Email Address *</Text>
-                <View style={styles.inputWithBtnRow}>
-                  <TextInput
-                    style={[styles.textInput, { flex: 1 }]}
-                    placeholder="seller@DigiSewa.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={registerEmail}
-                    onChangeText={text => {
-                      setRegisterEmail(text);
-                      setIsEmailOtpSent(false);
-                      setEmailOtpCode('');
-                    }}
-                  />
-                  <TouchableOpacity
-                    style={styles.verifyBtn}
-                    onPress={handleSendEmailOtp}
-                    disabled={isSendingEmailOtp}
-                  >
-                    {isSendingEmailOtp ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                    ) : (
-                      <Text style={styles.verifyBtnText}>
-                        {isEmailOtpSent ? 'Resend Code' : 'Send Code'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-
-                {/* EMAIL LINK SECTION */}
-                {isEmailOtpSent ? (
-                  <View style={styles.otpCardBox}>
-                    <View style={styles.otpBanner}>
-                      <Sparkles size={16} color="#4338CA" />
-                      <Text style={styles.otpBannerText}>
-                        📩 Verification link sent to {registerEmail}. Please check your email inbox and click the verification link to proceed to Business Details.
-                      </Text>
-                    </View>
-
-                    <View style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', marginTop: 10 }}>
-                      <TouchableOpacity onPress={handleSendEmailOtp} disabled={resendTimer > 0}>
-                        <Text style={{ fontSize: 12, color: resendTimer > 0 ? '#94A3B8' : '#7C3AED', fontWeight: '700' }}>
-                          {resendTimer > 0 ? `Resend link in ${resendTimer}s` : 'Resend Verification Link'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : null}
-              </View>
-            ) : (
-              /* VERIFIED SUCCESS CARD FOR EMAIL */
-              <View style={styles.otpSuccessCard}>
-                <View style={styles.otpSuccessBadge}>
-                  <CheckCircle2 size={24} color="#059669" />
-                  <View>
-                    <Text style={styles.otpSuccessTitle}>Email Address Verified!</Text>
-                    <Text style={styles.otpSuccessSub}>{registerEmail} is verified for your DigiSewa seller account.</Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => setIsEmailVerified(false)}
-                  style={{ marginTop: 8 }}
-                >
-                  <Text style={{ fontSize: 12, color: '#4F46E5', fontWeight: '700' }}>Change Email Address</Text>
-                </TouchableOpacity>
-              </View>
-            )
-          )}
+          {/* METHOD B: EMAIL AUTH REMOVED */}
 
           <TouchableOpacity
             style={[
               styles.continueBtn,
-              (authMethod === 'mobile' ? !isMobileVerified : !isEmailVerified) && styles.meeshoLoginBtnDisabled
+              !isMobileVerified && styles.meeshoLoginBtnDisabled
             ]}
             onPress={handleStep1Next}
-            disabled={authMethod === 'mobile' ? !isMobileVerified : !isEmailVerified}
+            disabled={!isMobileVerified}
             activeOpacity={0.85}
           >
             <Text style={styles.continueBtnText}>Continue to Business Details</Text>
@@ -1874,7 +1954,7 @@ export const SellerLoginScreen: React.FC = () => {
       {activeStep === 3 && (
         <View style={styles.formCard}>
           <Text style={styles.cardHeaderTitle}>Pickup Address</Text>
-          <Text style={styles.cardHeaderSub}>Where should DigiSewa delivery partners pick up your orders?</Text>
+          <Text style={styles.cardHeaderSub}>Where should TafDeal delivery partners pick up your orders?</Text>
 
           <View style={styles.formGroupGap}>
             <Text style={styles.inputLabel}>Room / Floor / Building Number *</Text>
@@ -1943,7 +2023,7 @@ export const SellerLoginScreen: React.FC = () => {
       {activeStep === 4 && (
         <View style={styles.formCard}>
           <Text style={styles.cardHeaderTitle}>Bank Account Details</Text>
-          <Text style={styles.cardHeaderSub}>Direct daily settlements for your sales on DigiSewa.</Text>
+          <Text style={styles.cardHeaderSub}>Direct daily settlements for your sales on TafDeal.</Text>
 
           <View style={styles.formGroupGap}>
             <Text style={styles.inputLabel}>Bank Account Number *</Text>
@@ -2045,7 +2125,7 @@ export const SellerLoginScreen: React.FC = () => {
             <Text style={styles.inputLabel}>Store Name *</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="e.g. DigiSewa Express Store"
+              placeholder="e.g. TafDeal Express Store"
               value={storeName}
               onChangeText={setStoreName}
             />
@@ -2075,7 +2155,7 @@ export const SellerLoginScreen: React.FC = () => {
                 <Text style={styles.passwordHeaderTitle}>Set Account Password for Login</Text>
               </View>
               <Text style={styles.passwordHeaderSub}>
-                Create a secure password so you can easily log into your DigiSewa supplier panel anytime using your mobile number ({phone || registerMobile || 'your registered mobile'}) and password.
+                Create a secure password so you can easily log into your TafDeal supplier panel anytime using your mobile number ({phone || registerMobile || 'your registered mobile'}) and password.
               </Text>
 
               <Text style={styles.inputLabel}>Create Password *</Text>
@@ -2138,7 +2218,7 @@ export const SellerLoginScreen: React.FC = () => {
                 {agreeTerms && <CheckCircle2 size={14} color="#FFFFFF" />}
               </View>
               <Text style={styles.checkboxText}>
-                I agree to comply with DigiSewa's <Text style={{ color: '#4338CA', textDecorationLine: 'underline' }}>Supplier Agreement</Text>
+                I agree to comply with TafDeal's <Text style={{ color: '#4338CA', textDecorationLine: 'underline' }}>Supplier Agreement</Text>
               </Text>
             </TouchableOpacity>
 

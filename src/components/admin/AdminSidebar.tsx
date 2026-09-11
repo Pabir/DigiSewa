@@ -11,7 +11,15 @@ export type AdminTab =
   | 'customer_tickets'
   | 'catalog_builder'
   | 'settlements'
-  | 'team_management';
+  | 'returns'
+  | 'team_management'
+  | 'system_settings'
+  | 'finance_dashboard'
+  | 'finance_reconciliation'
+  | 'finance_settlements'
+  | 'finance_taxes'
+  | 'finance_seller_wise'
+  | 'pending_tasks';
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -61,7 +69,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: openCustomerTicketsCount,
       badgeColor: '#2563EB',
     },
+    { id: 'returns', label: 'Returns & Pickups', icon: '🔄' },
     { id: 'settlements', label: 'Payouts & Settlements', icon: '💰' },
+    { id: 'finance_dashboard', label: 'Finance Dashboard', icon: '📈' },
+    { id: 'finance_seller_wise', label: 'Seller-wise Finance', icon: '🏪' },
+    { id: 'finance_reconciliation', label: 'Reconciliations', icon: '⚖️' },
+    { id: 'finance_settlements', label: 'Finance Settlements', icon: '💸' },
+    { id: 'finance_taxes', label: 'Tax Reports', icon: '📄' },
+    { id: 'system_settings', label: 'System Settings', icon: '⚙️' },
+    { id: 'pending_tasks', label: 'Pending Interventions', icon: '⚠️', badgeColor: '#DC2626' },
   ];
 
   const { activeRole } = useAuth();
@@ -121,7 +137,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </TouchableOpacity>
 
         <View style={{ marginTop: 10 }}>
-          <Text style={styles.footerTitle}>DigiSewa Governance</Text>
+          <Text style={styles.footerTitle}>TafDeal Governance</Text>
           <Text style={styles.footerVersion}>v2.4 Admin Portal</Text>
         </View>
       </View>

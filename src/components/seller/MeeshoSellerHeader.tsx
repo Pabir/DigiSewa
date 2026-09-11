@@ -14,11 +14,11 @@ export const MeeshoSellerHeader: React.FC<MeeshoSellerHeaderProps> = ({
   onSelectTab,
 }) => {
   const { sellerProfile, openSellerProfileModal } = useAuth();
-  const sellerIdCode = `DigiSewa-SLR-${sellerProfile.id.replace(/[^0-9]/g, '') || '98421'}`;
+  const sellerIdCode = `TafDeal-SLR-${sellerProfile.id.replace(/[^0-9]/g, '') || '98421'}`;
 
   return (
     <View style={styles.container}>
-      {/* Top Banner with DigiSewa Seller Brand */}
+      {/* Top Banner with TafDeal Seller Brand */}
       <View style={styles.topBanner}>
         <TouchableOpacity
           style={styles.profileSection}
@@ -33,7 +33,7 @@ export const MeeshoSellerHeader: React.FC<MeeshoSellerHeaderProps> = ({
               <Text style={styles.storeName}>{sellerProfile.storeName}</Text>
               <View style={styles.verifiedBadge}>
                 <ShieldCheck size={13} color="#FFFFFF" />
-                <Text style={styles.verifiedText}>DigiSewa Verified Seller</Text>
+                <Text style={styles.verifiedText}>TafDeal Verified Seller</Text>
               </View>
             </View>
             <Text style={styles.sellerIdText}>Seller ID: <Text style={styles.boldId}>{sellerIdCode}</Text></Text>

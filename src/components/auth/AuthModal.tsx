@@ -9,8 +9,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Image,
 } from 'react-native';
+import TafdealLogo from '../../../assets/TAFDEAL_logo.svg';
 import {
   X,
   Phone,
@@ -180,7 +180,7 @@ export const AuthModal: React.FC = () => {
           window.localStorage.removeItem('emailIntent');
         }
       } else if (isEmailLink && isCustomerAuthModalOpen) {
-        const savedEmail = (window.localStorage && window.localStorage.getItem('emailForSignIn')) || email || 'customer@DigiSewa.com';
+        const savedEmail = (window.localStorage && window.localStorage.getItem('emailForSignIn')) || email || 'customer@TafDeal.com';
         const savedName = (window.localStorage && window.localStorage.getItem('customerName')) || name || 'Customer';
         const savedPhone = (window.localStorage && window.localStorage.getItem('customerPhone')) || phone || '';
         const savedAddress = (window.localStorage && window.localStorage.getItem('customerAddress')) || address || '';
@@ -244,7 +244,7 @@ export const AuthModal: React.FC = () => {
   // HANDLER FOR PASSWORD-BASED CUSTOMER LOGIN
   const handlePasswordLogin = () => {
     if (!loginIdentifier.trim()) {
-      setError('Please enter your registered Mobile Number or Email address.');
+      setError('Please enter your registered Mobile Number or Email ID.');
       return;
     }
     if (!loginPasswordInput) {
@@ -593,7 +593,7 @@ export const AuthModal: React.FC = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      loginAsCustomer('Sk Pabirul Islam', '+918981829273', 'drskpabirulislam1995@gmail.com', 'Shop #12, Main Market Road, Guwahati, Assam', 'password123');
+      loginAsCustomer('Sk Pabirul Islam', '+918981829273', 'drskpabirulislam1995@gmail.com', 'Shop #12, Main Market Road, Bauria, West Bengal', 'password123');
     }, 400);
   };
 
@@ -651,8 +651,8 @@ export const AuthModal: React.FC = () => {
       return 'Log in to view active orders, purchase history, and invoices.';
     }
     return mode === 'signup'
-      ? 'Create your DigiSewa customer account with Mobile or Email.'
-      : 'Log in to your DigiSewa customer account.';
+      ? 'Create your TafDeal customer account with Mobile or Email.'
+      : 'Log in to your TafDeal customer account.';
   };
 
   return (
@@ -671,8 +671,8 @@ export const AuthModal: React.FC = () => {
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.brandRow}>
-                <Image source={require('../../../assets/logo.png')} style={styles.logoBadge} resizeMode="contain" />
-                <Text style={styles.brandTitle}>DigiSewa Customer Auth</Text>
+                <TafdealLogo width={28} height={28} style={styles.logoBadge} />
+                <Text style={styles.brandTitle}>TafDeal Customer Auth</Text>
               </View>
               <TouchableOpacity
                 style={styles.closeButton}
@@ -774,60 +774,26 @@ export const AuthModal: React.FC = () => {
                   {/* Option A: LOGIN VIA OTP */}
                   {loginType === 'otp' && (
                     <>
-                      {/* Auth Method Selector for OTP */}
-                      <View style={styles.subMethodRow}>
-                        <TouchableOpacity
-                          style={[styles.subMethodTab, authMethod === 'mobile' && styles.subMethodTabActive]}
-                          onPress={() => setAuthMethod('mobile')}
-                        >
-                          <Text style={[styles.subMethodText, authMethod === 'mobile' && styles.subMethodTextActive]}>📱 Mobile Number</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.subMethodTab, authMethod === 'email' && styles.subMethodTabActive]}
-                          onPress={() => setAuthMethod('email')}
-                        >
-                          <Text style={[styles.subMethodText, authMethod === 'email' && styles.subMethodTextActive]}>📧 Email Address</Text>
-                        </TouchableOpacity>
-                      </View>
+                      {/* Auth Method Selector for OTP Removed */}
 
-                      {authMethod === 'mobile' ? (
-                        <TouchableOpacity
-                          style={styles.inputContainer}
-                          activeOpacity={1}
-                          onPress={() => phoneInputRef.current?.focus()}
-                        >
-                          <Phone size={18} color="#4F46E5" style={styles.inputIcon} />
-                          <Text style={styles.prefixText}>+91</Text>
-                          <TextInput
-                            ref={phoneInputRef}
-                            style={styles.textInput}
-                            placeholder="10-Digit Mobile Number *"
-                            placeholderTextColor="#94A3B8"
-                            keyboardType="phone-pad"
-                            maxLength={10}
-                            value={phone}
-                            onChangeText={setPhone}
-                          />
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.inputContainer}
-                          activeOpacity={1}
-                          onPress={() => emailInputRef.current?.focus()}
-                        >
-                          <Mail size={18} color="#4F46E5" style={styles.inputIcon} />
-                          <TextInput
-                            ref={emailInputRef}
-                            style={styles.textInput}
-                            placeholder="Email Address *"
-                            placeholderTextColor="#94A3B8"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            value={email}
-                            onChangeText={setEmail}
-                          />
-                        </TouchableOpacity>
-                      )}
+                      <TouchableOpacity
+                        style={styles.inputContainer}
+                        activeOpacity={1}
+                        onPress={() => phoneInputRef.current?.focus()}
+                      >
+                        <Phone size={18} color="#4F46E5" style={styles.inputIcon} />
+                        <Text style={styles.prefixText}>+91</Text>
+                        <TextInput
+                          ref={phoneInputRef}
+                          style={styles.textInput}
+                          placeholder="10-Digit Mobile Number *"
+                          placeholderTextColor="#94A3B8"
+                          keyboardType="phone-pad"
+                          maxLength={10}
+                          value={phone}
+                          onChangeText={setPhone}
+                        />
+                      </TouchableOpacity>
 
                       <TouchableOpacity
                         style={styles.primaryButton}
@@ -859,7 +825,7 @@ export const AuthModal: React.FC = () => {
                         <TextInput
                           ref={loginIdentifierRef}
                           style={styles.textInput}
-                          placeholder="Mobile Number or Email Address *"
+                          placeholder="Mobile Number or Email ID *"
                           placeholderTextColor="#94A3B8"
                           autoCapitalize="none"
                           value={loginIdentifier}
@@ -951,36 +917,7 @@ export const AuthModal: React.FC = () => {
               {/* VIEW 2: CUSTOMER SIGN UP VIEW */}
               {mode === 'signup' && step === 'details' && (
                 <View style={styles.formGroup}>
-                  {/* Signup Auth Channel Switcher (Mobile vs Email) */}
-                  <View style={styles.methodTabRow}>
-                    <TouchableOpacity
-                      style={[styles.methodTab, authMethod === 'mobile' && styles.methodTabActive]}
-                      onPress={() => {
-                        setAuthMethod('mobile');
-                        setError('');
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Phone size={16} color={authMethod === 'mobile' ? '#4F46E5' : '#64748B'} />
-                      <Text style={[styles.methodTabText, authMethod === 'mobile' && styles.methodTabTextActive]}>
-                        Mobile Signup
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.methodTab, authMethod === 'email' && styles.methodTabActive]}
-                      onPress={() => {
-                        setAuthMethod('email');
-                        setError('');
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Mail size={16} color={authMethod === 'email' ? '#4F46E5' : '#64748B'} />
-                      <Text style={[styles.methodTabText, authMethod === 'email' && styles.methodTabTextActive]}>
-                        Email Signup
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                  {/* Signup Auth Channel Switcher (Mobile vs Email) Removed */}
 
                   {/* Full Name Input */}
                   <TouchableOpacity
@@ -999,48 +936,25 @@ export const AuthModal: React.FC = () => {
                     />
                   </TouchableOpacity>
 
-                  {/* Mobile Input (Shown in Mobile signup OR Email signup as requested) */}
-                  {(authMethod === 'mobile' || authMethod === 'email') && (
-                    <TouchableOpacity
-                      style={styles.inputContainer}
-                      activeOpacity={1}
-                      onPress={() => phoneInputRef.current?.focus()}
-                    >
-                      <Phone size={18} color="#4F46E5" style={styles.inputIcon} />
-                      <Text style={styles.prefixText}>+91</Text>
-                      <TextInput
-                        ref={phoneInputRef}
-                        style={styles.textInput}
-                        placeholder={authMethod === 'email' ? 'Mobile Number (Optional)' : '10-Digit Mobile Number *'}
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="phone-pad"
-                        maxLength={10}
-                        value={phone}
-                        onChangeText={setPhone}
-                      />
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Email Input (Shown when Email signup selected) */}
-                  {authMethod === 'email' && (
-                    <TouchableOpacity
-                      style={styles.inputContainer}
-                      activeOpacity={1}
-                      onPress={() => emailInputRef.current?.focus()}
-                    >
-                      <Mail size={18} color="#4F46E5" style={styles.inputIcon} />
-                      <TextInput
-                        ref={emailInputRef}
-                        style={styles.textInput}
-                        placeholder="Email Address *"
-                        placeholderTextColor="#94A3B8"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        value={email}
-                        onChangeText={setEmail}
-                      />
-                    </TouchableOpacity>
-                  )}
+                  {/* Mobile Input */}
+                  <TouchableOpacity
+                    style={styles.inputContainer}
+                    activeOpacity={1}
+                    onPress={() => phoneInputRef.current?.focus()}
+                  >
+                    <Phone size={18} color="#4F46E5" style={styles.inputIcon} />
+                    <Text style={styles.prefixText}>+91</Text>
+                    <TextInput
+                      ref={phoneInputRef}
+                      style={styles.textInput}
+                      placeholder="10-Digit Mobile Number *"
+                      placeholderTextColor="#94A3B8"
+                      keyboardType="phone-pad"
+                      maxLength={10}
+                      value={phone}
+                      onChangeText={setPhone}
+                    />
+                  </TouchableOpacity>
 
                   {/* Set Password Field */}
                   <TouchableOpacity
@@ -1112,7 +1026,7 @@ export const AuthModal: React.FC = () => {
                     ) : (
                       <>
                         <Text style={styles.primaryButtonText}>
-                          {authMethod === 'mobile' ? 'Proceed with Mobile OTP' : 'Proceed with Email Link'}
+                          Proceed with Mobile OTP
                         </Text>
                         <ArrowRight size={18} color="#FFFFFF" />
                       </>
@@ -1153,7 +1067,7 @@ export const AuthModal: React.FC = () => {
                     <Text style={styles.otpSentText}>
                       Sent OTP verification code to{' '}
                       <Text style={{ fontWeight: '700', color: '#4F46E5' }}>
-                        {authMethod === 'mobile' ? `+91 ${phone}` : email}
+                        +91 {phone}
                       </Text>
                     </Text>
                   </View>
@@ -1282,7 +1196,7 @@ export const AuthModal: React.FC = () => {
                   {forgotStep === 1 && (
                     <>
                       <Text style={{ fontSize: 13, color: '#475569', lineHeight: 18 }}>
-                        Enter your registered Mobile Number or Email Address. We will send a secure password reset link or verification code.
+                        Enter your registered Mobile Number. We will send a secure verification code.
                       </Text>
 
                       <TouchableOpacity
@@ -1294,9 +1208,10 @@ export const AuthModal: React.FC = () => {
                         <TextInput
                           ref={loginIdentifierRef}
                           style={styles.textInput}
-                          placeholder="Registered Mobile or Email Address *"
+                          placeholder="Registered Mobile Number *"
                           placeholderTextColor="#94A3B8"
                           autoCapitalize="none"
+                          keyboardType="phone-pad"
                           value={forgotIdentifier}
                           onChangeText={setForgotIdentifier}
                         />
@@ -1517,7 +1432,7 @@ export const AuthModal: React.FC = () => {
 
             <View style={styles.footerInfo}>
               <ShieldCheck size={14} color="#10B981" />
-              <Text style={styles.footerInfoText}>100% Safe & Secure DigiSewa Customer Authentication</Text>
+              <Text style={styles.footerInfoText}>100% Safe & Secure TafDeal Customer Authentication</Text>
             </View>
           </View>
         </KeyboardAvoidingView>

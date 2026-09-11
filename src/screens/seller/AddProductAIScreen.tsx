@@ -293,7 +293,7 @@ export const AddProductAIScreen: React.FC<AddProductAIScreenProps> = ({ onBack, 
           onPress={handlePublishProduct}
         >
           <Text style={styles.publishBtnText}>
-            {isPublishing ? 'Publishing Product...' : 'Publish to DigiSewa Catalog'}
+            {isPublishing ? 'Publishing Product...' : 'Publish to TafDeal Catalog'}
           </Text>
         </TouchableOpacity>
       </View>

@@ -32,6 +32,42 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   const [originalPrice, setOriginalPrice] = useState(product?.originalPrice?.toString() || '');
   const [stock, setStock] = useState(product?.stock?.toString() || '');
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || '');
+  const [tagsList, setTagsList] = useState<string[]>(product?.tags || []);
+  const [tagInput, setTagInput] = useState<string>('');
+
+  const addTag = () => {
+    if (tagInput.trim().length > 0) {
+      const newTag = tagInput.trim();
+      if (!tagsList.includes(newTag)) {
+        setTagsList(prev => [...prev, newTag].slice(0, 15));
+      }
+      setTagInput('');
+    }
+  };
+
+  const handleTagInputChange = (text: string) => {
+    if (text.includes(',')) {
+      const newTags = text.split(',')
+                          .map(t => t.trim())
+                          .filter(t => t.length > 0 && !tagsList.includes(t));
+      if (newTags.length > 0) {
+        setTagsList(prev => [...prev, ...newTags].slice(0, 15));
+      }
+      setTagInput('');
+    } else {
+      setTagInput(text);
+    }
+  };
+
+  const removeTag = (indexToRemove: number) => {
+    setTagsList(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const editTag = (indexToEdit: number) => {
+    const tagToEdit = tagsList[indexToEdit];
+    setTagInput(tagToEdit);
+    removeTag(indexToEdit);
+  };
   
   const [isSaving, setIsSaving] = useState(false);
 
@@ -43,6 +79,8 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       setOriginalPrice(product.originalPrice?.toString() || '');
       setStock(product.stock?.toString() || '');
       setImageUrl(product.imageUrl || '');
+      setTagsList(product.tags || []);
+      setTagInput('');
     }
   }, [product]);
 
@@ -56,6 +94,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
       stock: parseInt(stock, 10) || 0,
       imageUrl: imageUrl,
+      tags: tagsList,
     };
     
     await updateProduct(product.id, updatedData);
@@ -105,6 +144,39 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
               />
             </View>
 
+            {/* Tags Section */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Search Tags (Type comma or click Add to add, click tag to edit, max 15)</Text>
+              
+              <View style={[styles.tagsContainer, tagsList.length > 0 && { marginBottom: 12 }]}>
+                {tagsList.map((tag, index) => (
+                  <View key={index} style={styles.tagChip}>
+                    <TouchableOpacity onPress={() => editTag(index)}>
+                      <Text style={styles.tagChipText}>{tag}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => removeTag(index)} style={styles.tagChipRemove}>
+                      <X size={12} color="#4F46E5" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+
+              {tagsList.length < 15 && (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={tagInput}
+                    onChangeText={handleTagInputChange}
+                    onSubmitEditing={addTag}
+                    placeholder="e.g. red, cotton, summer"
+                  />
+                  <TouchableOpacity onPress={addTag} style={styles.addTagBtn}>
+                    <Text style={styles.addTagBtnText}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
             <View style={styles.rowGroup}>
               <View style={[styles.fieldGroup, { flex: 1 }]}>
                 <Text style={styles.label}>Selling Price (₹)</Text>
@@ -138,7 +210,8 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                 placeholder="Total available quantity"
               />
             </View>
-            
+
+
           </ScrollView>
 
           {/* Footer */}
@@ -264,4 +337,46 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  saveText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  tagChipText: {
+    fontSize: 12,
+    color: '#4F46E5',
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  tagChipRemove: {
+    padding: 2,
+  },
+  addTagBtn: {
+    marginLeft: 8,
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  addTagBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+
 });

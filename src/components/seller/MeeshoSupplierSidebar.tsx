@@ -29,7 +29,7 @@ export const MeeshoSupplierSidebar: React.FC<MeeshoSupplierSidebarProps> = ({
 }) => {
   const { openSellerProfileModal, sellerProfile } = useAuth();
   
-  const displayStoreName = storeName || sellerProfile?.storeName || 'DigiSewa Express Store';
+  const displayStoreName = storeName || sellerProfile?.storeName || 'TafDeal Express Store';
 
   return (
     <View style={styles.sidebarContainer}>
@@ -227,10 +227,10 @@ export const MeeshoSupplierSidebar: React.FC<MeeshoSupplierSidebarProps> = ({
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Footer DigiSewa Seller Panel Branding */}
+      {/* Footer TafDeal Seller Panel Branding */}
       <View style={styles.sidebarFooter}>
         <Text style={styles.footerBrand}>
-          <Text style={styles.footerMeesho}>DigiSewa </Text>Seller Panel
+          <Text style={styles.footerMeesho}>TafDeal </Text>Seller Panel
         </Text>
       </View>
     </View>

@@ -3,11 +3,14 @@ import { View, Text, Image, TouchableOpacity, ScrollView, TextInput, StyleSheet,
 import { ArrowLeft, Trash2, MapPin, CreditCard, Banknote, ShieldCheck, Check, Landmark, Wallet } from 'lucide-react-native';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { createOrder, getSellersFromFirestore } from '../../services/firebaseService';
+import { createOrder, getSellersFromFirestore, getProducts, listenToSystemSettings } from '../../services/firebaseService';
 import { shiprocketLogin, checkServiceability } from '../../services/shiprocketService';
+import { checkShadowfaxServiceability, generateShadowfaxAWB } from '../../services/shadowfaxService';
+import { calculateShadowfaxDeliveryCharge } from '../../utils/shippingUtils';
 import { Platform } from 'react-native';
 import { functions } from '../../config/firebaseConfig';
 import { httpsCallable } from 'firebase/functions';
+import { SystemSettings } from '../../types/adminTypes';
 
 interface CartScreenProps {
   onBack: () => void;
@@ -55,6 +58,25 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
   const [mobile, setMobile] = useState<string>(user?.phone || '');
   const [altMobile, setAltMobile] = useState<string>('');
   const [addressType, setAddressType] = useState<'home' | 'work'>('home');
+  
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(user?.addresses?.find(a => a.isDefault)?.id || null);
+
+  useEffect(() => {
+    if (selectedAddressId && user?.addresses) {
+      const addr = user.addresses.find(a => a.id === selectedAddressId);
+      if (addr) {
+        setFullName(addr.fullName || user.name || '');
+        setMobile(addr.phone || user.phone || '');
+        const parts = addr.fullAddress.split(',');
+        setHouseName(parts[0]?.trim() || '');
+        setArea(parts.slice(1).join(',')?.trim() || '');
+        setDistrict(addr.city || '');
+        setState(addr.state || '');
+        setPincode(addr.pincode || '');
+        setAddressType(addr.title.toLowerCase().includes('work') ? 'work' : 'home');
+      }
+    }
+  }, [selectedAddressId, user?.addresses]);
 
   const [paymentMode, setPaymentMode] = useState<'upi' | 'card' | 'netbanking' | 'wallet' | 'cod'>('upi');
   const [isPlacingOrder, setIsPlacingOrder] = useState<boolean>(false);
@@ -62,43 +84,90 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
   const [dynamicDeliveryFee, setDynamicDeliveryFee] = useState<number | null>(null);
   const [isCalculatingShipping, setIsCalculatingShipping] = useState<boolean>(false);
 
+  const [selectedCourier, setSelectedCourier] = useState<'shiprocket' | 'shadowfax'>('shiprocket');
+  const [shiprocketFee, setShiprocketFee] = useState<number | null>(null);
+  const [shadowfaxFee, setShadowfaxFee] = useState<number | null>(null);
+  const [isShadowfaxServiceable, setIsShadowfaxServiceable] = useState<boolean>(true);
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>({ shiprocketEnabled: true, shadowfaxEnabled: true });
+
+  useEffect(() => {
+    const unsubscribe = listenToSystemSettings((settings) => {
+      setSystemSettings(settings);
+      // Auto fallback if currently selected courier was disabled
+      if (!settings.shadowfaxEnabled && selectedCourier === 'shadowfax') {
+        setSelectedCourier('shiprocket');
+      }
+      if (!settings.shiprocketEnabled && selectedCourier === 'shiprocket' && settings.shadowfaxEnabled) {
+        setSelectedCourier('shadowfax');
+      }
+    });
+    return () => unsubscribe();
+  }, [selectedCourier]);
+
   useEffect(() => {
     const calculateShipping = async () => {
       if (!pincode || pincode.length !== 6 || items.length === 0) {
-        setDynamicDeliveryFee(null);
+        setShiprocketFee(null);
+        setShadowfaxFee(null);
         return;
       }
       setIsCalculatingShipping(true);
       try {
         const token = await shiprocketLogin();
         const sellers = await getSellersFromFirestore();
+        const latestProducts = await getProducts();
         
         const sellerIds = Array.from(new Set(items.map(i => i.product.sellerId)));
-        let totalShipping = 0;
+        let totalShiprocket = 0;
+        let totalShadowfax = 0;
+        let shadowfaxServiceable = true;
         
         for (const sellerId of sellerIds) {
           const seller = sellers.find(s => s.id === sellerId);
           const pickupPincode = seller?.pickupAddress?.pincode || '110030';
           const weight = 0.5; // Mock 0.5kg base weight
           const infoArray = await checkServiceability(pickupPincode, pincode, weight, token, paymentMode === 'cod');
+          const sfServiceable = await checkShadowfaxServiceability(pincode);
+          if (!sfServiceable) shadowfaxServiceable = false;
+
           const sellerItems = items.filter(i => i.product.sellerId === sellerId);
           const wantsFast = sellerItems.some(i => i.deliveryPreference === 'fast');
-          const sellerOffersFreeShipping = sellerItems.some(i => i.product.offerFreeShipping);
+          const sellerOffersFreeShipping = sellerItems.some(i => {
+            const latestProduct = latestProducts.find(p => p.id === i.product.id);
+            return latestProduct?.offerFreeShipping || i.product.offerFreeShipping;
+          });
 
           if (sellerOffersFreeShipping) {
-            totalShipping += 0;
-          } else if (infoArray && Array.isArray(infoArray) && infoArray.length > 0) {
-            let selectedOption = infoArray.find(o => o.type === (wantsFast ? 'fast' : 'budget'));
-            if (!selectedOption) selectedOption = infoArray[0];
-            totalShipping += selectedOption.rate;
+            totalShiprocket += 0;
+            totalShadowfax += 0;
           } else {
-            totalShipping += 0; // Fallback to Free
+            // Shiprocket
+            if (infoArray && Array.isArray(infoArray) && infoArray.length > 0) {
+              let selectedOption = infoArray.find(o => o.type === (wantsFast ? 'fast' : 'budget'));
+              if (!selectedOption) selectedOption = infoArray[0];
+              totalShiprocket += selectedOption.rate;
+            }
+            
+            // Shadowfax
+            totalShadowfax += calculateShadowfaxDeliveryCharge(pickupPincode, pincode);
           }
         }
-        setDynamicDeliveryFee(totalShipping);
+        
+        setShiprocketFee(totalShiprocket);
+        setShadowfaxFee(totalShadowfax);
+        setIsShadowfaxServiceable(shadowfaxServiceable);
+        
+        // Auto-select cheapest if Shadowfax is serviceable
+        if (shadowfaxServiceable && totalShadowfax < totalShiprocket) {
+          setSelectedCourier('shadowfax');
+        } else {
+          setSelectedCourier('shiprocket');
+        }
+
       } catch (err) {
         console.warn('Failed to calculate dynamic shipping', err);
-        setDynamicDeliveryFee(null);
+        setShiprocketFee(null);
+        setShadowfaxFee(null);
       } finally {
         setIsCalculatingShipping(false);
       }
@@ -110,9 +179,11 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
     return () => clearTimeout(timer);
   }, [pincode, items, paymentMode]);
 
-  const deliveryFee = dynamicDeliveryFee !== null ? dynamicDeliveryFee : 0; // Free delivery logic
+  const deliveryFee = selectedCourier === 'shiprocket' ? shiprocketFee : shadowfaxFee;
+  
+  const validDeliveryFee = deliveryFee !== null ? deliveryFee : 0;
   const platformFee = 5;
-  const grandTotal = totalAmount + deliveryFee + platformFee;
+  const grandTotal = totalAmount + validDeliveryFee + platformFee;
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
@@ -154,7 +225,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
       ordersBySeller[item.product.sellerId].push(item);
     });
 
-    const processOrders = async (paymentId?: string) => {
+    const processOrders = async (paymentId?: string, rzpOrderId?: string, initialStatus: any = 'pending', initialPaymentStatus: any = 'pending') => {
       const sellerIds = Object.keys(ordersBySeller);
       for (const sellerId of sellerIds) {
         const sellerItems = ordersBySeller[sellerId];
@@ -197,6 +268,14 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
         const currentPlatformFee = isFirst ? platformFee : 0;
         const orderTotal = sellerTotal + shippingFee + currentPlatformFee;
 
+        let shadowfaxAwb = '';
+        if (selectedCourier === 'shadowfax') {
+          const awbs = await generateShadowfaxAWB(1);
+          if (awbs && awbs.length > 0) {
+            shadowfaxAwb = awbs[0];
+          }
+        }
+
         await createOrder({
           buyerId: user.id,
           buyerName: user.name,
@@ -210,16 +289,16 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
           sellerOffersFreeShipping: sellerOffersFreeShipping,
           platformFee: currentPlatformFee,
           paymentMode,
-          paymentStatus: paymentMode === 'cod' ? 'pending' : 'paid',
-          status: 'pending',
+          paymentStatus: initialPaymentStatus,
+          status: initialStatus,
           estimatedDelivery,
-          razorpayPaymentId: paymentId
+          courierPartner: selectedCourier,
+          shadowfaxAwb,
+          awbCode: shadowfaxAwb,
+          razorpayPaymentId: paymentId,
+          razorpayOrderId: rzpOrderId
         } as any); // cast to any to allow razorpayPaymentId if not in Order interface
       }
-
-      setIsPlacingOrder(false);
-      clearCart();
-      onOrderSuccess();
     };
 
     try {
@@ -229,6 +308,23 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
            setIsPlacingOrder(false);
            return;
         }
+        
+        // 1. Create Razorpay Order Server-Side
+        let rzpOrderId = '';
+        try {
+          const createRzpOrder = httpsCallable(functions, 'createRazorpayOrder');
+          const result = await createRzpOrder({ amount: grandTotal });
+          const data = result.data as any;
+          rzpOrderId = data.orderId;
+        } catch (err: any) {
+          alert("Failed to initialize payment: " + err.message);
+          setIsPlacingOrder(false);
+          return;
+        }
+
+        // 2. Save Preliminary Orders as Payment Pending
+        await processOrders(undefined, rzpOrderId, 'payment_pending', 'pending');
+
         const res = await loadRazorpay();
         if (!res) {
           alert("Razorpay SDK failed to load. Are you online?");
@@ -240,11 +336,14 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
           key: "rzp_test_TM5arepb23gG9I", 
           amount: Math.round(grandTotal * 100),
           currency: "INR",
-          name: "DigiSewa",
+          name: "TafDeal",
           description: "Order Payment",
+          order_id: rzpOrderId, // Crucial for Webhook integration
           handler: async function (response: any) {
-            const paymentId = response.razorpay_payment_id;
-            await processOrders(paymentId);
+             // Payment successful on frontend. Webhook will update backend.
+             setIsPlacingOrder(false);
+             clearCart();
+             onOrderSuccess();
           },
           prefill: {
             name: fullName,
@@ -255,12 +354,17 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
         };
         const rzp = new (window as any).Razorpay(options);
         rzp.on('payment.failed', function (response: any) {
-          alert("Payment failed: " + response.error.description);
+          alert("Payment failed or cancelled. You can retry from My Orders.");
           setIsPlacingOrder(false);
+          clearCart();
+          onOrderSuccess();
         });
         rzp.open();
       } else {
-        await processOrders();
+        await processOrders(undefined, undefined, 'pending', 'pending');
+        setIsPlacingOrder(false);
+        clearCart();
+        onOrderSuccess();
       }
     } catch (error: any) {
       console.error(error);
@@ -302,7 +406,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
 
                       <View style={{ flex: 1 }}>
                         <Text numberOfLines={1} style={styles.itemTitle}>
-                          {item.product.title} {item.product.selectedSize ? `(Size: ${item.product.selectedSize})` : ''}
+                          {item.product.title} {item.product.selectedSize ? `(Size: ${item.product.selectedSize})` : ''} {item.product.color ? `(Color: ${item.product.color})` : ''}
                         </Text>
                         <Text style={styles.sellerSubtext}>Seller: {item.product.sellerName}</Text>
                         <Text style={styles.itemPrice}>₹{item.product.price} / {item.product.unit}</Text>
@@ -312,14 +416,14 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
                       <View style={styles.qtyBox}>
                         <TouchableOpacity
                           style={styles.qtyBtn}
-                          onPress={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          onPress={() => updateQuantity(item.product.id, item.quantity - 1, item.product.selectedSize, item.product.color)}
                         >
                           <Text style={styles.qtyBtnText}>-</Text>
                         </TouchableOpacity>
                         <Text style={styles.qtyText}>{item.quantity}</Text>
                         <TouchableOpacity
                           style={styles.qtyBtn}
-                          onPress={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          onPress={() => updateQuantity(item.product.id, item.quantity + 1, item.product.selectedSize, item.product.color)}
                         >
                           <Text style={styles.qtyBtnText}>+</Text>
                         </TouchableOpacity>
@@ -327,7 +431,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
 
                       <TouchableOpacity
                         style={styles.trashBtn}
-                        onPress={() => removeFromCart(item.product.id)}
+                        onPress={() => removeFromCart(item.product.id, item.product.selectedSize, item.product.color)}
                       >
                         <Trash2 size={16} color="#EF4444" />
                       </TouchableOpacity>
@@ -341,6 +445,31 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
                     <MapPin size={18} color="#4F46E5" />
                     <Text style={styles.sectionHeading}>Deliver To</Text>
                   </View>
+
+                  {user?.addresses && user.addresses.length > 0 && (
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={[styles.inputLabel, { marginBottom: 8 }]}>Select Saved Address</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                        {user.addresses.map(addr => (
+                          <TouchableOpacity
+                            key={addr.id}
+                            style={[
+                              { padding: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, width: 220, backgroundColor: '#FFFFFF' },
+                              selectedAddressId === addr.id && { borderColor: '#4F46E5', backgroundColor: '#EEF2FF' }
+                            ]}
+                            onPress={() => setSelectedAddressId(addr.id)}
+                          >
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                              <Text style={{ fontSize: 13, fontWeight: '700', color: selectedAddressId === addr.id ? '#4F46E5' : '#0F172A' }}>{addr.title}</Text>
+                              {addr.isDefault && <View style={{ backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}><Text style={{ fontSize: 9, color: '#15803D', fontWeight: '700' }}>Default</Text></View>}
+                            </View>
+                            <Text numberOfLines={2} style={{ fontSize: 12, color: '#475569', lineHeight: 16 }}>{addr.fullAddress}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                      <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 16 }} />
+                    </View>
+                  )}
 
                   <View style={styles.infoBanner}>
                     <Text style={styles.infoBannerText}>
@@ -456,6 +585,54 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
 
               {/* Right Column: Payment & Bill Summary */}
               <View style={isDesktop ? styles.rightColDesktop : styles.colMobile}>
+                {/* Delivery Options */}
+                <View style={styles.sectionCard}>
+                  <Text style={styles.sectionHeading}>Select Delivery Partner</Text>
+
+                  {!systemSettings.shiprocketEnabled && !systemSettings.shadowfaxEnabled && (
+                    <Text style={{ color: '#EF4444', marginBottom: 12 }}>Delivery services are temporarily unavailable.</Text>
+                  )}
+
+                  {systemSettings.shiprocketEnabled && (
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      style={[styles.paymentOption, selectedCourier === 'shiprocket' && styles.paymentOptionActive]}
+                      onPress={() => setSelectedCourier('shiprocket')}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.paymentTitle}>Shiprocket Logistics</Text>
+                        <Text style={styles.paymentSubtext}>Standard delivery</Text>
+                      </View>
+                      <Text style={{ fontWeight: '700', marginRight: 12, color: '#0F172A' }}>
+                         {shiprocketFee !== null ? `₹${shiprocketFee}` : '...'}
+                      </Text>
+                      {selectedCourier === 'shiprocket' && <Check size={18} color="#4F46E5" />}
+                    </TouchableOpacity>
+                  )}
+
+                  {systemSettings.shadowfaxEnabled && (
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      style={[styles.paymentOption, selectedCourier === 'shadowfax' && styles.paymentOptionActive, !isShadowfaxServiceable && { opacity: 0.5 }]}
+                      onPress={() => isShadowfaxServiceable && setSelectedCourier('shadowfax')}
+                      disabled={!isShadowfaxServiceable}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.paymentTitle}>Shadowfax Delivery</Text>
+                        <Text style={styles.paymentSubtext}>
+                           {isShadowfaxServiceable ? 'Reliable fulfillment' : 'Not serviceable at this pincode'}
+                        </Text>
+                      </View>
+                      {isShadowfaxServiceable && (
+                        <Text style={{ fontWeight: '700', marginRight: 12, color: '#0F172A' }}>
+                           {shadowfaxFee !== null ? `₹${shadowfaxFee}` : '...'}
+                        </Text>
+                      )}
+                      {selectedCourier === 'shadowfax' && <Check size={18} color="#4F46E5" />}
+                    </TouchableOpacity>
+                  )}
+                </View>
+
                 {/* Payment Mode Selection */}
                 <View style={styles.sectionCard}>
                   <Text style={styles.sectionHeading}>Payment Mode</Text>
@@ -541,7 +718,11 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
                       {isCalculatingShipping ? (
                         <Text style={{ color: '#4F46E5', fontSize: 12 }}>Calculating...</Text>
                       ) : (
-                        deliveryFee === 0 ? <Text style={{ color: '#16A34A' }}>FREE</Text> : `₹${deliveryFee}`
+                        deliveryFee === null ? (
+                          <Text style={{ color: '#94A3B8', fontSize: 12 }}>Enter Pincode</Text>
+                        ) : (
+                          deliveryFee === 0 ? <Text style={{ color: '#16A34A' }}>FREE</Text> : `₹${deliveryFee}`
+                        )
                       )}
                     </Text>
                   </View>

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "DigiSewa",
-    "slug": "DigiSewa",
+    "name": "TafDeal",
+    "slug": "TafDeal",
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,14 +13,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pabirul.DigiSewa"
+      "bundleIdentifier": "com.pabirul.TafDeal"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
-      "package": "com.pabirul.DigiSewa",
+      "package": "com.pabirul.TafDeal",
       "versionCode": 2
     },
     "web": {

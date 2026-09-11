@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { PackageCheck, Clock, MapPin, Truck, CheckCircle2, AlertCircle, LogIn, ArrowLeft } from 'lucide-react-native';
 import { Order, OrderStatus } from '../../types';
 import { getOrders, updateOrderStatus } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
 import { WriteReviewModal } from '../../components/reviews/WriteReviewModal';
+import { ReturnRequestModal } from '../../components/buyer/ReturnRequestModal';
 
 interface OrderHistoryScreenProps {
   onBack?: () => void;
   onOpenSupport?: (orderId: string) => void;
+  onTrackOrder?: (order: Order) => void;
 }
 
-export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, onOpenSupport }) => {
+export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, onOpenSupport, onTrackOrder }) => {
   const { isAuthenticated, openCustomerAuthModal } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -20,6 +22,8 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
     sellerId: string;
     productTitle: string;
   } | null>(null);
+  
+  const [returnModalData, setReturnModalData] = useState<Order | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -50,6 +54,53 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
       console.error('Failed to cancel order', error);
       alert('Failed to cancel the order. Please try again.');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRetryPayment = async (order: Order) => {
+    if (!order.razorpayOrderId) {
+      alert("Missing payment reference. Cannot retry.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      
+      script.onload = () => {
+        const options = {
+          key: "rzp_test_TM5arepb23gG9I",
+          amount: Math.round(order.totalAmount * 100),
+          currency: "INR",
+          name: "TafDeal",
+          description: "Order Payment Retry",
+          order_id: order.razorpayOrderId,
+          handler: async function (response: any) {
+            await updateOrderStatus(order.id, 'pending', { paymentStatus: 'paid' });
+            setOrders(prev => prev.map(o => (o.id === order.id ? { ...o, status: 'pending', paymentStatus: 'paid' } : o)));
+            alert("Payment successful! Your order is now confirmed.");
+          },
+          theme: { color: "#4F46E5" }
+        };
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', function (response: any) {
+          alert("Payment failed or cancelled again.");
+        });
+        rzp.open();
+        setLoading(false);
+      };
+
+      script.onerror = () => {
+        alert("Razorpay SDK failed to load. Are you online?");
+        setLoading(false);
+      };
+      document.body.appendChild(script);
+
+    } catch (error: any) {
+      console.error(error);
+      alert(`Payment retry failed: ${error?.message || error}`);
       setLoading(false);
     }
   };
@@ -206,22 +257,38 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
               {/* Order Items List */}
               <View style={styles.itemsBox}>
                 {order.items.map((item, idx) => (
-                  <View key={idx} style={styles.itemRow}>
+                  <View key={idx} style={[styles.itemRow, { alignItems: 'flex-start', gap: 12 }]}>
+                    <Image 
+                      source={{ uri: item.product.imageUrl }} 
+                      style={{ width: 50, height: 50, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0' }} 
+                      resizeMode="cover" 
+                    />
                     <View style={{flex: 1}}>
                       <Text style={styles.itemName}>
                         {item.quantity}x {item.product.title} {item.product.selectedSize ? `(Size: ${item.product.selectedSize})` : ''}
                       </Text>
                       {order.status === 'delivered' && (
-                        <TouchableOpacity
-                          style={{ marginTop: 6, alignSelf: 'flex-start', paddingVertical: 4, paddingHorizontal: 10, borderWidth: 1, borderColor: '#FF6B00', borderRadius: 4 }}
-                          onPress={() => setReviewModalData({
-                            productId: item.product.id,
-                            sellerId: item.product.sellerId,
-                            productTitle: item.product.title
-                          })}
-                        >
-                          <Text style={{ color: '#FF6B00', fontSize: 11, fontWeight: '600' }}>Rate & Review</Text>
-                        </TouchableOpacity>
+                        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                          <TouchableOpacity
+                            style={{ marginTop: 6, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 1, borderColor: '#FF6B00', borderRadius: 4 }}
+                            onPress={() => setReviewModalData({
+                              productId: item.product.id,
+                              sellerId: item.product.sellerId,
+                              productTitle: item.product.title
+                            })}
+                          >
+                            <Text style={{ color: '#FF6B00', fontSize: 11, fontWeight: '600' }}>Rate & Review</Text>
+                          </TouchableOpacity>
+                          
+                          {order.returnStatus !== 'requested' && order.returnStatus !== 'approved' && order.returnStatus !== 'picked_up' && order.returnStatus !== 'refunded' && (
+                            <TouchableOpacity
+                              style={{ marginTop: 6, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 1, borderColor: '#EF4444', borderRadius: 4, backgroundColor: '#FEF2F2' }}
+                              onPress={() => setReturnModalData(order)}
+                            >
+                              <Text style={{ color: '#EF4444', fontSize: 11, fontWeight: '600' }}>Return Item</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
                       )}
                     </View>
                     <Text style={styles.itemPrice}>₹{item.product.price * item.quantity}</Text>
@@ -237,13 +304,49 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
                 </View>
 
                 <View style={styles.totalBox}>
-                  <Text style={styles.totalLabel}>Paid Amount:</Text>
+                  <Text style={styles.totalLabel}>
+                    {order.paymentStatus === 'pending' || order.paymentStatus === 'payment_pending' 
+                      ? 'Amount to Pay:' 
+                      : (order.paymentStatus === 'payment_failed' ? 'Failed Amount:' : 'Paid Amount:')}
+                  </Text>
                   <Text style={styles.totalPrice}>₹{order.totalAmount}</Text>
                 </View>
               </View>
 
+              {/* Track Package Button */}
+              {order.status !== 'cancelled' && order.status !== 'payment_pending' && (
+                <TouchableOpacity
+                  style={{
+                    marginTop: 12,
+                    backgroundColor: '#4F46E5',
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => onTrackOrder && onTrackOrder(order)}
+                >
+                  <Text style={{color: '#FFFFFF', fontWeight: 'bold', fontSize: 13}}>Track Package</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Retry Payment Button */}
+              {order.status === 'payment_pending' && (
+                <TouchableOpacity
+                  style={{
+                    marginTop: 12,
+                    backgroundColor: '#10B981',
+                    paddingVertical: 10,
+                    borderRadius: 8,
+                    alignItems: 'center',
+                  }}
+                  onPress={() => handleRetryPayment(order)}
+                >
+                  <Text style={{color: '#FFFFFF', fontWeight: 'bold', fontSize: 13}}>Retry Payment</Text>
+                </TouchableOpacity>
+              )}
+
               {/* Cancel Button */}
-              {['pending', 'processing', 'shipped', 'reached_hub', 'out_for_delivery'].includes(order.status) && (
+              {['pending', 'processing', 'shipped', 'reached_hub', 'out_for_delivery', 'payment_pending'].includes(order.status) && (
                 <TouchableOpacity 
                   style={{
                     marginTop: 12,
@@ -297,6 +400,18 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
           }}
         />
       )}
+
+      {/* Return Modal */}
+      <ReturnRequestModal
+        visible={!!returnModalData}
+        order={returnModalData}
+        onClose={() => setReturnModalData(null)}
+        onSuccess={(orderId) => {
+          alert('Return request submitted successfully!');
+          setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, returnStatus: 'requested' } : o)));
+          setReturnModalData(null);
+        }}
+      />
     </ScrollView>
   );
 };

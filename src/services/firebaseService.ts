@@ -1,7 +1,7 @@
-import { collection, getDocs, addDoc, doc, updateDoc, setDoc, query, where, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, updateDoc, setDoc, query, where, deleteDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import { Product, Order, Category, Seller, User, SystemAdmin, ReturnItem } from '../types';
-import { SupportTicket } from '../types/adminTypes';
+import { SupportTicket, SystemSettings } from '../types/adminTypes';
 
 // Mock Initial Products for Hyperlocal E-Commerce Platform Demo
 export const INITIAL_MOCK_PRODUCTS: Product[] = [];
@@ -45,6 +45,53 @@ export const INITIAL_MOCK_ORDERS: Order[] = [];
 let localProducts: Product[] = [...INITIAL_MOCK_PRODUCTS];
 let localOrders: Order[] = [...INITIAL_MOCK_ORDERS];
 
+const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
+  shiprocketEnabled: true,
+  shadowfaxEnabled: true,
+  maintenanceWarningEnabled: false,
+};
+
+export async function getSystemSettings(): Promise<SystemSettings> {
+  try {
+    const docRef = doc(db, 'system', 'config');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { ...DEFAULT_SYSTEM_SETTINGS, ...docSnap.data() } as SystemSettings;
+    } else {
+      await setDoc(docRef, DEFAULT_SYSTEM_SETTINGS);
+      return DEFAULT_SYSTEM_SETTINGS;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch system settings, using default', err);
+    return DEFAULT_SYSTEM_SETTINGS;
+  }
+}
+
+export async function updateSystemSettings(settings: Partial<SystemSettings>): Promise<void> {
+  try {
+    const docRef = doc(db, 'system', 'config');
+    await updateDoc(docRef, settings);
+  } catch (err) {
+    console.error('Failed to update system settings', err);
+    throw err;
+  }
+}
+
+export function listenToSystemSettings(callback: (settings: SystemSettings) => void): () => void {
+  const docRef = doc(db, 'system', 'config');
+  const unsubscribe = onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback({ ...DEFAULT_SYSTEM_SETTINGS, ...docSnap.data() } as SystemSettings);
+    } else {
+      callback(DEFAULT_SYSTEM_SETTINGS);
+    }
+  }, (err) => {
+    console.warn('Failed to listen to system settings', err);
+    callback(DEFAULT_SYSTEM_SETTINGS);
+  });
+  return unsubscribe;
+}
+
 /**
  * Fetch all products from Firestore with fallback to mock data
  */
@@ -65,7 +112,7 @@ export async function getProducts(onlyApproved: boolean = false, sellerId?: stri
         const data = docSnap.data() as any;
         let imageUrl = data.imageUrl;
         let title = data.title;
-        allProducts.push({ id: docSnap.id, ...data, imageUrl } as Product);
+        allProducts.push({ ...data, id: docSnap.id, imageUrl } as Product);
       });
     } else {
       allProducts = localProducts;
@@ -107,21 +154,21 @@ export async function addProduct(
     throw new Error(msg);
   }
 
+  const docRef = doc(collection(db, 'products'));
   const newProduct: Product = {
     ...product,
-    id: 'prod-' + Date.now(),
+    id: docRef.id,
     createdAt: new Date().toISOString(),
   };
 
   const cleanProductData = JSON.parse(JSON.stringify(newProduct));
 
   try {
-    const docRef = await Promise.race([
-      addDoc(collection(db, 'products'), cleanProductData),
+    await Promise.race([
+      setDoc(docRef, cleanProductData),
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 10000))
     ]);
     console.log('✅ Successfully published catalog to Firestore with ID:', docRef.id);
-    newProduct.id = docRef.id;
   } catch (err: any) {
     console.error('❌ Firestore addProduct error:', err);
     throw err;
@@ -161,6 +208,19 @@ export async function addProduct(
    * Get all categories
    */
 export async function getCategories(): Promise<Category[]> {
+  try {
+    const q = collection(db, 'categories');
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const cats: Category[] = [];
+      querySnapshot.forEach(docSnap => {
+        cats.push({ id: docSnap.id, ...docSnap.data() } as Category);
+      });
+      return cats;
+    }
+  } catch (err) {
+    console.warn('Firestore fetch categories failed/offline, using mock data:', err);
+  }
   return INITIAL_MOCK_CATEGORIES;
 }
 
@@ -207,7 +267,8 @@ export async function updateOrderStatus(orderId: string, newStatus: Order['statu
     if (additionalData) {
       Object.assign(updatePayload, additionalData);
     }
-    await updateDoc(orderRef, updatePayload);
+    const cleanUpdatePayload = JSON.parse(JSON.stringify(updatePayload));
+    await updateDoc(orderRef, cleanUpdatePayload);
   } catch (err) {
     console.warn('Firestore update order status offline');
   }
@@ -255,9 +316,10 @@ export async function createOrder(newOrder: Omit<Order, 'id' | 'createdAt'>): Pr
   localOrders.unshift(created);
 
   try {
-    await setDoc(doc(db, 'orders', created.id), created);
+    const cleanOrderData = JSON.parse(JSON.stringify(created));
+    await setDoc(doc(db, 'orders', created.id), cleanOrderData);
   } catch (err) {
-    console.warn('Firestore create order offline');
+    console.warn('Firestore create order offline', err);
   }
 
   return created;
@@ -343,6 +405,27 @@ export async function getSellersFromFirestore(): Promise<Seller[]> {
 }
 
 /**
+ * Update Seller GST Details in Firestore
+ */
+export async function updateSellerGstInFirestore(
+  sellerId: string,
+  updatePayload: Partial<Seller>
+): Promise<void> {
+  const sellerIdx = localSellers.findIndex(s => s.id === sellerId);
+  if (sellerIdx !== -1) {
+    localSellers[sellerIdx] = { ...localSellers[sellerIdx], ...updatePayload };
+  }
+
+  try {
+    const sellerRef = doc(db, 'sellers', sellerId);
+    await updateDoc(sellerRef, updatePayload);
+    console.log(`✅ Updated seller ${sellerId} GST details in Firestore`);
+  } catch (err) {
+    console.warn('Firestore update seller GST offline/error:', err);
+  }
+}
+
+/**
  * Update Seller Verification Status (Pending -> Verified / Rejected / Suspended)
  */
 export async function updateSellerStatusInFirestore(
@@ -415,6 +498,8 @@ export async function updateSellerPasswordInFirestore(
   }
 }
 
+let localUsers: User[] = [];
+
 /**
  * Save User profile to Firestore
  */
@@ -427,7 +512,33 @@ export async function saveUserToFirestore(user: User): Promise<User> {
   } catch (err) {
     console.warn('Firestore save user offline/error:', err);
   }
+  const idx = localUsers.findIndex(u => u.id === user.id);
+  if (idx !== -1) {
+    localUsers[idx] = user;
+  } else {
+    localUsers.push(user);
+  }
   return user;
+}
+
+/**
+ * Update specific fields of a User profile in Firestore
+ */
+export async function updateUserFieldsInFirestore(userId: string, fields: Partial<User>): Promise<void> {
+  const cleanFields = JSON.parse(JSON.stringify(fields));
+  try {
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, cleanFields, { merge: true });
+    console.log('✅ User fields updated in Firestore:', userId);
+  } catch (err) {
+    console.warn('Firestore update fields offline/error:', err);
+  }
+  const idx = localUsers.findIndex(u => u.id === userId);
+  if (idx !== -1) {
+    localUsers[idx] = { ...localUsers[idx], ...fields };
+  } else {
+    localUsers.push({ id: userId, role: 'customer', ...fields } as User);
+  }
 }
 
 /**
@@ -441,12 +552,113 @@ export async function getUsersFromFirestore(): Promise<User[]> {
       querySnapshot.forEach(docSnap => {
         users.push({ id: docSnap.id, ...docSnap.data() } as User);
       });
+      localUsers = users;
       return users;
     }
   } catch (err) {
     console.warn('Firestore fetch users offline/error:', err);
   }
-  return [];
+  return localUsers;
+}
+
+/**
+ * Fetch Single User from Firestore
+ */
+export async function getUserFromFirestore(userId: string): Promise<User | null> {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      return userSnap.data() as User;
+    }
+  } catch (err) {
+    console.warn('Firestore fetch single user offline/error:', err);
+  }
+  const localUser = localUsers.find(u => u.id === userId);
+  return localUser || null;
+}
+
+/**
+ * Record a user's search term (caps at 15 items)
+ */
+export async function recordSearchHistory(userId: string, searchTerm: string): Promise<void> {
+  if (!searchTerm.trim()) return;
+  const user = await getUserFromFirestore(userId);
+  if (user) {
+    let history = user.searchHistory || [];
+    // Remove if exists to push to front
+    history = history.filter(term => term.toLowerCase() !== searchTerm.toLowerCase());
+    history.unshift(searchTerm.trim());
+    if (history.length > 15) history = history.slice(0, 15);
+    await updateUserFieldsInFirestore(userId, { searchHistory: history });
+  }
+}
+
+/**
+ * Record a user's viewed product (caps at 15 items)
+ */
+export async function recordProductView(userId: string, productId: string): Promise<void> {
+  if (!productId) return;
+  const user = await getUserFromFirestore(userId);
+  if (user) {
+    let viewed = user.recentlyViewed || [];
+    // Remove if exists to push to front
+    viewed = viewed.filter(id => id !== productId);
+    viewed.unshift(productId);
+    if (viewed.length > 15) viewed = viewed.slice(0, 15);
+    await updateUserFieldsInFirestore(userId, { recentlyViewed: viewed });
+  }
+}
+
+/**
+ * Fetch Recommended and Recently Viewed Products for a User
+ */
+export async function getRecommendedProducts(userId: string): Promise<{ recommended: Product[], recentlyViewedProducts: Product[] }> {
+  const user = await getUserFromFirestore(userId);
+  if (!user) return { recommended: [], recentlyViewedProducts: [] };
+
+  const allProducts = await getProducts();
+  let recommended: Product[] = [];
+  let recentlyViewedProducts: Product[] = [];
+
+  // Get recently viewed products
+  if (user.recentlyViewed && user.recentlyViewed.length > 0) {
+    recentlyViewedProducts = user.recentlyViewed
+      .map(id => allProducts.find(p => p.id === id))
+      .filter((p): p is Product => p !== undefined);
+  }
+
+  // Build recommended based on search history and past orders
+  const searchKeywords = (user.searchHistory || []).map(s => s.toLowerCase());
+  const userOrders = await getOrders();
+  const myOrders = userOrders.filter(o => o.buyerId === userId);
+  
+  const boughtCategories = new Set<string>();
+  myOrders.forEach(o => {
+    o.items.forEach(item => boughtCategories.add(item.product.category));
+  });
+
+  recommended = allProducts.filter(p => {
+    // Avoid recommending recently viewed as new recommendations
+    if (user.recentlyViewed?.includes(p.id)) return false;
+
+    // Match category of past purchases
+    if (boughtCategories.has(p.category)) return true;
+
+    // Match search keywords in title, category, or tags
+    const titleLower = p.title.toLowerCase();
+    const catLower = p.category.toLowerCase();
+    return searchKeywords.some(keyword => 
+      titleLower.includes(keyword) || 
+      catLower.includes(keyword) || 
+      p.tags?.some(t => t.toLowerCase().includes(keyword))
+    );
+  });
+
+  // Limit recommendations, pick top rated
+  recommended = recommended.sort((a, b) => b.rating - a.rating).slice(0, 15);
+
+  return { recommended, recentlyViewedProducts };
 }
 
 /**
@@ -530,6 +742,78 @@ export async function saveReturnToFirestore(returnItem: ReturnItem): Promise<Ret
     console.warn('Firestore save return offline/error:', err);
   }
   return returnItem;
+}
+
+/**
+ * Create a new Return Request from a buyer
+ */
+export async function createReturnRequest(returnItem: Omit<ReturnItem, 'id'>): Promise<string> {
+  try {
+    const docRef = doc(collection(db, 'returns'));
+    const newReturn: ReturnItem = {
+      ...returnItem,
+      id: docRef.id
+    };
+    
+    const cleanReturnData = JSON.parse(JSON.stringify(newReturn));
+    await setDoc(docRef, cleanReturnData);
+    
+    // Update the original order's returnStatus
+    const orderRef = doc(db, 'orders', returnItem.orderId);
+    await updateDoc(orderRef, { returnStatus: 'requested' });
+    
+    console.log('✅ Created Return Request in Firestore:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating return request", error);
+    throw error;
+  }
+}
+
+/**
+ * Approve a Return Request and trigger Shadowfax Reverse Pickup
+ */
+export async function approveReturnRequest(returnId: string): Promise<string> {
+  try {
+    const returnRef = doc(db, 'returns', returnId);
+    const returnSnap = await getDoc(returnRef);
+    if (!returnSnap.exists()) {
+      throw new Error("Return request not found");
+    }
+    const returnItem = returnSnap.data() as ReturnItem;
+
+    const orderRef = doc(db, 'orders', returnItem.orderId);
+    const orderSnap = await getDoc(orderRef);
+    if (!orderSnap.exists()) {
+      throw new Error("Associated order not found");
+    }
+    const order = { id: orderSnap.id, ...orderSnap.data() } as Order;
+
+    const sellerRef = doc(db, 'sellers', returnItem.sellerId || '');
+    const sellerSnap = await getDoc(sellerRef);
+    if (!sellerSnap.exists()) {
+      throw new Error("Seller not found");
+    }
+    const seller = sellerSnap.data() as Seller;
+
+    // Trigger Shadowfax Reverse Pickup Request
+    const { createShadowfaxReversePickupRequest } = await import('./shadowfaxService');
+    const result = await createShadowfaxReversePickupRequest(returnItem, order, seller);
+    
+    if (result?.awb_number) {
+      await updateDoc(returnRef, { 
+        status: 'approved',
+        awbNumber: result.awb_number 
+      });
+      await updateDoc(orderRef, { returnStatus: 'approved' });
+      return result.awb_number;
+    } else {
+      throw new Error("Failed to create Shadowfax reverse pickup request");
+    }
+  } catch (error) {
+    console.error("Error approving return request:", error);
+    throw error;
+  }
 }
 
 /**

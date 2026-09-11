@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { ArrowLeft, CreditCard, ShieldCheck, MapPin, Sparkles, TrendingUp, Zap, IndianRupee, Clock, CheckCircle2 } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Platform } from 'react-native';
+import { ArrowLeft, CreditCard, ShieldCheck, MapPin, Sparkles, TrendingUp, Zap, IndianRupee, Clock, CheckCircle2, Download, ChevronDown, X } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { getSettlementsBySeller } from '../../services/settlementService';
+import { getOrders } from '../../services/firebaseService';
 import { Settlement } from '../../types';
 import { SellerReviewsScreen } from './SellerReviewsScreen';
 
@@ -16,6 +17,14 @@ export const SellerGenericTabScreen: React.FC<SellerGenericTabScreenProps> = ({ 
   const [pendingPayout, setPendingPayout] = React.useState(0);
   const [totalPaidOut, setTotalPaidOut] = React.useState(0);
   const [settlementsList, setSettlementsList] = React.useState<Settlement[]>([]);
+  
+  // Download Modal States
+  const [showDownloadMenu, setShowDownloadMenu] = React.useState(false);
+  const [showGstModal, setShowGstModal] = React.useState(false);
+  const [selectedYear, setSelectedYear] = React.useState('2026');
+  const [selectedMonth, setSelectedMonth] = React.useState('June');
+  const [showYearDropdown, setShowYearDropdown] = React.useState(false);
+  const [showMonthDropdown, setShowMonthDropdown] = React.useState(false);
 
   React.useEffect(() => {
     if (tabKey === 'payments' && sellerProfile?.id) {
@@ -28,6 +37,94 @@ export const SellerGenericTabScreen: React.FC<SellerGenericTabScreenProps> = ({ 
       });
     }
   }, [tabKey, sellerProfile?.id]);
+
+  const handleDownloadGST = async () => {
+    if (!sellerProfile?.id) return;
+
+    try {
+      const orders = await getOrders(sellerProfile.id);
+      
+      const monthIndex = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].indexOf(selectedMonth);
+      
+      const filteredOrders = orders.filter(order => {
+        if (!order.createdAt) return false;
+        const d = new Date(order.createdAt);
+        return d.getFullYear() === parseInt(selectedYear) && d.getMonth() === monthIndex;
+      });
+
+      const headers = [
+        'identifier', 'sup_name', 'gstin', 'sub_order_num', 'order_date', 'hsn_code', 'quantity', 'gst_rate', 'total_taxable_sale_value', 'tax_amount', 'total_invoice_value', 'taxable_shipping', 'end_customer_state_new', 'enrollment_no', 'cancel_return_date', 'manifest_date', 'transaction_type', 'eco_tcs_gstin', 'financial_year', 'month_number', 'supplier_id'
+      ].join(',');
+
+      const rows: string[] = [];
+
+      filteredOrders.forEach(order => {
+        order.items.forEach((item, index) => {
+          if (item.product.sellerId !== sellerProfile.id) return;
+
+          const hsnCode = '610910'; // default mockup if no hsn_code available
+          const gstRate = 5.00;
+          const totalInvoiceValue = item.product.price * item.quantity;
+          const taxableValue = (totalInvoiceValue / (1 + gstRate / 100)).toFixed(2);
+          const taxAmount = (totalInvoiceValue - parseFloat(taxableValue)).toFixed(2);
+          const dateStr = new Date(order.createdAt).toISOString().split('T')[0];
+
+          // Extract state from address (mock implementation, assumes ending with state or last word)
+          const addressParts = order.deliveryAddress ? order.deliveryAddress.split(',') : [];
+          const stateGuess = addressParts.length > 2 ? addressParts[addressParts.length - 2].trim().toUpperCase() : 'UNKNOWN';
+
+          const row = [
+            'osjpl', 
+            sellerProfile.storeName?.replace(/,/g, '') || '',
+            sellerProfile.gstin || '',
+            `${order.id}_${index + 1}`,
+            dateStr,
+            hsnCode,
+            item.quantity,
+            gstRate.toFixed(2),
+            taxableValue,
+            taxAmount,
+            totalInvoiceValue.toFixed(2),
+            '0.00',
+            stateGuess,
+            '', // enrollment_no
+            '', // cancel_return_date
+            dateStr, // manifest_date
+            '19AARCH3332R1CL', // transaction_type/eco_tcs
+            '19AARCH3332R1CL',
+            selectedYear,
+            (monthIndex + 1).toString(),
+            sellerProfile.id
+          ].join(',');
+          
+          rows.push(row);
+        });
+      });
+
+      const csvContent = [headers, ...rows].join('\n');
+
+      if (Platform.OS === 'web') {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('url' in window ? 'a' : 'a') as HTMLAnchorElement;
+        if (link.download !== undefined) {
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', `GST_Report_${selectedMonth}_${selectedYear}.csv`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      } else {
+        alert('CSV Download is supported on Web only.');
+      }
+    } catch (err) {
+      console.error('Failed to generate GST report', err);
+      alert('Failed to generate GST report.');
+    }
+    
+    setShowGstModal(false);
+  };
 
   const getTabDetails = () => {
     switch (tabKey) {
@@ -75,7 +172,7 @@ export const SellerGenericTabScreen: React.FC<SellerGenericTabScreenProps> = ({ 
         return {
           icon: TrendingUp,
           title: 'Promotions & Festival Sales',
-          subtitle: 'Participate in DigiSewa Mega Sale events and boost store visibility',
+          subtitle: 'Participate in TafDeal Mega Sale events and boost store visibility',
           metric1: { label: 'Current Sale Event', value: 'None' },
           metric2: { label: 'Enrolled Catalogs', value: '0 Items' },
           metric3: { label: 'Visibility Boost', value: '0x' },
@@ -95,7 +192,7 @@ export const SellerGenericTabScreen: React.FC<SellerGenericTabScreenProps> = ({ 
         return {
           icon: Sparkles,
           title: `${tabKey.replace(/_/g, ' ').toUpperCase()} Portal`,
-          subtitle: 'DigiSewa Seller Hub Portal',
+          subtitle: 'TafDeal Seller Hub Portal',
           metric1: { label: 'Status', value: 'Active' },
           metric2: { label: 'Verification', value: 'Verified' },
           metric3: { label: 'Sync Rate', value: 'Realtime' },
@@ -124,6 +221,48 @@ export const SellerGenericTabScreen: React.FC<SellerGenericTabScreenProps> = ({ 
             <Text style={styles.subtitle}>{details.subtitle}</Text>
           </View>
         </View>
+
+        {tabKey === 'payments' && (
+          <View style={{ position: 'relative', zIndex: 50 }}>
+            <TouchableOpacity 
+              style={styles.downloadBtn} 
+              onPress={() => setShowDownloadMenu(!showDownloadMenu)}
+            >
+              <Download size={16} color="#FFF" style={{marginRight: 6}} />
+              <Text style={styles.downloadBtnText}>Download</Text>
+              <ChevronDown size={16} color="#FFF" style={{marginLeft: 4}} />
+            </TouchableOpacity>
+
+            {showDownloadMenu && (
+              <View style={styles.downloadMenu}>
+                <TouchableOpacity 
+                  style={styles.downloadMenuItem}
+                  onPress={() => {
+                    setShowDownloadMenu(false);
+                    setShowGstModal(true);
+                  }}
+                >
+                  <Text style={styles.downloadMenuItemText}>GST Report</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.downloadMenuItem}>
+                  <Text style={styles.downloadMenuItemText}>Tax Invoice</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.downloadMenuItem}>
+                  <Text style={styles.downloadMenuItemText}>Supplier Tax Invoice</Text>
+                  <View style={styles.newBadge}><Text style={styles.newBadgeText}>New</Text></View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.downloadMenuItem}>
+                  <Text style={styles.downloadMenuItemText}>Payments to Date</Text>
+                  <View style={styles.newBadge}><Text style={styles.newBadgeText}>New</Text></View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.downloadMenuItem}>
+                  <Text style={styles.downloadMenuItemText}>Outstanding Payments</Text>
+                  <View style={styles.newBadge}><Text style={styles.newBadgeText}>New</Text></View>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       <ScrollView style={styles.scrollBody} contentContainerStyle={styles.scrollContent}>
@@ -195,6 +334,89 @@ export const SellerGenericTabScreen: React.FC<SellerGenericTabScreenProps> = ({ 
           </View>
         )}
       </ScrollView>
+
+      {/* GST Modal */}
+      <Modal
+        visible={showGstModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowGstModal(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Download GST reports</Text>
+              <TouchableOpacity onPress={() => setShowGstModal(false)}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <View style={styles.dropdownRow}>
+                {/* Year Dropdown */}
+                <View style={styles.dropdownContainer}>
+                  <TouchableOpacity 
+                    style={styles.dropdownSelector}
+                    onPress={() => {
+                      setShowYearDropdown(!showYearDropdown);
+                      setShowMonthDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownSelectedText}>{selectedYear}</Text>
+                    <ChevronDown size={16} color="#64748B" />
+                  </TouchableOpacity>
+                  {showYearDropdown && (
+                    <ScrollView style={styles.dropdownList} nestedScrollEnabled>
+                      {['2024', '2025', '2026'].map(year => (
+                        <TouchableOpacity 
+                          key={year} 
+                          style={styles.dropdownListItem}
+                          onPress={() => { setSelectedYear(year); setShowYearDropdown(false); }}
+                        >
+                          <Text style={styles.dropdownListItemText}>{year}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+
+                {/* Month Dropdown */}
+                <View style={[styles.dropdownContainer, { marginLeft: 12 }]}>
+                  <TouchableOpacity 
+                    style={styles.dropdownSelector}
+                    onPress={() => {
+                      setShowMonthDropdown(!showMonthDropdown);
+                      setShowYearDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownSelectedText}>{selectedMonth}</Text>
+                    <ChevronDown size={16} color="#64748B" />
+                  </TouchableOpacity>
+                  {showMonthDropdown && (
+                    <ScrollView style={styles.dropdownList} nestedScrollEnabled>
+                      {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(month => (
+                        <TouchableOpacity 
+                          key={month} 
+                          style={styles.dropdownListItem}
+                          onPress={() => { setSelectedMonth(month); setShowMonthDropdown(false); }}
+                        >
+                          <Text style={styles.dropdownListItemText}>{month}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.modalFooter}>
+                <Text style={styles.modalFooterText}>For GST reports of Dec '21 and before <Text style={{color: '#4338CA', textDecorationLine: 'underline'}}>click here</Text></Text>
+                <TouchableOpacity style={styles.modalDownloadBtn} onPress={handleDownloadGST}>
+                  <Text style={styles.modalDownloadBtnText}>Download</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -210,6 +432,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+    zIndex: 50,
+    elevation: 5,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   backBtn: {
@@ -246,4 +470,165 @@ const styles = StyleSheet.create({
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
   cardTitle: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
   infoText: { fontSize: 13, color: '#334155', fontWeight: '500', lineHeight: 18 },
+  downloadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4338CA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  downloadBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  downloadMenu: {
+    position: 'absolute',
+    top: 45,
+    right: 0,
+    backgroundColor: '#FFF',
+    borderRadius: 8,
+    padding: 8,
+    width: 220,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  downloadMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  downloadMenuItemText: {
+    fontSize: 14,
+    color: '#334155',
+    fontWeight: '500',
+  },
+  newBadge: {
+    backgroundColor: '#3B82F6', // Changed from pink (#EC4899) to blue
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  newBadgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    width: '90%',
+    maxWidth: 450,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  modalBody: {
+    padding: 20,
+    minHeight: 200, // Make enough room for dropdowns
+  },
+  dropdownRow: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    zIndex: 100,
+  },
+  dropdownContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  dropdownSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#FFF',
+  },
+  dropdownSelectedText: {
+    fontSize: 14,
+    color: '#0F172A',
+  },
+  dropdownList: {
+    position: 'absolute',
+    top: 45,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    maxHeight: 150,
+    zIndex: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  dropdownListItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  dropdownListItemText: {
+    fontSize: 14,
+    color: '#334155',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 'auto', // Push to bottom if height expands
+    paddingTop: 16,
+  },
+  modalFooterText: {
+    fontSize: 11,
+    color: '#64748B',
+    flex: 1,
+    marginRight: 12,
+  },
+  modalDownloadBtn: {
+    backgroundColor: '#4338CA',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  modalDownloadBtnText: {
+    color: '#FFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
 });

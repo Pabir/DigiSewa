@@ -24,7 +24,7 @@ export async function generateProductDetailsFromImage(base64Image: string): Prom
 
   try {
     const model = getGeminiModel('gemini-1.5-flash');
-    const prompt = `Analyze this product image for an Indian hyperlocal e-commerce app (DigiSewa).
+    const prompt = `Analyze this product image for an Indian hyperlocal e-commerce app (TafDeal).
 Return ONLY a raw valid JSON object with the following schema, with no markdown formatting or backticks:
 {
   "title": "Short descriptive product title",
@@ -55,14 +55,14 @@ Return ONLY a raw valid JSON object with the following schema, with no markdown 
       category: parsed.category || 'General',
       suggestedPrice: Number(parsed.suggestedPrice) || 199,
       suggestedOriginalPrice: Number(parsed.suggestedOriginalPrice) || 299,
-      tags: Array.isArray(parsed.tags) ? parsed.tags : ['Hyperlocal', 'DigiSewa'],
+      tags: Array.isArray(parsed.tags) ? parsed.tags : ['Hyperlocal', 'TafDeal'],
     };
   } catch (error) {
     console.error('Error calling Gemini Vision API:', error);
     // Intelligent fallback
     return {
       title: 'Handcrafted Local Product',
-      description: 'Authentic high-quality local product provided by verified DigiSewa sellers.',
+      description: 'Authentic high-quality local product provided by verified TafDeal sellers.',
       category: 'Hyperlocal Essentials',
       suggestedPrice: 299,
       suggestedOriginalPrice: 499,
@@ -94,7 +94,7 @@ export async function searchProductsWithAI(
     return {
       matchingProductIds: matches.map(m => m.id),
       aiSummary: matches.length > 0 
-        ? `Found ${matches.length} DigiSewa products matching your request "${userQuery}".`
+        ? `Found ${matches.length} TafDeal products matching your request "${userQuery}".`
         : `Showing top recommended products for "${userQuery}".`,
     };
   }
@@ -109,7 +109,7 @@ export async function searchProductsWithAI(
       tags: p.tags,
     }));
 
-    const prompt = `You are DigiSewa's AI Shopping Assistant.
+    const prompt = `You are TafDeal's AI Shopping Assistant.
 User Search Query: "${userQuery}"
 Available Products Catalog: ${JSON.stringify(catalogSummary)}
 

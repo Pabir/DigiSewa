@@ -68,7 +68,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({ onSuccess, o
             <Mail size={18} color="#64748B" style={styles.inputIcon} />
             <TextInput
               style={styles.textInput}
-              placeholder="e.g. admin@DigiSewa.in"
+              placeholder="e.g. admin@TafDeal.in"
               placeholderTextColor="#94A3B8"
               keyboardType="email-address"
               autoCapitalize="none"

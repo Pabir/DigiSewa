@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import TafdealLogo from '../../assets/TAFDEAL_logo.svg';
 import { ShieldAlert, Heart, Phone, Mail } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,8 +13,8 @@ export const Footer: React.FC = () => {
         {/* Brand Column */}
         <View style={styles.brandCol}>
           <View style={styles.logoRow}>
-            <Image source={require('../../assets/logo.png')} style={styles.logoBadge} resizeMode="contain" />
-            <Text style={styles.brandTitle}>DigiSewa</Text>
+            <TafdealLogo width={28} height={28} style={styles.logoBadge} />
+            <Text style={styles.brandTitle}>TafDeal</Text>
           </View>
           <Text style={styles.brandSubtitle}>
             Connecting local sellers, customers, and express delivery in one unified digital ecosystem.
@@ -44,7 +45,7 @@ export const Footer: React.FC = () => {
           </View>
           <View style={styles.contactRow}>
             <Mail size={14} color="#4F46E5" />
-            <Text style={styles.contactText}>support@DigiSewa.org</Text>
+            <Text style={styles.contactText}>support@TafDeal.org</Text>
           </View>
 
           {/* Hidden Discrete Admin Portal Link (Only shown when not in Seller role) */}
@@ -63,7 +64,7 @@ export const Footer: React.FC = () => {
 
       <View style={styles.copyrightBar}>
         <Text style={styles.copyrightText}>
-          © {new Date().getFullYear()} DigiSewa Inc. Built with <Heart size={12} color="#4F46E5" /> for Assam & India.
+          © {new Date().getFullYear()} TafDeal Inc. Built with <Heart size={12} color="#4F46E5" /> for Assam & India.
         </Text>
       </View>
     </View>

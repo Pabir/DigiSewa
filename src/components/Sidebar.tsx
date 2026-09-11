@@ -10,6 +10,7 @@ import {
   MapPin,
   CreditCard,
   AlertCircle,
+  Heart,
   Store,
   LogOut,
   User,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 
 interface SidebarProps {
   currentTab: string;
@@ -52,6 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   } = useAuth();
 
   const { totalItems } = useCart();
+  const { totalItems: wishlistTotal } = useWishlist();
 
   const handleCustomerOptionPress = (id: string) => {
     if (onCloseSidebar) {
@@ -137,12 +140,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const customerShoppingGroup = [
     { id: 'home', label: 'Home Store', icon: ShoppingBag, sub: 'Explore hyperlocal products' },
     { id: 'cart', label: 'My Cart & Checkout', icon: ShoppingCart, countBadge: totalItems },
+    { id: 'wishlist', label: 'My Wishlist', icon: Heart, countBadge: wishlistTotal > 0 ? wishlistTotal : undefined },
     { id: 'orders', label: 'Order History', icon: History, sub: 'Track active & past orders' },
     { id: 'addresses', label: 'Saved Delivery Addresses', icon: MapPin, sub: 'Manage delivery locations' },
   ];
 
   const customerServicesGroup = [
-    { id: 'wallet', label: 'DigiSewa Wallet & Refunds', icon: CreditCard, badge: '₹899 Bal' },
+    { id: 'wallet', label: 'TafDeal Wallet & Refunds', icon: CreditCard, badge: '₹899 Bal' },
     { id: 'support', label: 'Help & Customer Support', icon: AlertCircle, sub: '24/7 Helpline & Tickets' },
   ];
 
@@ -157,7 +161,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Mobile Bottom Bar (<768px when NOT in drawer overlay)
   if (!isDesktop && !onCloseSidebar) {
     const mobileBottomItems = [
-      { id: 'home', label: 'Home Store', icon: ShoppingBag },
+      { id: 'home', label: 'Home', icon: ShoppingBag },
+      { id: 'wishlist', label: 'Wishlist', icon: Heart },
       { id: 'orders', label: 'Orders', icon: History },
     ];
 

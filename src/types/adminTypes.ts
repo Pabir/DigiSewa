@@ -23,6 +23,12 @@ export interface AdminSeller {
   totalProductsCount: number;
   totalSalesVolume: number;
   rejectionReason?: string;
+  gstAdditionRequest?: {
+    gstin: string;
+    status: 'pending' | 'approved' | 'rejected';
+    submittedAt: string;
+    rejectionReason?: string;
+  };
 }
 
 export interface AdminCustomer {
@@ -50,6 +56,7 @@ export interface SupportTicketMessage {
   senderName: string;
   message: string;
   timestamp: string;
+  attachmentUrl?: string;
 }
 
 export interface SupportTicket {
@@ -70,6 +77,7 @@ export interface SupportTicket {
   createdAt: string;
   updatedAt: string;
   assignedAgent?: string;
+  attachmentUrls?: string[];
   messages: SupportTicketMessage[];
 }
 
@@ -80,4 +88,10 @@ export interface AdminOverviewMetrics {
   totalCustomersCount: number;
   openSellerTicketsCount: number;
   openCustomerTicketsCount: number;
+}
+
+export interface SystemSettings {
+  shiprocketEnabled: boolean;
+  shadowfaxEnabled: boolean;
+  maintenanceWarningEnabled?: boolean;
 }

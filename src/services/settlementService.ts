@@ -35,8 +35,11 @@ export const createSettlement = async (order: Order, sellerId: string, storeName
 
 export const chargeRTOPenalty = async (order: Order): Promise<void> => {
   try {
-    const rtoCost = order.actualShippingCost || 49; // Fallback to 49 if no actual cost saved
-    if (rtoCost <= 0) return; // No penalty if no shipping cost
+    const baseShippingCost = order.actualShippingCost || 49; // Fallback to 49 if no actual cost saved
+    if (baseShippingCost <= 0) return; // No penalty if no shipping cost
+
+    // Penalty includes BOTH forward shipping (seller to customer) AND reverse shipping (customer to seller)
+    const totalRtoPenalty = baseShippingCost * 2; 
 
     const sellerId = order.items[0]?.product?.sellerId;
     const storeName = order.items[0]?.product?.sellerName || 'Unknown Store';
@@ -47,7 +50,7 @@ export const chargeRTOPenalty = async (order: Order): Promise<void> => {
       sellerId,
       storeName,
       orderId: order.id,
-      amountOwed: -Math.abs(rtoCost), // Negative settlement for penalty
+      amountOwed: -Math.abs(totalRtoPenalty), // Negative settlement for penalty
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
@@ -126,5 +129,23 @@ export const syncPastDeliveries = async (): Promise<number> => {
   } catch (error) {
     console.error('Error syncing past deliveries:', error);
     return 0;
+  }
+};
+
+export const getCodRemittedOrders = async (): Promise<Order[]> => {
+  try {
+    const q = query(
+      collection(db, 'orders'),
+      where('codRemitted', '==', true)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => doc.data() as Order).sort((a, b) => {
+      const dateA = a.remittanceDate || a.createdAt;
+      const dateB = b.remittanceDate || b.createdAt;
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
+  } catch (error) {
+    console.error('Error fetching remitted orders:', error);
+    return [];
   }
 };

@@ -40,7 +40,7 @@ export const CustomerWalletModal: React.FC<CustomerWalletModalProps> = ({
     {
       id: 'TXN-8812',
       type: 'cashback',
-      title: 'DigiSewa Hyperlocal First Order Cashback',
+      title: 'TafDeal Hyperlocal First Order Cashback',
       date: '20 Jul 2026, 11:30 AM',
       amount: '+ ₹100.00',
       isCredit: true,
@@ -68,7 +68,7 @@ export const CustomerWalletModal: React.FC<CustomerWalletModalProps> = ({
                 <CreditCard size={22} color="#4F46E5" />
               </View>
               <View>
-                <Text style={styles.headerTitle}>DigiSewa Customer Wallet</Text>
+                <Text style={styles.headerTitle}>TafDeal Customer Wallet</Text>
                 <Text style={styles.headerSub}>Instant Refunds & Store Credit</Text>
               </View>
             </View>

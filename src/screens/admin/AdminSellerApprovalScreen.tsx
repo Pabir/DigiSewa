@@ -11,12 +11,14 @@ import {
 import { AdminSeller, SellerApprovalStatus } from '../../types/adminTypes';
 import { Search, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
-
+import { AdminSellerInventoryModal } from '../../components/admin/AdminSellerInventoryModal';
 interface AdminSellerApprovalScreenProps {
   sellers: AdminSeller[];
   onApproveSeller: (sellerId: string) => void;
   onRejectSeller: (sellerId: string, reason: string) => void;
   onSuspendSeller: (sellerId: string) => void;
+  onApproveGst?: (sellerId: string, gstin: string) => void;
+  onRejectGst?: (sellerId: string, reason: string) => void;
 }
 
 export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps> = ({
@@ -24,6 +26,8 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
   onApproveSeller,
   onRejectSeller,
   onSuspendSeller,
+  onApproveGst,
+  onRejectGst,
 }) => {
   const { activeRole } = useAuth();
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<SellerApprovalStatus | 'all'>('all');
@@ -31,8 +35,12 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
   const [selectedSellerForReview, setSelectedSellerForReview] = useState<AdminSeller | null>(null);
   const [rejectionReasonInput, setRejectionReasonInput] = useState<string>('');
   const [showRejectModal, setShowRejectModal] = useState<boolean>(false);
+  const [selectedSellerForInventory, setSelectedSellerForInventory] = useState<AdminSeller | null>(null);
 
   const filteredSellers = sellers.filter((s) => {
+    if (selectedStatusFilter === 'gst_requests') {
+      return s.gstAdditionRequest?.status === 'pending';
+    }
     const matchesStatus = selectedStatusFilter === 'all' || s.status === selectedStatusFilter;
     const matchesSearch =
       s.storeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -99,6 +107,7 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
               { key: 'approved', label: `Approved (${sellers.filter((s) => s.status === 'approved').length})` },
               { key: 'rejected', label: `Rejected (${sellers.filter((s) => s.status === 'rejected').length})` },
               { key: 'suspended', label: `Suspended (${sellers.filter((s) => s.status === 'suspended').length})` },
+              { key: 'gst_requests', label: `GST Requests (${sellers.filter((s) => s.gstAdditionRequest?.status === 'pending').length})` },
             ].map((pill) => (
               <TouchableOpacity
                 key={pill.key}
@@ -161,6 +170,11 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
                     {/* GSTIN & PAN */}
                     <View style={{ flex: 1.2 }}>
                       <Text style={styles.gstinText}>GST: {seller.gstin}</Text>
+                      {seller.gstAdditionRequest?.status === 'pending' && (
+                        <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start', marginTop: 2 }}>
+                          <Text style={{ fontSize: 9, color: '#D97706', fontWeight: '800' }}>Pending GST Update</Text>
+                        </View>
+                      )}
                       <Text style={styles.panText}>PAN: {seller.panNumber}</Text>
                       <Text style={styles.subText}>{seller.city}, {seller.state}</Text>
                     </View>
@@ -176,12 +190,19 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
                     <View style={{ flex: 1 }}>{getStatusBadge(seller.status)}</View>
 
                     {/* Action Buttons */}
-                    <View style={{ flex: 1.2, flexDirection: 'row', justifyContent: 'flex-end', gap: 6 }}>
+                    <View style={{ flex: 1.2, flexDirection: 'row', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
                       <TouchableOpacity
                         style={styles.reviewBtn}
                         onPress={() => setSelectedSellerForReview(seller)}
                       >
                         <Text style={styles.reviewBtnText}>Review Details</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.inventoryBtn}
+                        onPress={() => setSelectedSellerForInventory(seller)}
+                      >
+                        <Text style={styles.inventoryBtnText}>Inventory</Text>
                       </TouchableOpacity>
 
                       {seller.status === 'pending' && (activeRole === 'super_admin' || activeRole === 'admin') && (
@@ -237,8 +258,41 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
 
                   <View style={styles.detailBox}>
                     <Text style={styles.detailBoxLabel}>GSTIN Certificate Number</Text>
-                    <Text style={styles.detailBoxValBold}>{selectedSellerForReview.gstin}</Text>
+                    <Text style={styles.detailBoxValBold}>{selectedSellerForReview.gstin || 'Not Registered'}</Text>
                   </View>
+
+                  {selectedSellerForReview.gstAdditionRequest?.status === 'pending' && (
+                    <View style={[styles.detailBoxFullWidth, { borderColor: '#FDE68A', backgroundColor: '#FFFBEB' }]}>
+                      <Text style={[styles.detailBoxLabel, { color: '#D97706' }]}>Pending GST Addition Request</Text>
+                      <Text style={[styles.detailBoxValBold, { color: '#D97706' }]}>Requested GSTIN: {selectedSellerForReview.gstAdditionRequest.gstin}</Text>
+                      <Text style={{ fontSize: 11, color: '#92400E', marginTop: 4 }}>Review this GSTIN. If valid, approve to update seller's profile.</Text>
+                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                        {onApproveGst && (
+                          <TouchableOpacity
+                            style={{ backgroundColor: '#059669', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}
+                            onPress={() => {
+                              onApproveGst(selectedSellerForReview.id, selectedSellerForReview.gstAdditionRequest!.gstin);
+                              setSelectedSellerForReview(null);
+                            }}
+                          >
+                            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>Approve GSTIN</Text>
+                          </TouchableOpacity>
+                        )}
+                        {onRejectGst && (
+                          <TouchableOpacity
+                            style={{ backgroundColor: '#DC2626', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}
+                            onPress={() => {
+                              const reason = prompt('Enter reason for rejecting GSTIN:') || 'Invalid GSTIN details';
+                              onRejectGst(selectedSellerForReview.id, reason);
+                              setSelectedSellerForReview(null);
+                            }}
+                          >
+                            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '700' }}>Reject GSTIN</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  )}
 
                   <View style={styles.detailBox}>
                     <Text style={styles.detailBoxLabel}>PAN Card Number</Text>
@@ -364,6 +418,15 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
             </View>
           </View>
         </Modal>
+      )}
+
+      {/* Seller Inventory Modal */}
+      {selectedSellerForInventory && (
+        <AdminSellerInventoryModal
+          visible={!!selectedSellerForInventory}
+          seller={selectedSellerForInventory}
+          onClose={() => setSelectedSellerForInventory(null)}
+        />
       )}
     </View>
   );
@@ -550,6 +613,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: '#4338CA',
+  },
+  inventoryBtn: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  inventoryBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#374151',
   },
   quickApproveBtn: {
     backgroundColor: '#059669',
