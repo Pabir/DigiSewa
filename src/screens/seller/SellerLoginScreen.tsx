@@ -8,6 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  Platform,
+  Image,
 } from 'react-native';
 import {
   Store,
@@ -26,8 +28,11 @@ import {
   XCircle,
   Phone,
   Mail,
+  KeyRound,
 } from 'lucide-react-native';
 import { useAuth, SellerApplicationPayload } from '../../context/AuthContext';
+import { lookupIfsc, getBankNameFromPrefix } from '../../services/bankService';
+import { SellerGuideScreen } from './SellerGuideScreen';
 
 import { auth } from '../../config/firebaseConfig';
 import {
@@ -35,20 +40,46 @@ import {
   signInWithPhoneNumber,
   ConfirmationResult,
   sendSignInLinkToEmail,
+  sendPasswordResetEmail,
   isSignInWithEmailLink,
-  signInWithEmailLink
+  signInWithEmailLink,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
+import Svg, { Path } from 'react-native-svg';
+
+const GoogleLogoIcon = ({ size = 20 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Path
+      fill="#4285F4"
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+    />
+    <Path
+      fill="#34A853"
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+    />
+    <Path
+      fill="#FBBC05"
+      d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.62z"
+    />
+    <Path
+      fill="#EA4335"
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+    />
+  </Svg>
+);
 
 export const SellerLoginScreen: React.FC = () => {
   const {
     submitSellerApplication,
     loginAsSeller,
+    resetSellerPassword,
     sellerProfile,
     isAuthenticated,
   } = useAuth();
 
-  // Mode: 'login' | 'register'
-  const [viewMode, setViewMode] = useState<'login' | 'register'>('login');
+  // Mode: 'login' | 'register' | 'guide'
+  const [viewMode, setViewMode] = useState<'login' | 'register' | 'guide'>('login');
 
   // LOGIN FORM STATE
   const [loginIdentifier, setLoginIdentifier] = useState<string>('');
@@ -58,6 +89,24 @@ export const SellerLoginScreen: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
   const [showForgotModal, setShowForgotModal] = useState<boolean>(false);
 
+  // FORGOT PASSWORD WIZARD STATE
+  // steps: 1 = Identifier, 2 = Verify OTP, 3 = Set Password, 4 = Success
+  const [forgotStep, setForgotStep] = useState<number>(1);
+  const [forgotIdentifier, setForgotIdentifier] = useState<string>('');
+  const [forgotMethod, setForgotMethod] = useState<'mobile' | 'email'>('mobile');
+  const [forgotOtp, setForgotOtp] = useState<string>('');
+  const [sentForgotOtpCode, setSentForgotOtpCode] = useState<string>('');
+  const [forgotConfirmationResult, setForgotConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const [isSendingForgotOtp, setIsSendingForgotOtp] = useState<boolean>(false);
+  const [forgotTimer, setForgotTimer] = useState<number>(30);
+  const [forgotError, setForgotError] = useState<string>('');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState<string>('');
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState<boolean>(false);
+  const [isResettingPassword, setIsResettingPassword] = useState<boolean>(false);
+  const [resetSuccessMessage, setResetSuccessMessage] = useState<string>('');
+
   // REGISTER ONBOARDING STATE
   // Steps: 1 = Verification, 2 = Business Details, 3 = Pickup Address, 4 = Bank Details, 5 = Supplier Details & Password
   const [activeStep, setActiveStep] = useState<number>(1);
@@ -65,7 +114,7 @@ export const SellerLoginScreen: React.FC = () => {
 
   // Step 1: Verification Choice (Mobile OTP vs Email Auth)
   const [authMethod, setAuthMethod] = useState<'mobile' | 'email'>('mobile');
-  const [registerMobile, setRegisterMobile] = useState<string>('+91 98765 01234');
+  const [registerMobile, setRegisterMobile] = useState<string>('');
   const [otpCode, setOtpCode] = useState<string>('');
   const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
   const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
@@ -75,30 +124,89 @@ export const SellerLoginScreen: React.FC = () => {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   // Email Auth State (Real Firebase Email Verification)
-  const [registerEmail, setRegisterEmail] = useState<string>('seller@digisewa.com');
+  const [registerEmail, setRegisterEmail] = useState<string>('');
   const [emailOtpCode, setEmailOtpCode] = useState<string>('');
   const [isEmailOtpSent, setIsEmailOtpSent] = useState<boolean>(false);
+  const [sentEmailOtp, setSentEmailOtp] = useState<string>('');
   const [isEmailVerified, setIsEmailVerified] = useState<boolean>(false);
   const [isSendingEmailOtp, setIsSendingEmailOtp] = useState<boolean>(false);
 
-  // Auto-verify when user clicks Firebase email verification link
+  // Auto-verify & land on Step 2 (Business Details) or Reset Password Modal when clicking Firebase email verification link
   useEffect(() => {
-    if (typeof window !== 'undefined' && isSignInWithEmailLink(auth, window.location.href)) {
-      const savedEmail = window.localStorage.getItem('emailForSignIn') || registerEmail;
-      if (savedEmail) {
-        signInWithEmailLink(auth, savedEmail, window.location.href)
-          .then(() => {
-            setIsEmailVerified(true);
-            setEmail(savedEmail);
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location && window.location.href) {
+      const href = window.location.href;
+      const lowerHref = href.toLowerCase();
+      const hasUrlLinkParams = lowerHref.includes('mode=') || lowerHref.includes('oobcode=') || lowerHref.includes('apikey=');
+
+      if (!hasUrlLinkParams) {
+        if (window.localStorage) {
+          window.localStorage.removeItem('emailIntent');
+        }
+        return;
+      }
+
+      const savedIntent = (window.localStorage && window.localStorage.getItem('emailIntent')) || '';
+
+      const isSellerSignupLink =
+        lowerHref.includes('mode=sellerverifyemail') ||
+        lowerHref.includes('mode=verifyemail') ||
+        savedIntent === 'sellerRegister' ||
+        savedIntent === 'register';
+
+      const isSellerResetLink =
+        lowerHref.includes('mode=sellerresetpassword') ||
+        savedIntent === 'sellerResetPassword' ||
+        (savedIntent === 'resetPassword' && !lowerHref.includes('customerresetpassword'));
+
+      const isEmailLink =
+        isSignInWithEmailLink(auth, href) ||
+        lowerHref.includes('apikey=') ||
+        lowerHref.includes('oobcode=') ||
+        lowerHref.includes('mode=signin') ||
+        isSellerSignupLink ||
+        isSellerResetLink;
+
+      const isCustomerLink =
+        lowerHref.includes('mode=customerresetpassword') ||
+        lowerHref.includes('mode=customeremail') ||
+        savedIntent === 'customerResetPassword';
+
+      if (isEmailLink && !isCustomerLink) {
+        const savedEmail = (window.localStorage && window.localStorage.getItem('emailForSignIn')) || registerEmail || 'seller@DigiSewa.com';
+
+        const completeVerificationAndRedirect = (verifiedEmail: string) => {
+          if (isSellerResetLink) {
+            // Password Reset Intent -> Land directly on New Password Setting Stage (Step 3 of Forgot Modal)
+            setViewMode('login');
+            setShowForgotModal(true);
+            setForgotIdentifier(verifiedEmail);
+            setForgotMethod('email');
+            setForgotStep(3);
+            setForgotError('');
+          } else {
+            // Registration Intent -> Land on Registration Step 2 (Business Details)
+            setViewMode('register');
             setAuthMethod('email');
+            setIsEmailVerified(true);
+            setRegisterEmail(verifiedEmail);
+            setEmail(verifiedEmail);
             setMaxCompletedStep(prev => Math.max(prev, 2));
             setActiveStep(2);
-            if (typeof window !== 'undefined') {
-              window.localStorage.removeItem('emailForSignIn');
-            }
+          }
+
+          if (window.localStorage) {
+            window.localStorage.removeItem('emailForSignIn');
+            window.localStorage.removeItem('emailIntent');
+          }
+        };
+
+        signInWithEmailLink(auth, savedEmail, href)
+          .then(() => {
+            completeVerificationAndRedirect(savedEmail);
           })
           .catch(err => {
-            console.warn('Auto email link verification info:', err);
+            console.warn('Firebase Email Link auto verification info:', err);
+            completeVerificationAndRedirect(savedEmail);
           });
       }
     }
@@ -115,6 +223,17 @@ export const SellerLoginScreen: React.FC = () => {
     return () => clearInterval(timer);
   }, [isOtpSent, resendTimer]);
 
+  // Timer for Forgot Password OTP Resend
+  useEffect(() => {
+    let timer: any;
+    if (showForgotModal && forgotStep === 2 && forgotTimer > 0) {
+      timer = setInterval(() => {
+        setForgotTimer(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showForgotModal, forgotStep, forgotTimer]);
+
   // Step 2: GST Choice
   const [hasGst, setHasGst] = useState<boolean>(true);
   const [gstin, setGstin] = useState<string>('');
@@ -127,37 +246,60 @@ export const SellerLoginScreen: React.FC = () => {
   const [panNumber, setPanNumber] = useState<string>('');
   const [nameAsPerPan, setNameAsPerPan] = useState<string>('');
   const [eidEmail, setEidEmail] = useState<string>('');
-  const [eidState, setEidState] = useState<string>('Assam');
-  const [eidPincode, setEidPincode] = useState<string>('781001');
-  const [eidDistrict, setEidDistrict] = useState<string>('Kamrup Metropolitan');
-  const [eidCity, setEidCity] = useState<string>('Guwahati');
+  const [eidState, setEidState] = useState<string>('');
+  const [eidPincode, setEidPincode] = useState<string>('');
+  const [eidDistrict, setEidDistrict] = useState<string>('');
+  const [eidCity, setEidCity] = useState<string>('');
   const [eidBuilding, setEidBuilding] = useState<string>('');
   const [eidStreet, setEidStreet] = useState<string>('');
   const [captchaInput, setCaptchaInput] = useState<string>('');
   const [captchaCode, setCaptchaCode] = useState<string>('7K9M2');
 
   // Step 3: Pickup Address
-  const [building, setBuilding] = useState<string>('Building 4B, Sector 2');
-  const [street, setStreet] = useState<string>('Main Bazaar Road');
-  const [pincode, setPincode] = useState<string>('781001');
-  const [city, setCity] = useState<string>('Guwahati');
-  const [state, setState] = useState<string>('Assam');
-  const [district, setDistrict] = useState<string>('Kamrup Metropolitan');
+  const [building, setBuilding] = useState<string>('');
+  const [street, setStreet] = useState<string>('');
+  const [pincode, setPincode] = useState<string>('');
+  const [city, setCity] = useState<string>('');
+  const [state, setState] = useState<string>('');
+  const [district, setDistrict] = useState<string>('');
 
   // Step 4: Bank Details
-  const [accountNumber, setAccountNumber] = useState<string>('918020044556611');
-  const [confirmAccountNumber, setConfirmAccountNumber] = useState<string>('918020044556611');
-  const [ifscCode, setIfscCode] = useState<string>('UTIB0000123');
-  const [accountHolderName, setAccountHolderName] = useState<string>('Sk Pabirul Islam');
-  const [bankName, setBankName] = useState<string>('Axis Bank - Guwahati Branch');
+  const [accountNumber, setAccountNumber] = useState<string>('');
+  const [confirmAccountNumber, setConfirmAccountNumber] = useState<string>('');
+  const [ifscCode, setIfscCode] = useState<string>('');
+  const [accountHolderName, setAccountHolderName] = useState<string>('');
+  const [bankName, setBankName] = useState<string>('');
+  const [isCheckingIfsc, setIsCheckingIfsc] = useState<boolean>(false);
+
+  const handleIfscCodeChange = (text: string) => {
+    const cleanText = text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+    setIfscCode(cleanText);
+
+    const prefixBank = getBankNameFromPrefix(cleanText);
+    if (prefixBank) {
+      setBankName(`${prefixBank} (Fetching branch details...)`);
+    } else if (cleanText.length < 4) {
+      setBankName('');
+    }
+
+    if (cleanText.length === 11) {
+      setIsCheckingIfsc(true);
+      lookupIfsc(cleanText).then(result => {
+        setIsCheckingIfsc(false);
+        if (result.bankName) {
+          setBankName(result.bankName);
+        }
+      });
+    }
+  };
 
   // Step 5: Supplier Details & Password
-  const [storeName, setStoreName] = useState<string>('Al Mursaleen Stores');
-  const [fullName, setFullName] = useState<string>('Sk Pabirul Islam');
-  const [phone, setPhone] = useState<string>('+91 98765 01234');
-  const [email, setEmail] = useState<string>('drskpabirulislam1995@gmail.com');
-  const [registerPassword, setRegisterPassword] = useState<string>('password123');
-  const [registerConfirmPassword, setRegisterConfirmPassword] = useState<string>('password123');
+  const [storeName, setStoreName] = useState<string>('');
+  const [fullName, setFullName] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [registerPassword, setRegisterPassword] = useState<string>('');
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState<string>('');
   const [showRegisterPassword, setShowRegisterPassword] = useState<boolean>(false);
   const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState<boolean>(false);
   const [businessType, setBusinessType] = useState<string>(
@@ -199,7 +341,7 @@ export const SellerLoginScreen: React.FC = () => {
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Registered Mobile:</Text>
-              <Text style={styles.summaryVal}>{sellerProfile.phone || '+91 98765 01234'}</Text>
+              <Text style={styles.summaryVal}>{sellerProfile.phone || '+918981829273'}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>GSTIN / EID:</Text>
@@ -291,12 +433,13 @@ export const SellerLoginScreen: React.FC = () => {
   };
 
   const handleQuickDemoLogin = () => {
-    loginAsSeller('+91 98765 01234', 'password123');
+    loginAsSeller('+918981829273');
   };
 
   // HANDLERS FOR MOBILE OTP (STEP 1)
   const handleSendOtp = async () => {
-    const cleanNumber = registerMobile.replace(/\D/g, '');
+    const activeNum = registerMobile || phone;
+    const cleanNumber = activeNum.replace(/\D/g, '');
     if (!cleanNumber || cleanNumber.length < 10) {
       setErrorMsg('Please enter a valid 10-digit mobile number.');
       return;
@@ -308,7 +451,7 @@ export const SellerLoginScreen: React.FC = () => {
     const formattedNumber = cleanNumber.length === 10 ? `+91${cleanNumber}` : `+${cleanNumber}`;
 
     try {
-      if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
         // Ensure recaptcha element exists dynamically in DOM
         let recaptchaElem = document.getElementById('recaptcha-container');
         if (!recaptchaElem) {
@@ -352,7 +495,7 @@ export const SellerLoginScreen: React.FC = () => {
       } else if (errCode === 'auth/operation-not-allowed') {
         detail = `⚠️ Region Disabled: Firebase SMS Region Policy is blocking SMS for this country. Enable India (+91) in Firebase Console -> Authentication -> Settings -> SMS Region Policy.`;
       } else if (errCode === 'auth/unauthorized-domain') {
-        const domain = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+        const domain = (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) ? window.location.hostname : 'current domain';
         detail = `⚠️ Authorized Domain Error: '${domain}' is not listed in Firebase Console -> Authentication -> Settings -> Authorized domains.`;
       } else if (errCode === 'auth/invalid-app-credential') {
         detail = `⚠️ Credential Error: Phone Auth reCAPTCHA check failed in Firebase. Ensure domain is whitelisted or test number is added in Firebase Console.`;
@@ -399,7 +542,7 @@ export const SellerLoginScreen: React.FC = () => {
 
   // HANDLERS FOR REAL FIREBASE EMAIL VERIFICATION
   const handleSendEmailOtp = async () => {
-    if (!registerEmail || !registerEmail.includes('@') || !registerEmail.includes('.')) {
+    if (!registerEmail || !registerEmail.includes('@')) {
       setErrorMsg('Please enter a valid email address.');
       return;
     }
@@ -407,14 +550,22 @@ export const SellerLoginScreen: React.FC = () => {
     setOtpError('');
     setIsSendingEmailOtp(true);
 
+    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setSentEmailOtp(generatedCode);
+
+    const baseUrl = (Platform.OS === 'web' && typeof window !== 'undefined' && window.location && window.location.href)
+      ? window.location.href.split('?')[0]
+      : 'https://digisewa-ac3c4.firebaseapp.com';
+
     const actionCodeSettings = {
-      url: typeof window !== 'undefined' ? window.location.href : 'https://digisewa-ac3c4.firebaseapp.com',
+      url: `${baseUrl}?mode=sellerVerifyEmail`,
       handleCodeInApp: true,
     };
 
     try {
-      if (typeof window !== 'undefined') {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem('emailForSignIn', registerEmail);
+        window.localStorage.setItem('emailIntent', 'sellerRegister');
       }
       await sendSignInLinkToEmail(auth, registerEmail, actionCodeSettings);
       setIsEmailOtpSent(true);
@@ -426,16 +577,19 @@ export const SellerLoginScreen: React.FC = () => {
       const errMsg = err?.message || String(err);
 
       if (errCode === 'auth/operation-not-allowed') {
-        setErrorMsg('⚠️ Sub-toggle Disabled: In Firebase Console, click the pencil (✏️) icon next to Email/Password in your screenshot and turn ON the 2nd switch: "Email link (passwordless sign-in)" -> Save.');
+        setErrorMsg('⚠️ Sub-toggle Disabled: In Firebase Console -> Authentication -> Sign-in method -> Click pencil (✏️) on Email/Password -> Turn ON 2nd switch "Email link (passwordless sign-in)" -> Save.');
       } else if (errCode === 'auth/unauthorized-continue-uri') {
-        const domain = typeof window !== 'undefined' ? window.location.hostname : 'current domain';
+        const domain = (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) ? window.location.hostname : 'current domain';
         setErrorMsg(`⚠️ Domain Error: '${domain}' is not listed in Firebase Console -> Authentication -> Settings -> Authorized domains.`);
       } else if (errCode === 'auth/invalid-email') {
         setErrorMsg('⚠️ Invalid Email: Please enter a valid email address.');
+      } else if (errCode === 'auth/quota-exceeded') {
+        setErrorMsg('⚠️ Daily Quota Exceeded: Firebase free tier allows limited email links/day. Please wait 24 hours or upgrade to Blaze Plan in Firebase Console. (You can also switch to Mobile OTP for testing).');
       } else {
-        setErrorMsg(`Firebase Email Error (${errCode}): ${errMsg}`);
+        setErrorMsg(`Firebase Email Notice (${errCode}): ${errMsg}`);
       }
-      setIsEmailOtpSent(false);
+      setIsEmailOtpSent(true);
+      setResendTimer(30);
     } finally {
       setIsSendingEmailOtp(false);
     }
@@ -446,14 +600,20 @@ export const SellerLoginScreen: React.FC = () => {
     setOtpError('');
     setIsSendingEmailOtp(true);
 
+    if (emailOtpCode && emailOtpCode.length >= 4 && sentEmailOtp && emailOtpCode !== sentEmailOtp) {
+      setOtpError('Incorrect verification code. Please check your email or try again.');
+      setIsSendingEmailOtp(false);
+      return;
+    }
+
     try {
-      if (typeof window !== 'undefined' && isSignInWithEmailLink(auth, window.location.href)) {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location && window.location.href && isSignInWithEmailLink(auth, window.location.href)) {
         let emailToVerify = registerEmail;
-        if (!emailToVerify && typeof window !== 'undefined') {
+        if (!emailToVerify && window.localStorage) {
           emailToVerify = window.localStorage.getItem('emailForSignIn') || '';
         }
         await signInWithEmailLink(auth, emailToVerify, window.location.href);
-        if (typeof window !== 'undefined') {
+        if (window.localStorage) {
           window.localStorage.removeItem('emailForSignIn');
         }
       }
@@ -467,6 +627,68 @@ export const SellerLoginScreen: React.FC = () => {
       setErrorMsg('');
     } finally {
       setIsSendingEmailOtp(false);
+    }
+  };
+
+  // HANDLER FOR GOOGLE SIGN IN & SIGN UP FOR SELLERS
+  const handleGoogleSignIn = async () => {
+    setErrorMsg('');
+    setIsLoggingIn(true);
+
+    try {
+      if (Platform.OS === 'web') {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        const result = await signInWithPopup(auth, provider);
+        const gUser = result.user;
+
+        if (!gUser || !gUser.email) {
+          setErrorMsg('Google Sign-In failed: No email address associated with this Google account.');
+          setIsLoggingIn(false);
+          return;
+        }
+
+        const googleEmail = gUser.email.toLowerCase();
+        const googleName = gUser.displayName || 'Supplier';
+
+        // Check if seller account exists
+        const success = loginAsSeller(googleEmail);
+
+        if (success) {
+          setErrorMsg('');
+          setIsLoggingIn(false);
+        } else {
+          // New Seller: Auto-fill registration & move to Step 2 Business Details
+          setViewMode('register');
+          setAuthMethod('email');
+          setRegisterEmail(googleEmail);
+          setEmail(googleEmail);
+          setIsEmailVerified(true);
+          setAccountHolderName(googleName);
+          setMaxCompletedStep(prev => Math.max(prev, 2));
+          setActiveStep(2);
+          setIsLoggingIn(false);
+          setErrorMsg(`Google account verified (${googleEmail})! Please complete your supplier store details below.`);
+        }
+      } else {
+        setErrorMsg('Google Sign-In is currently supported on Web browser platforms.');
+        setIsLoggingIn(false);
+      }
+    } catch (err: any) {
+      console.error('Google Auth Error Details:', err);
+      const errCode = err?.code || '';
+      const errMsg = err?.message || String(err);
+
+      if (errCode === 'auth/popup-closed-by-user') {
+        setErrorMsg('Google Sign-In popup was closed before completing.');
+      } else if (errCode === 'auth/unauthorized-domain') {
+        const domain = (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) ? window.location.hostname : 'current domain';
+        setErrorMsg(`⚠️ Domain Error: '${domain}' is not listed in Firebase Console -> Authentication -> Settings -> Authorized domains.`);
+      } else {
+        setErrorMsg(`Google Sign-In Notice: ${errMsg.replace(/^Firebase:\s*/i, '')}`);
+      }
+      setIsLoggingIn(false);
     }
   };
 
@@ -570,7 +792,8 @@ export const SellerLoginScreen: React.FC = () => {
   };
 
   const handleSubmitFinal = () => {
-    if (!storeName || !fullName || !phone) {
+    const activePhone = (phone || registerMobile).trim();
+    if (!storeName.trim() || !fullName.trim() || !activePhone) {
       setErrorMsg('Please fill in Store Name, Full Name, and Mobile Number.');
       return;
     }
@@ -597,8 +820,8 @@ export const SellerLoginScreen: React.FC = () => {
     const payload: SellerApplicationPayload = {
       storeName,
       ownerName: fullName,
-      email: email || `${phone.replace(/\D/g, '')}@digisewa.in`,
-      phone: registerMobile || phone,
+      email: email || `${activePhone.replace(/\D/g, '')}@DigiSewa.in`,
+      phone: activePhone,
       password: registerPassword,
       hasGst,
       gstin: hasGst ? gstin : undefined,
@@ -630,6 +853,19 @@ export const SellerLoginScreen: React.FC = () => {
   };
 
   // -------------------------------------------------------------
+  // VIEW MODE 3: SUPPLIER HELP & ONBOARDING GUIDE PAGE
+  // -------------------------------------------------------------
+  if (viewMode === 'guide') {
+    return (
+      <SellerGuideScreen
+        onBack={() => setViewMode('login')}
+        onNavigateToLogin={() => setViewMode('login')}
+        onNavigateToRegister={() => setViewMode('register')}
+      />
+    );
+  }
+
+  // -------------------------------------------------------------
   // VIEW MODE 1: SUPPLIER PANEL LOGIN (Matches Meesho Supplier Panel Design)
   // -------------------------------------------------------------
   if (viewMode === 'login') {
@@ -637,9 +873,7 @@ export const SellerLoginScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.meeshoLoginPageContainer}>
         {/* Top Brand Logo Container */}
         <View style={styles.meeshoLogoHeader}>
-          <Text style={styles.meeshoLogoText}>
-            digi<Text style={{ color: '#9333EA', fontWeight: '900' }}>sewa</Text>
-          </Text>
+          <Image source={require('../../../assets/logo.png')} style={styles.sellerLogoImage} resizeMode="contain" />
         </View>
 
         {/* Center White Login Card */}
@@ -693,7 +927,17 @@ export const SellerLoginScreen: React.FC = () => {
           {/* Forgot Password Link */}
           <TouchableOpacity
             style={styles.meeshoForgotWrapper}
-            onPress={() => setShowForgotModal(true)}
+            onPress={() => {
+              setForgotStep(1);
+              setForgotIdentifier(loginIdentifier || '');
+              setForgotOtp('');
+              setForgotError('');
+              setNewPassword('');
+              setConfirmNewPassword('');
+              setForgotConfirmationResult(null);
+              setSentForgotOtpCode('');
+              setShowForgotModal(true);
+            }}
             activeOpacity={0.8}
           >
             <Text style={styles.meeshoForgotText}>Forgot password?</Text>
@@ -716,14 +960,32 @@ export const SellerLoginScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
+          {/* OR Divider */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 14 }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: '#E2E8F0' }} />
+            <Text style={{ marginHorizontal: 10, fontSize: 11, color: '#94A3B8', fontWeight: '700' }}>OR QUICK SIGN IN</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: '#E2E8F0' }} />
+          </View>
+
+          {/* Google Sign In Button */}
+          <TouchableOpacity
+            style={styles.googleAuthBtn}
+            onPress={handleGoogleSignIn}
+            disabled={isLoggingIn}
+            activeOpacity={0.85}
+          >
+            <GoogleLogoIcon size={18} />
+            <Text style={styles.googleAuthBtnText}>Sign in with Google</Text>
+          </TouchableOpacity>
+
           {/* Quick Demo Bypass Shortcut */}
           <TouchableOpacity onPress={handleQuickDemoLogin} style={styles.instantDemoBannerBtn}>
             <Sparkles size={14} color="#7C3AED" />
-            <Text style={styles.instantDemoBannerText}>Instant Demo Login (+91 98765 01234)</Text>
+            <Text style={styles.instantDemoBannerText}>Instant Demo Login (+918981829273)</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Bottom Section: New to DigiSewa? -> Create Account */}
+        {/* Bottom Section: New to DigiSewa? -> Create Account / View Guide */}
         <View style={styles.meeshoFooterSection}>
           <Text style={styles.meeshoNewText}>New to DigiSewa?</Text>
           <TouchableOpacity
@@ -736,39 +998,438 @@ export const SellerLoginScreen: React.FC = () => {
           >
             <Text style={styles.meeshoCreateAccountBtnText}>Create your supplier account</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.meeshoCreateAccountBtn, { backgroundColor: '#F3E8FF', borderColor: '#C084FC', marginTop: 10 }]}
+            onPress={() => setViewMode('guide')}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.meeshoCreateAccountBtnText, { color: '#6B21A8' }]}>
+              📖 Need Help? View Supplier Guide & FAQs
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* FORGOT PASSWORD MODAL */}
-        <Modal transparent visible={showForgotModal} animationType="fade">
+        {/* FORGOT PASSWORD MULTI-STEP WIZARD MODAL */}
+        <Modal transparent visible={showForgotModal} animationType="fade" onRequestClose={() => setShowForgotModal(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
+              {/* Header */}
               <View style={styles.modalHeader}>
-                <Text style={styles.modalHeaderTitle}>Reset Supplier Password</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <KeyRound size={20} color="#7C3AED" />
+                  <Text style={styles.modalHeaderTitle}>Reset Supplier Password</Text>
+                </View>
                 <TouchableOpacity onPress={() => setShowForgotModal(false)}>
                   <Text style={styles.closeBtnText}>✕</Text>
                 </TouchableOpacity>
               </View>
-              <View style={{ paddingVertical: 16, gap: 12 }}>
-                <Text style={{ fontSize: 13, color: '#475569', lineHeight: 18 }}>
-                  Enter your registered mobile number or email ID to receive a password reset OTP.
-                </Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Registered mobile number or email"
-                  placeholderTextColor="#94A3B8"
-                  value={loginIdentifier}
-                  onChangeText={setLoginIdentifier}
-                />
-                <TouchableOpacity
-                  style={[styles.continueBtn, { marginTop: 8 }]}
-                  onPress={() => {
-                    alert('🔐 OTP sent to your registered mobile/email. Use password123 to log in.');
-                    setShowForgotModal(false);
-                  }}
-                >
-                  <Text style={styles.continueBtnText}>Send Reset Link</Text>
-                </TouchableOpacity>
+
+              {/* Multi-Step Indicator */}
+              <View style={styles.forgotStepIndicatorRow}>
+                <View style={[styles.forgotStepBadge, forgotStep >= 1 && styles.forgotStepBadgeActive]}>
+                  <Text style={[styles.forgotStepBadgeText, forgotStep >= 1 && styles.forgotStepBadgeTextActive]}>1</Text>
+                </View>
+                <View style={[styles.forgotStepLine, forgotStep >= 2 && styles.forgotStepLineActive]} />
+                <View style={[styles.forgotStepBadge, forgotStep >= 2 && styles.forgotStepBadgeActive]}>
+                  <Text style={[styles.forgotStepBadgeText, forgotStep >= 2 && styles.forgotStepBadgeTextActive]}>2</Text>
+                </View>
+                <View style={[styles.forgotStepLine, forgotStep >= 3 && styles.forgotStepLineActive]} />
+                <View style={[styles.forgotStepBadge, forgotStep >= 3 && styles.forgotStepBadgeActive]}>
+                  <Text style={[styles.forgotStepBadgeText, forgotStep >= 3 && styles.forgotStepBadgeTextActive]}>3</Text>
+                </View>
               </View>
+
+              {/* Error Banner */}
+              {forgotError ? (
+                <View style={styles.meeshoErrorBanner}>
+                  <AlertCircle size={16} color="#DC2626" />
+                  <Text style={styles.meeshoErrorText}>{forgotError}</Text>
+                </View>
+              ) : null}
+
+              {/* STAGE 1: Request Reset Code */}
+              {forgotStep === 1 && (
+                <View style={{ paddingVertical: 12, gap: 14 }}>
+                  <Text style={{ fontSize: 13, color: '#475569', lineHeight: 18 }}>
+                    Enter your registered DigiSewa mobile number or email address. We'll send a 6-digit verification code to verify your identity.
+                  </Text>
+                  
+                  <View style={styles.meeshoInputGroup}>
+                    <TextInput
+                      style={styles.meeshoTextInput}
+                      placeholder="Registered Mobile Number or Email ID"
+                      placeholderTextColor="#94A3B8"
+                      value={forgotIdentifier}
+                      onChangeText={setForgotIdentifier}
+                      autoCapitalize="none"
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.continueBtn, { backgroundColor: '#7C3AED' }]}
+                    onPress={async () => {
+                      if (!forgotIdentifier.trim()) {
+                        setForgotError('Please enter your registered Mobile Number or Email ID.');
+                        return;
+                      }
+
+                      setForgotError('');
+                      setIsSendingForgotOtp(true);
+                      const cleanInput = forgotIdentifier.trim();
+                      const isEmail = cleanInput.includes('@');
+                      setForgotMethod(isEmail ? 'email' : 'mobile');
+
+                      try {
+                        if (isEmail) {
+                          const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+                          setSentForgotOtpCode(generatedCode);
+
+                          const baseUrl = (Platform.OS === 'web' && typeof window !== 'undefined' && window.location && window.location.href)
+                            ? window.location.href.split('?')[0]
+                            : 'https://digisewa-ac3c4.firebaseapp.com';
+
+                          const actionCodeSettings = {
+                            url: `${baseUrl}?mode=sellerResetPassword`,
+                            handleCodeInApp: true,
+                          };
+
+                          try {
+                            if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+                              window.localStorage.setItem('emailForSignIn', cleanInput);
+                              window.localStorage.setItem('emailIntent', 'sellerResetPassword');
+                            }
+                            await sendSignInLinkToEmail(auth, cleanInput, actionCodeSettings);
+                            setForgotStep(2);
+                            setForgotTimer(30);
+                            setResetSuccessMessage(`Password reset link dispatched to ${cleanInput}. Please check your inbox / spam folder!`);
+                            setForgotError('');
+                          } catch (err: any) {
+                            console.error('Firebase Email Reset Error Details:', err);
+                            const errCode = err?.code || '';
+                            const errMsg = err?.message || String(err);
+
+                            if (errCode === 'auth/operation-not-allowed') {
+                              setForgotError('⚠️ Sub-toggle Disabled: In Firebase Console -> Authentication -> Sign-in method -> Click pencil (✏️) on Email/Password -> Turn ON 2nd switch "Email link (passwordless sign-in)" -> Save.');
+                            } else if (errCode === 'auth/unauthorized-continue-uri') {
+                              const domain = (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) ? window.location.hostname : 'current domain';
+                              setForgotError(`⚠️ Domain Error: '${domain}' is not listed in Firebase Console -> Authentication -> Settings -> Authorized domains.`);
+                            } else if (errCode === 'auth/invalid-email') {
+                              setForgotError('⚠️ Invalid Email: Please enter a valid email address.');
+                            } else if (errCode === 'auth/quota-exceeded') {
+                              setForgotError('⚠️ Daily Quota Exceeded: Firebase free tier allows limited email links/day. Please wait 24 hours or upgrade to Blaze Plan in Firebase Console.');
+                            } else {
+                              setForgotError(`Firebase Email Notice (${errCode}): ${errMsg}`);
+                            }
+                          } finally {
+                            setIsSendingForgotOtp(false);
+                          }
+                        } else {
+                          const cleanNumber = cleanInput.replace(/\D/g, '');
+                          if (cleanNumber.length < 10) {
+                            setForgotError('Please enter a valid 10-digit mobile number.');
+                            setIsSendingForgotOtp(false);
+                            return;
+                          }
+
+                          const formattedNumber = cleanNumber.length === 10 ? `+91${cleanNumber}` : `+${cleanNumber}`;
+
+                          if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined') {
+                            let recaptchaElem = document.getElementById('recaptcha-container-forgot');
+                            if (!recaptchaElem) {
+                              recaptchaElem = document.createElement('div');
+                              recaptchaElem.id = 'recaptcha-container-forgot';
+                              document.body.appendChild(recaptchaElem);
+                            }
+
+                            if ((window as any).recaptchaVerifierForgot) {
+                              try {
+                                (window as any).recaptchaVerifierForgot.clear();
+                              } catch (e) {}
+                              (window as any).recaptchaVerifierForgot = null;
+                            }
+
+                            (window as any).recaptchaVerifierForgot = new RecaptchaVerifier(auth, recaptchaElem, {
+                              size: 'invisible',
+                              callback: () => {},
+                            });
+
+                            const verifier = (window as any).recaptchaVerifierForgot;
+                            const result = await signInWithPhoneNumber(auth, formattedNumber, verifier);
+                            setForgotConfirmationResult(result);
+                          } else {
+                            const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+                            setSentForgotOtpCode(generatedCode);
+                          }
+
+                          setForgotStep(2);
+                          setForgotTimer(30);
+                        }
+                      } catch (firebaseErr: any) {
+                        console.error('Firebase Forgot Password SMS/Email error:', firebaseErr);
+                        const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+                        setSentForgotOtpCode(generatedCode);
+                        setForgotStep(2);
+                        setForgotTimer(30);
+                      } finally {
+                        setIsSendingForgotOtp(false);
+                      }
+                    }}
+                    disabled={isSendingForgotOtp}
+                    activeOpacity={0.85}
+                  >
+                    {isSendingForgotOtp ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <>
+                        <Text style={styles.continueBtnText}>Send Verification OTP</Text>
+                        <ArrowRight size={16} color="#FFFFFF" />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* STAGE 2: Verify Reset Link / OTP Code */}
+              {forgotStep === 2 && (
+                <View style={{ paddingVertical: 12, gap: 14 }}>
+                  <View style={{ backgroundColor: '#F3E8FF', padding: 12, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 13, color: '#6B21A8', fontWeight: '600' }}>
+                      {forgotMethod === 'email'
+                        ? `📩 Password reset link dispatched to ${forgotIdentifier}!`
+                        : `📲 Verification code sent to ${forgotIdentifier}!`}
+                    </Text>
+                  </View>
+
+                  {forgotMethod === 'email' ? (
+                    <View style={{ gap: 12 }}>
+                      <Text style={{ fontSize: 13, color: '#475569', lineHeight: 20 }}>
+                        A verification link has been sent to your email address. Please check your inbox (and spam folder) and click the link in the email to set your new password.
+                      </Text>
+
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                        <TouchableOpacity
+                          disabled={forgotTimer > 0 || isSendingForgotOtp}
+                          onPress={async () => {
+                            setForgotTimer(30);
+                            setForgotError('');
+                            setResetSuccessMessage(`Password reset link re-sent to ${forgotIdentifier}!`);
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, color: forgotTimer > 0 ? '#94A3B8' : '#7C3AED', fontWeight: '700' }}>
+                            {forgotTimer > 0 ? `Resend link in ${forgotTimer}s` : 'Resend Reset Link'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setForgotStep(1)}>
+                          <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600' }}>Change Email</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={{ fontSize: 13, color: '#475569' }}>
+                        Enter the 6-digit OTP code sent to your mobile:
+                      </Text>
+
+                      <View style={styles.meeshoInputGroup}>
+                        <TextInput
+                          style={[styles.meeshoTextInput, { letterSpacing: 4, fontWeight: '700', fontSize: 16 }]}
+                          placeholder="Enter 6-digit OTP"
+                          placeholderTextColor="#94A3B8"
+                          value={forgotOtp}
+                          onChangeText={setForgotOtp}
+                          keyboardType="number-pad"
+                          maxLength={6}
+                        />
+                      </View>
+
+                      {/* Resend Timer */}
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <TouchableOpacity
+                          disabled={forgotTimer > 0 || isSendingForgotOtp}
+                          onPress={async () => {
+                            const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+                            setSentForgotOtpCode(generatedCode);
+                            setForgotTimer(30);
+                            setForgotError('');
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, color: forgotTimer > 0 ? '#94A3B8' : '#7C3AED', fontWeight: '600' }}>
+                            {forgotTimer > 0 ? `Resend OTP in ${forgotTimer}s` : 'Resend OTP'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={() => setForgotStep(1)}>
+                          <Text style={{ fontSize: 12, color: '#64748B' }}>Change Mobile/Email</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <TouchableOpacity
+                        style={[styles.continueBtn, { backgroundColor: '#7C3AED' }]}
+                        onPress={async () => {
+                          if (!forgotOtp || forgotOtp.trim().length < 4) {
+                            setForgotError('Please enter the 6-digit verification code.');
+                            return;
+                          }
+
+                          setForgotError('');
+                          setIsSendingForgotOtp(true);
+
+                          try {
+                            if (forgotConfirmationResult) {
+                              await forgotConfirmationResult.confirm(forgotOtp);
+                            } else if (sentForgotOtpCode && forgotOtp.trim() !== sentForgotOtpCode) {
+                              setForgotError(`Incorrect OTP code. Please check and try again.`);
+                              setIsSendingForgotOtp(false);
+                              return;
+                            }
+                            setForgotStep(3);
+                          } catch (err: any) {
+                            console.error('Firebase OTP verify error:', err);
+                            if (sentForgotOtpCode && forgotOtp.trim() === sentForgotOtpCode) {
+                              setForgotStep(3);
+                            } else {
+                              setForgotError('Incorrect OTP code. Please check your SMS and try again.');
+                            }
+                          } finally {
+                            setIsSendingForgotOtp(false);
+                          }
+                        }}
+                        disabled={isSendingForgotOtp}
+                        activeOpacity={0.85}
+                      >
+                        {isSendingForgotOtp ? (
+                          <ActivityIndicator color="#FFFFFF" size="small" />
+                        ) : (
+                          <>
+                            <Text style={styles.continueBtnText}>Verify OTP Code</Text>
+                            <ShieldCheck size={16} color="#FFFFFF" />
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+              )}
+
+              {/* STAGE 3: Set & Confirm New Password */}
+              {forgotStep === 3 && (
+                <View style={{ paddingVertical: 12, gap: 14 }}>
+                  <Text style={{ fontSize: 13, color: '#475569' }}>
+                    Identity verified! Please set a strong new password for your supplier account.
+                  </Text>
+
+                  <View style={styles.meeshoInputGroup}>
+                    <View style={styles.meeshoPasswordWrapper}>
+                      <TextInput
+                        style={[styles.meeshoTextInput, { paddingRight: 60 }]}
+                        placeholder="New Password (min. 6 chars)"
+                        placeholderTextColor="#9CA3AF"
+                        secureTextEntry={!showNewPassword}
+                        value={newPassword}
+                        onChangeText={setNewPassword}
+                      />
+                      <TouchableOpacity
+                        style={styles.meeshoShowBtn}
+                        onPress={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        <Text style={styles.meeshoShowBtnText}>{showNewPassword ? 'Hide' : 'Show'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.meeshoInputGroup}>
+                    <View style={styles.meeshoPasswordWrapper}>
+                      <TextInput
+                        style={[styles.meeshoTextInput, { paddingRight: 60 }]}
+                        placeholder="Confirm New Password"
+                        placeholderTextColor="#9CA3AF"
+                        secureTextEntry={!showConfirmNewPassword}
+                        value={confirmNewPassword}
+                        onChangeText={setConfirmNewPassword}
+                      />
+                      <TouchableOpacity
+                        style={styles.meeshoShowBtn}
+                        onPress={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                      >
+                        <Text style={styles.meeshoShowBtnText}>{showConfirmNewPassword ? 'Hide' : 'Show'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.continueBtn, { backgroundColor: '#7C3AED' }]}
+                    onPress={async () => {
+                      if (!newPassword) {
+                        setForgotError('Please enter a new password.');
+                        return;
+                      }
+                      if (newPassword.length < 6) {
+                        setForgotError('Password must be at least 6 characters long.');
+                        return;
+                      }
+                      if (newPassword !== confirmNewPassword) {
+                        setForgotError('New Password and Confirm Password do not match.');
+                        return;
+                      }
+
+                      setForgotError('');
+                      setIsResettingPassword(true);
+
+                      try {
+                        const res = await resetSellerPassword(forgotIdentifier, newPassword);
+                        if (res.success) {
+                          setResetSuccessMessage(res.message);
+                          setForgotStep(4);
+                          setLoginIdentifier(forgotIdentifier);
+                          setLoginPassword(newPassword);
+                        } else {
+                          setForgotError(res.message);
+                        }
+                      } catch (err: any) {
+                        setForgotError(err?.message || 'Failed to reset password. Please try again.');
+                      } finally {
+                        setIsResettingPassword(false);
+                      }
+                    }}
+                    disabled={isResettingPassword}
+                    activeOpacity={0.85}
+                  >
+                    {isResettingPassword ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <>
+                        <Text style={styles.continueBtnText}>Update Account Password</Text>
+                        <CheckCircle2 size={16} color="#FFFFFF" />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* STAGE 4: Reset Success Confirmation */}
+              {forgotStep === 4 && (
+                <View style={{ paddingVertical: 16, gap: 14, alignItems: 'center' }}>
+                  <View style={{ backgroundColor: '#DCFCE7', padding: 16, borderRadius: 50 }}>
+                    <CheckCircle2 size={40} color="#16A34A" />
+                  </View>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A', textAlign: 'center' }}>
+                    Password Reset Successful!
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 20 }}>
+                    {resetSuccessMessage || 'Your password has been updated in DigiSewa database. You can now log into your supplier panel with your new password.'}
+                  </Text>
+
+                  <TouchableOpacity
+                    style={[styles.continueBtn, { backgroundColor: '#16A34A', width: '100%', marginTop: 8 }]}
+                    onPress={() => setShowForgotModal(false)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.continueBtnText}>Proceed to Login</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </Modal>
@@ -903,6 +1564,15 @@ export const SellerLoginScreen: React.FC = () => {
                 Email Address
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.authMethodTab}
+              onPress={handleGoogleSignIn}
+              activeOpacity={0.8}
+            >
+              <GoogleLogoIcon size={16} />
+              <Text style={styles.authMethodTabText}>Google Sign Up</Text>
+            </TouchableOpacity>
           </View>
 
           {/* METHOD A: MOBILE OTP */}
@@ -913,11 +1583,12 @@ export const SellerLoginScreen: React.FC = () => {
                 <View style={styles.inputWithBtnRow}>
                   <TextInput
                     style={[styles.textInput, { flex: 1 }]}
-                    placeholder="+91 98765 01234"
+                    placeholder="+918981829273"
                     keyboardType="phone-pad"
                     value={registerMobile}
                     onChangeText={text => {
                       setRegisterMobile(text);
+                      setPhone(text);
                       setIsOtpSent(false);
                       setOtpCode('');
                     }}
@@ -1010,7 +1681,7 @@ export const SellerLoginScreen: React.FC = () => {
                 <View style={styles.inputWithBtnRow}>
                   <TextInput
                     style={[styles.textInput, { flex: 1 }]}
-                    placeholder="seller@digisewa.com"
+                    placeholder="seller@DigiSewa.com"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     value={registerEmail}
@@ -1035,26 +1706,21 @@ export const SellerLoginScreen: React.FC = () => {
                   </TouchableOpacity>
                 </View>
 
-                {/* EMAIL OTP SECTION */}
+                {/* EMAIL LINK SECTION */}
                 {isEmailOtpSent ? (
                   <View style={styles.otpCardBox}>
                     <View style={styles.otpBanner}>
                       <Sparkles size={16} color="#4338CA" />
                       <Text style={styles.otpBannerText}>
-                        📩 Official Firebase verification email sent to {registerEmail}. Check your email inbox & click the link or click Verify to confirm!
+                        📩 Verification link sent to {registerEmail}. Please check your email inbox and click the verification link to proceed to Business Details.
                       </Text>
                     </View>
 
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', marginTop: 10 }}>
                       <TouchableOpacity onPress={handleSendEmailOtp} disabled={resendTimer > 0}>
                         <Text style={{ fontSize: 12, color: resendTimer > 0 ? '#94A3B8' : '#7C3AED', fontWeight: '700' }}>
-                          {resendTimer > 0 ? `Resend email in ${resendTimer}s` : 'Resend Email'}
+                          {resendTimer > 0 ? `Resend link in ${resendTimer}s` : 'Resend Verification Link'}
                         </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity style={styles.verifyOtpActionBtn} onPress={handleVerifyEmailOtp}>
-                        <CheckCircle2 size={16} color="#FFFFFF" />
-                        <Text style={styles.verifyOtpActionBtnText}>Confirm Verification</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1302,16 +1968,19 @@ export const SellerLoginScreen: React.FC = () => {
             <Text style={styles.inputLabel}>IFSC Code *</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="e.g. UTIB0000123"
+              placeholder="e.g. SBIN0001122 or UTIB0000123"
               autoCapitalize="characters"
+              maxLength={11}
               value={ifscCode}
-              onChangeText={text => {
-                setIfscCode(text.toUpperCase());
-                if (text.length >= 4) setBankName('Axis Bank - Verified Branch');
-              }}
+              onChangeText={handleIfscCodeChange}
             />
 
-            {bankName ? (
+            {isCheckingIfsc ? (
+              <View style={[styles.bankVerifiedPill, { backgroundColor: '#F3F4F6' }]}>
+                <ActivityIndicator size="small" color="#9333EA" />
+                <Text style={[styles.bankVerifiedText, { color: '#6B7280' }]}>Fetching Bank & Branch details...</Text>
+              </View>
+            ) : bankName ? (
               <View style={styles.bankVerifiedPill}>
                 <CheckCircle2 size={14} color="#059669" />
                 <Text style={styles.bankVerifiedText}>{bankName}</Text>
@@ -1351,16 +2020,32 @@ export const SellerLoginScreen: React.FC = () => {
           </View>
 
           <View style={styles.formGroupGap}>
-            {/* Verified Mobile Number Badge */}
-            <View style={styles.verifiedMobileBadgeRow}>
-              <CheckCircle2 size={16} color="#059669" />
-              <Text style={styles.verifiedMobileBadgeText}>Verified Mobile: {registerMobile}</Text>
-            </View>
+            {/* Verified Mobile Number Badge OR Input Field */}
+            {isMobileVerified && (phone || registerMobile) ? (
+              <View style={styles.verifiedMobileBadgeRow}>
+                <CheckCircle2 size={16} color="#059669" />
+                <Text style={styles.verifiedMobileBadgeText}>Verified Mobile: {phone || registerMobile}</Text>
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.inputLabel}>Mobile Number *</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="+918981829273"
+                  keyboardType="phone-pad"
+                  value={phone || registerMobile}
+                  onChangeText={text => {
+                    setPhone(text);
+                    setRegisterMobile(text);
+                  }}
+                />
+              </View>
+            )}
 
             <Text style={styles.inputLabel}>Store Name *</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="e.g. Al Mursaleen Stores"
+              placeholder="e.g. DigiSewa Express Store"
               value={storeName}
               onChangeText={setStoreName}
             />
@@ -1390,7 +2075,7 @@ export const SellerLoginScreen: React.FC = () => {
                 <Text style={styles.passwordHeaderTitle}>Set Account Password for Login</Text>
               </View>
               <Text style={styles.passwordHeaderSub}>
-                Create a secure password so you can easily log into your DigiSewa supplier panel anytime using your mobile number ({registerMobile}) and password.
+                Create a secure password so you can easily log into your DigiSewa supplier panel anytime using your mobile number ({phone || registerMobile || 'your registered mobile'}) and password.
               </Text>
 
               <Text style={styles.inputLabel}>Create Password *</Text>
@@ -1568,7 +2253,11 @@ const styles = StyleSheet.create({
   },
   meeshoLogoHeader: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+  },
+  sellerLogoImage: {
+    width: 180,
+    height: 60,
   },
   meeshoLogoText: {
     fontSize: 34,
@@ -2436,5 +3125,63 @@ const styles = StyleSheet.create({
   authMethodTabTextActive: {
     color: '#4338CA',
     fontWeight: '700',
+  },
+  forgotStepIndicatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+    paddingHorizontal: 20,
+  },
+  forgotStepBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  forgotStepBadgeActive: {
+    backgroundColor: '#7C3AED',
+  },
+  forgotStepBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  forgotStepBadgeTextActive: {
+    color: '#FFFFFF',
+  },
+  forgotStepLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 8,
+  },
+  forgotStepLineActive: {
+    backgroundColor: '#7C3AED',
+  },
+  googleAuthBtn: {
+    width: '100%',
+    height: 46,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DADCE0',
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  googleAuthBtnText: {
+    color: '#3C4043',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });

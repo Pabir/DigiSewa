@@ -28,12 +28,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onPress }) =>
           </View>
         )}
 
-        {product.isHyperlocalAvailable && (
-          <View style={styles.hyperlocalBadge}>
-            <Zap size={11} color="#FFFFFF" style={{ marginRight: 2 }} />
-            <Text style={styles.hyperlocalText}>30 Min</Text>
-          </View>
-        )}
+
       </View>
 
       {/* Content Section */}
@@ -101,9 +96,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   imageWrapper: {
-    height: 160,
+    width: '100%',
+    aspectRatio: 1,
     backgroundColor: '#F8FAFC',
     position: 'relative',
+    overflow: 'hidden',
   },
   productImage: {
     width: '100%',
@@ -124,22 +121,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  hyperlocalBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#16A34A',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  hyperlocalText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
+
   contentContainer: {
     padding: 12,
   },
@@ -178,17 +160,17 @@ const styles = StyleSheet.create({
   },
   categoryPill: {
     alignSelf: 'flex-start',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#FFEDD5',
+    borderColor: '#E0E7FF',
   },
   categoryText: {
     fontSize: 10,
-    color: '#EA580C',
+    color: '#4F46E5',
     fontWeight: '600',
   },
   footerRow: {
@@ -223,7 +205,7 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   addButton: {
-    backgroundColor: '#EA580C',
+    backgroundColor: '#4F46E5',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,

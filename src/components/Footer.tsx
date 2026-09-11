@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { ShieldAlert, Heart, Phone, Mail } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 
 export const Footer: React.FC = () => {
-  const { openAdminAuthModal, activeRole, setActiveRole } = useAuth();
+  const { openAdminAuthModal, activeRole, setActiveRole, isAuthenticated, user } = useAuth();
 
   return (
     <View style={styles.footerContainer}>
@@ -12,9 +12,7 @@ export const Footer: React.FC = () => {
         {/* Brand Column */}
         <View style={styles.brandCol}>
           <View style={styles.logoRow}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoText}>DS</Text>
-            </View>
+            <Image source={require('../../assets/logo.png')} style={styles.logoBadge} resizeMode="contain" />
             <Text style={styles.brandTitle}>DigiSewa</Text>
           </View>
           <Text style={styles.brandSubtitle}>
@@ -25,41 +23,47 @@ export const Footer: React.FC = () => {
         {/* Links Column */}
         <View style={styles.linksCol}>
           <Text style={styles.colTitle}>Quick Navigation</Text>
-          <TouchableOpacity onPress={() => setActiveRole('buyer')} style={styles.linkItem}>
-            <Text style={styles.linkText}>Customer Marketplace</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setActiveRole('seller')} style={styles.linkItem}>
-            <Text style={styles.linkText}>Seller & Supplier Hub</Text>
-          </TouchableOpacity>
+          {(!isAuthenticated || user?.role === 'customer') && (
+            <TouchableOpacity onPress={() => setActiveRole('buyer')} style={styles.linkItem}>
+              <Text style={styles.linkText}>Customer Marketplace</Text>
+            </TouchableOpacity>
+          )}
+          {(!isAuthenticated || user?.role === 'seller') && (
+            <TouchableOpacity onPress={() => setActiveRole('seller')} style={styles.linkItem}>
+              <Text style={styles.linkText}>Seller & Supplier Hub</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Support & Admin Column */}
         <View style={styles.supportCol}>
           <Text style={styles.colTitle}>Support & Staff</Text>
           <View style={styles.contactRow}>
-            <Phone size={14} color="#EA580C" />
-            <Text style={styles.contactText}>+91 98765 01234</Text>
+            <Phone size={14} color="#4F46E5" />
+            <Text style={styles.contactText}>+918981829273</Text>
           </View>
           <View style={styles.contactRow}>
-            <Mail size={14} color="#EA580C" />
-            <Text style={styles.contactText}>support@digisewa.in</Text>
+            <Mail size={14} color="#4F46E5" />
+            <Text style={styles.contactText}>support@DigiSewa.org</Text>
           </View>
 
-          {/* Hidden Discrete Admin Portal Link */}
-          <TouchableOpacity
-            style={styles.adminPortalLink}
-            onPress={openAdminAuthModal}
-            activeOpacity={0.7}
-          >
-            <ShieldAlert size={14} color="#64748B" />
-            <Text style={styles.adminPortalText}>Staff / Admin Portal Access</Text>
-          </TouchableOpacity>
+          {/* Hidden Discrete Admin Portal Link (Only shown when not in Seller role) */}
+          {activeRole !== 'seller' && (
+            <TouchableOpacity
+              style={styles.adminPortalLink}
+              onPress={openAdminAuthModal}
+              activeOpacity={0.7}
+            >
+              <ShieldAlert size={14} color="#64748B" />
+              <Text style={styles.adminPortalText}>Staff / Admin Portal Access</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       <View style={styles.copyrightBar}>
         <Text style={styles.copyrightText}>
-          © {new Date().getFullYear()} DigiSewa Inc. Built with <Heart size={12} color="#EA580C" /> for Assam & India.
+          © {new Date().getFullYear()} DigiSewa Inc. Built with <Heart size={12} color="#4F46E5" /> for Assam & India.
         </Text>
       </View>
     </View>
@@ -96,17 +100,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   logoBadge: {
-    backgroundColor: '#1E293B',
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#EA580C',
+    width: 38,
+    height: 38,
+    marginRight: 10,
   },
   logoText: {
-    color: '#EA580C',
+    color: '#4F46E5',
     fontWeight: '900',
     fontSize: 14,
   },

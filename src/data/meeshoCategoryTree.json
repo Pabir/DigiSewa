@@ -1,0 +1,2436 @@
+[
+  {
+    "id": "10",
+    "name": "Men Fashion",
+    "subgroups": [
+      {
+        "id": "100",
+        "name": "Mens Clothing",
+        "groups": [
+          {
+            "id": "1000",
+            "name": "Men Top Wear",
+            "leaves": [
+              "Tshirts",
+              "Shirts",
+              "Top & Bottom Set",
+              "Personalized Tshirts",
+              "Dad & Daughter Tshirts",
+              "Dad & Son Tshirts",
+              "Active Tshirts",
+              "Brother & Sister Tshirts",
+              "Jumpsuits",
+              "Plus Size Tshirts"
+            ]
+          },
+          {
+            "id": "1001",
+            "name": "Men Sports Wear",
+            "leaves": [
+              "Active Shorts",
+              "Gym Vests",
+              "Tracksuits"
+            ]
+          },
+          {
+            "id": "1002",
+            "name": "Men Ethnic Wear",
+            "leaves": [
+              "Dhotis, Mundus & Lungis",
+              "Ethnic Jackets",
+              "Kurta Sets",
+              "Kurtas",
+              "Sherwanis"
+            ]
+          },
+          {
+            "id": "1003",
+            "name": "Men Bottom Wear",
+            "leaves": [
+              "Jeans",
+              "Shorts",
+              "Track Pants",
+              "Trousers",
+              "Three Fourths",
+              "Dungarees"
+            ]
+          },
+          {
+            "id": "1004",
+            "name": "Top & Bottom Set",
+            "leaves": [
+              "Suit Sets"
+            ]
+          },
+          {
+            "id": "1005",
+            "name": "Men Inner & Sleepwear",
+            "leaves": [
+              "Boxers",
+              "Briefs",
+              "Lounge Pants",
+              "Trunks",
+              "Vests",
+              "Nightsuits"
+            ]
+          },
+          {
+            "id": "1006",
+            "name": "Men Unstiched Fabric",
+            "leaves": [
+              "Shirt Fabric",
+              "Pant Fabric",
+              "Top & Bottom Fabric",
+              "Suit Fabric"
+            ]
+          },
+          {
+            "id": "1007",
+            "name": "Men Raincoat",
+            "leaves": [
+              "Raincoat"
+            ]
+          },
+          {
+            "id": "1008",
+            "name": "Men Winter Wear",
+            "leaves": [
+              "Blazers",
+              "Jackets",
+              "Sweaters",
+              "SweatShirts",
+              "Shrungs",
+              "Thermal Topwear",
+              "Thermal Bottomwear",
+              "Thermal Set",
+              "Men Shawls"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "101",
+        "name": "Footwear",
+        "groups": [
+          {
+            "id": "1009",
+            "name": "Shoes",
+            "leaves": [
+              "Casual Shoes",
+              "Formal Shoes",
+              "Sports Shoes",
+              "Loafers",
+              "Floaters",
+              "Boots",
+              "Sneakers",
+              "Safety Shoes"
+            ]
+          },
+          {
+            "id": "1010",
+            "name": "Flipflops & Slippers",
+            "leaves": [
+              "Flip Flops",
+              "Sliders",
+              "Clogs"
+            ]
+          },
+          {
+            "id": "1011",
+            "name": "Sandals & Floaters",
+            "leaves": [
+              "Sandals",
+              "Floaters"
+            ]
+          },
+          {
+            "id": "1012",
+            "name": "Ethnic Footwear",
+            "leaves": [
+              "Other Ethnic Flats",
+              "Mojaris & Juttis"
+            ]
+          },
+          {
+            "id": "1013",
+            "name": "Shoe Accessories",
+            "leaves": [
+              "Mojaris & Juttis"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "102",
+        "name": "Accessories",
+        "groups": [
+          {
+            "id": "1014",
+            "name": "Belts",
+            "leaves": [
+              "Belts"
+            ]
+          },
+          {
+            "id": "1015",
+            "name": "Caps & Hats",
+            "leaves": [
+              "Caps & Hats",
+              "Caps",
+              "Hats"
+            ]
+          },
+          {
+            "id": "1016",
+            "name": "Mufflers & Scarves & Gloves",
+            "leaves": [
+              "Mufflers",
+              "Scarves",
+              "Gloves",
+              "Bandanas"
+            ]
+          },
+          {
+            "id": "1017",
+            "name": "Hankerchiefs",
+            "leaves": [
+              "Hankerchiefs"
+            ]
+          },
+          {
+            "id": "1018",
+            "name": "Jewellery",
+            "leaves": [
+              "Jewellery",
+              "Chains",
+              "Bracelets",
+              "Finger Rings",
+              "Other Men Jewellery",
+              "Necklace",
+              "Men Earrings"
+            ]
+          },
+          {
+            "id": "1019",
+            "name": "Socks",
+            "leaves": [
+              "Socks"
+            ]
+          },
+          {
+            "id": "1020",
+            "name": "Sunglasses",
+            "leaves": [
+              "Sunglasses",
+              "Spectale Frames"
+            ]
+          },
+          {
+            "id": "1021",
+            "name": "Wallets",
+            "leaves": [
+              "Wallets"
+            ]
+          },
+          {
+            "id": "1022",
+            "name": "Watches",
+            "leaves": [
+              "Analog  Watches",
+              "Chronograph Watches",
+              "Sports Watches",
+              "Watch Boxes",
+              "Digital Watches",
+              "Watchbands",
+              "Stop Watch",
+              "Watch Case Covers"
+            ]
+          },
+          {
+            "id": "1023",
+            "name": "Earmuffs",
+            "leaves": [
+              "Earmuffs"
+            ]
+          },
+          {
+            "id": "1024",
+            "name": "Headbands",
+            "leaves": [
+              "Headbands"
+            ]
+          },
+          {
+            "id": "1025",
+            "name": "Wrist Bands",
+            "leaves": [
+              "Wrist Bands"
+            ]
+          },
+          {
+            "id": "1026",
+            "name": "Men Apparel  Accessories",
+            "leaves": [
+              "Cufflinks",
+              "Ties",
+              "Brooches",
+              "Tie Clips",
+              "Pocket Squares",
+              "Shirt Studs",
+              "Suspenders",
+              "Cummer Bands",
+              "Key Chains"
+            ]
+          },
+          {
+            "id": "1027",
+            "name": "Friendship Bands",
+            "leaves": [
+              "Friendship Bands"
+            ]
+          },
+          {
+            "id": "1028",
+            "name": "Men Hair Extension Wigs",
+            "leaves": [
+              "Men Hair Extension Wigs"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "11",
+    "name": "Women Fashion",
+    "subgroups": [
+      {
+        "id": "103",
+        "name": "Ethnic Wear",
+        "groups": [
+          {
+            "id": "1029",
+            "name": "Kurtis, Sets & Fabrics",
+            "leaves": [
+              "Kurti with Bottomwear",
+              "Kurti",
+              "Kurti Fabrics",
+              "Kurti with Dupatta & Bottomwear",
+              "Kurti with Dupatta"
+            ]
+          },
+          {
+            "id": "1030",
+            "name": "Sarees, Blouses & Peticoats",
+            "leaves": [
+              "Sarees",
+              "Saree Shapewear & Peticoats",
+              "Blouses",
+              "Blouse Piece",
+              "Ready to Wear Saress",
+              "Saree with stitched Blouses"
+            ]
+          },
+          {
+            "id": "1031",
+            "name": "Suits & Dress Material",
+            "leaves": [
+              "Suits",
+              "Semi-Stitched Suits"
+            ]
+          },
+          {
+            "id": "1032",
+            "name": "Ethnic Bottomwear",
+            "leaves": [
+              "Churidars",
+              "Patialas",
+              "Salwars",
+              "Sharara"
+            ]
+          },
+          {
+            "id": "1033",
+            "name": "Dupattas & Shawls",
+            "leaves": [
+              "Dupatta",
+              "Shawls"
+            ]
+          },
+          {
+            "id": "1034",
+            "name": "Ethnic Jackets",
+            "leaves": [
+              "Ethnic Jackets"
+            ]
+          },
+          {
+            "id": "1035",
+            "name": "Gowns & Kaftans",
+            "leaves": [
+              "Gowns & Kaftans"
+            ]
+          },
+          {
+            "id": "1036",
+            "name": "Lehenga Choli",
+            "leaves": [
+              "Lehenga",
+              "Ready to wear Lehenga"
+            ]
+          },
+          {
+            "id": "1037",
+            "name": "Ethnic Skirts",
+            "leaves": [
+              "Skirts"
+            ]
+          },
+          {
+            "id": "1038",
+            "name": "Islamic Wear",
+            "leaves": [
+              "Jaali",
+              "Niqab",
+              "Hijab",
+              "Abayas",
+              "Burqa",
+              "Other Islamic Wear"
+            ]
+          },
+          {
+            "id": "1039",
+            "name": "Regional Ethic Wear",
+            "leaves": [
+              "Pherna",
+              "Mekhala Chador",
+              "Dakmanda"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "104",
+        "name": "Western Wear",
+        "groups": [
+          {
+            "id": "1040",
+            "name": "Tops, Tshirts & Shirts",
+            "leaves": [
+              "Shirts",
+              "Tshirts",
+              "Top & Bottom Sets",
+              "Top & Tunics",
+              "Women Formal  Shirts & Bottom Fabric"
+            ]
+          },
+          {
+            "id": "1041",
+            "name": "Dresses, Gowns & Jumpsuits",
+            "leaves": [
+              "Dresses",
+              "Western Gowns",
+              "Jumpsuits"
+            ]
+          },
+          {
+            "id": "1042",
+            "name": "Jeans & Jeggings",
+            "leaves": [
+              "Jeans",
+              "Jeggings"
+            ]
+          },
+          {
+            "id": "1043",
+            "name": "Capes, Shrunks & Ponchos",
+            "leaves": [
+              "Capes, Shrunks & Ponchos"
+            ]
+          },
+          {
+            "id": "1044",
+            "name": "Capris & Trousers & Pants",
+            "leaves": [
+              "Capris",
+              "Trousers & Pants"
+            ]
+          },
+          {
+            "id": "1045",
+            "name": "Sweaters & Cardigans",
+            "leaves": [
+              "Sweaters"
+            ]
+          },
+          {
+            "id": "1046",
+            "name": "Jackets",
+            "leaves": [
+              "Coats & Jackets",
+              "Jackets",
+              "Blazers & Coats"
+            ]
+          },
+          {
+            "id": "1047",
+            "name": "Palazzos, Leggings & Tights",
+            "leaves": [
+              "Leggings",
+              "Palazzos"
+            ]
+          },
+          {
+            "id": "1048",
+            "name": "Skirts & Shorts",
+            "leaves": [
+              "Skirts",
+              "Shorts"
+            ]
+          },
+          {
+            "id": "1049",
+            "name": "Hoodies & Sweatshirts",
+            "leaves": [
+              "Sweatshirts"
+            ]
+          },
+          {
+            "id": "1050",
+            "name": "Raincoat",
+            "leaves": [
+              "Raincoat"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "105",
+        "name": "Accessories",
+        "groups": [
+          {
+            "id": "1051",
+            "name": "Jewellery",
+            "leaves": [
+              "Anklets & Toe Rings",
+              "Pendants & Lockets",
+              "Necklaces & Chains",
+              "Rings",
+              "Bracelet & Bangles",
+              "Jewellery Set",
+              "Earrings & Studs",
+              "Maangtika",
+              "Mangalsutras",
+              "Nosepins",
+              "Kamarband",
+              "Jewellery Organizer Box",
+              "Bajuband & Armlets",
+              "Customised Jewellery",
+              "Real Silver Rings",
+              "Mathapatti"
+            ]
+          },
+          {
+            "id": "1052",
+            "name": "Belts",
+            "leaves": [
+              "Belts",
+              "Belts Accessories"
+            ]
+          },
+          {
+            "id": "1053",
+            "name": "Fashion Accessories",
+            "leaves": [
+              "Bindis",
+              "Hijab Pin",
+              "Saree Pin"
+            ]
+          },
+          {
+            "id": "1054",
+            "name": "Caps & Hats",
+            "leaves": [
+              "Caps",
+              "Hats"
+            ]
+          },
+          {
+            "id": "1055",
+            "name": "Hair Accessories",
+            "leaves": [
+              "Hair Accessories",
+              "Hair Buns",
+              "Hair Bands",
+              "Gajra/Floral Hair Accessories",
+              "Hair Extensions & Wigs",
+              "Hair clip & Hair pins"
+            ]
+          },
+          {
+            "id": "1056",
+            "name": "Scarves, Stoles & Gloves",
+            "leaves": [
+              "Gloves",
+              "Scarves",
+              "Stoles",
+              "Shawls"
+            ]
+          },
+          {
+            "id": "1057",
+            "name": "Socks",
+            "leaves": [
+              "Socks"
+            ]
+          },
+          {
+            "id": "1058",
+            "name": "Sunglasses",
+            "leaves": [
+              "Sunglasses",
+              "Spectale Frames",
+              "Sunglasses & Spectales Cases"
+            ]
+          },
+          {
+            "id": "1059",
+            "name": "Umbrellas",
+            "leaves": [
+              "Umbrellas"
+            ]
+          },
+          {
+            "id": "1060",
+            "name": "Watches",
+            "leaves": [
+              "Analog  Watches",
+              "Chronograph Watches",
+              "Sports Watches",
+              "Couple Watches",
+              "Digital Watches",
+              "Watch Boxes",
+              "Watchbands"
+            ]
+          },
+          {
+            "id": "1061",
+            "name": "Handkerchiefs",
+            "leaves": [
+              "Handkerchiefs"
+            ]
+          },
+          {
+            "id": "1062",
+            "name": "Earmuffs",
+            "leaves": [
+              "Earmuffs"
+            ]
+          },
+          {
+            "id": "1063",
+            "name": "Hijabs",
+            "leaves": [
+              "Hijabs"
+            ]
+          },
+          {
+            "id": "1064",
+            "name": "Keychains",
+            "leaves": [
+              "Keychains"
+            ]
+          },
+          {
+            "id": "1065",
+            "name": "Friendship Bands",
+            "leaves": [
+              "Friendship Bands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "106",
+        "name": "Footwear",
+        "groups": [
+          {
+            "id": "1066",
+            "name": "Flats",
+            "leaves": [
+              "Flats",
+              "Platforms"
+            ]
+          },
+          {
+            "id": "1067",
+            "name": "Boots",
+            "leaves": [
+              "Boots"
+            ]
+          },
+          {
+            "id": "1068",
+            "name": "Heels",
+            "leaves": [
+              "Heels",
+              "Stilletos",
+              "Pumps"
+            ]
+          },
+          {
+            "id": "1069",
+            "name": "Flipflops & Slippers",
+            "leaves": [
+              "Flipflops & Slippers",
+              "Sliders",
+              "Clogs"
+            ]
+          },
+          {
+            "id": "1070",
+            "name": "Shoes",
+            "leaves": [
+              "Formal Shoes",
+              "Casual Shoes",
+              "Sports Shoes",
+              "Sneakers",
+              "Loafers & Moccassins"
+            ]
+          },
+          {
+            "id": "1071",
+            "name": "Sandals",
+            "leaves": [
+              "Floaters",
+              "Flat Sandals",
+              "Wedge Sandals",
+              "Platform Sandals",
+              "Heel Sandals"
+            ]
+          },
+          {
+            "id": "1072",
+            "name": "Bellies & Juttis",
+            "leaves": [
+              "Bellies",
+              "Juttis & Mojaris"
+            ]
+          },
+          {
+            "id": "1073",
+            "name": "Wedges",
+            "leaves": [
+              "Wedges"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "107",
+        "name": "Inner & Sleepwear",
+        "groups": [
+          {
+            "id": "1074",
+            "name": "Nightsuits & Nightdresses",
+            "leaves": [
+              "Babydolls",
+              "Nightdress",
+              "Nightsuits",
+              "Pyjamas",
+              "Women Sleepwear with inbuilt cups",
+              "Couple Nightsuits",
+              "Unstitched Fabric"
+            ]
+          },
+          {
+            "id": "1075",
+            "name": "Camisoles & Thermals",
+            "leaves": [
+              "Camisoles",
+              "Thermal Bottom",
+              "Thermal Top",
+              "Thermal Sets"
+            ]
+          },
+          {
+            "id": "1076",
+            "name": "Bras & Lingerie Sets",
+            "leaves": [
+              "Bra",
+              "Lingerie Sets",
+              "Stockings",
+              "Lingerie Accessories"
+            ]
+          },
+          {
+            "id": "1077",
+            "name": "Briefs",
+            "leaves": [
+              "Briefs"
+            ]
+          },
+          {
+            "id": "1078",
+            "name": "Shapewear",
+            "leaves": [
+              "Shapewear"
+            ]
+          },
+          {
+            "id": "1079",
+            "name": "Bathrobes",
+            "leaves": [
+              "Bathrobes"
+            ]
+          },
+          {
+            "id": "1080",
+            "name": "Period Panty",
+            "leaves": [
+              "Period Panty"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "108",
+        "name": "Sports & Activewear",
+        "groups": [
+          {
+            "id": "1081",
+            "name": "Sports Wear",
+            "leaves": [
+              "Swimwear",
+              "Active Tank Top",
+              "Tracksuits",
+              "Gym Socks",
+              "Tenns Wear"
+            ]
+          },
+          {
+            "id": "1082",
+            "name": "Inner Wear",
+            "leaves": [
+              "Sports Bra"
+            ]
+          },
+          {
+            "id": "1083",
+            "name": "Active Wear",
+            "leaves": [
+              "Active Bottom Wear",
+              "Active Top Wear",
+              "Active Clothing Set",
+              "Active Jackets & Sweatshirts",
+              "Active Shorts"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "109",
+        "name": "Women Ethnic Wear",
+        "groups": [
+          {
+            "id": "1084",
+            "name": "Ethnic Skirts",
+            "leaves": [
+              "Ethic Skirt & Top"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "110",
+        "name": "Maternity",
+        "groups": [
+          {
+            "id": "1085",
+            "name": "Feeding Topwear",
+            "leaves": [
+              "Feeding Kurtis & Kurta Sets"
+            ]
+          },
+          {
+            "id": "1086",
+            "name": "Maternity Topwear",
+            "leaves": [
+              "Dresses",
+              "Maternity Kurti & Kurta Sets"
+            ]
+          },
+          {
+            "id": "1087",
+            "name": "Maternity Accessories",
+            "leaves": [
+              "Feeding Appron"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "12",
+    "name": "Home & Living",
+    "subgroups": [
+      {
+        "id": "111",
+        "name": "Bed Linen & Furnishing",
+        "groups": [
+          {
+            "id": "1088",
+            "name": "Bean Bags",
+            "leaves": [
+              "Bean Bags"
+            ]
+          },
+          {
+            "id": "1089",
+            "name": "Bed Covers",
+            "leaves": [
+              "Bed Covers"
+            ]
+          },
+          {
+            "id": "1090",
+            "name": "Bedding Set",
+            "leaves": [
+              "Bedding Set"
+            ]
+          },
+          {
+            "id": "1091",
+            "name": "Blankets, Quilts & Dohars",
+            "leaves": [
+              "Blankets"
+            ]
+          },
+          {
+            "id": "1092",
+            "name": "Cushions & Cushion Covers",
+            "leaves": [
+              "Cushions"
+            ]
+          },
+          {
+            "id": "1093",
+            "name": "Diwan Sets",
+            "leaves": [
+              "Diwan Sets"
+            ]
+          },
+          {
+            "id": "1094",
+            "name": "Pillows",
+            "leaves": [
+              "Pillows"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "112",
+        "name": "Towels & Bath Accessories",
+        "groups": [
+          {
+            "id": "1095",
+            "name": "Bath Rugs",
+            "leaves": [
+              "Bath Rugs"
+            ]
+          },
+          {
+            "id": "1096",
+            "name": "Bath Towels",
+            "leaves": [
+              "Bath Towels"
+            ]
+          },
+          {
+            "id": "1097",
+            "name": "Bathroom Accessories",
+            "leaves": [
+              "Bathroom Accessories"
+            ]
+          },
+          {
+            "id": "1098",
+            "name": "Hand Towels",
+            "leaves": [
+              "Hand Towels"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "113",
+        "name": "Home Utility",
+        "groups": [
+          {
+            "id": "1099",
+            "name": "Covers",
+            "leaves": [
+              "Covers"
+            ]
+          },
+          {
+            "id": "1100",
+            "name": "Electronic Utility",
+            "leaves": [
+              "Electronic Utility"
+            ]
+          },
+          {
+            "id": "1101",
+            "name": "Gifts",
+            "leaves": [
+              "Gifts"
+            ]
+          },
+          {
+            "id": "1102",
+            "name": "Laundry Bags",
+            "leaves": [
+              "Laundry Bags"
+            ]
+          },
+          {
+            "id": "1103",
+            "name": "Other Home Utility",
+            "leaves": [
+              "Other Home Utility"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "114",
+        "name": "Curtains",
+        "groups": [
+          {
+            "id": "1104",
+            "name": "Curtains & Sheers",
+            "leaves": [
+              "Curtains & Sheers"
+            ]
+          },
+          {
+            "id": "1105",
+            "name": "Shower Curtains",
+            "leaves": [
+              "Shower Curtains"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "115",
+        "name": "Festive & Decor",
+        "groups": [
+          {
+            "id": "1106",
+            "name": "Festive",
+            "leaves": [
+              "Rakhi"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "116",
+        "name": "Floor Mats & Dhurries",
+        "groups": [
+          {
+            "id": "1107",
+            "name": "Doormats",
+            "leaves": [
+              "Doormats"
+            ]
+          },
+          {
+            "id": "1108",
+            "name": "Floormats & Dhurries",
+            "leaves": [
+              "Floormats & Dhurries"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "117",
+        "name": "Bedding & Linen",
+        "groups": [
+          {
+            "id": "1109",
+            "name": "Bed Runners & Scavers",
+            "leaves": [
+              "Bed Runners & Scavers"
+            ]
+          },
+          {
+            "id": "1110",
+            "name": "Duvet Cover",
+            "leaves": [
+              "Duvet Cover"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "118",
+        "name": "Baby Care",
+        "groups": [
+          {
+            "id": "1111",
+            "name": "Baby Mats & Bed Protector",
+            "leaves": [
+              "Baby Mats & Bed Protector"
+            ]
+          },
+          {
+            "id": "1112",
+            "name": "Baby Blanket",
+            "leaves": [
+              "Baby Blanket"
+            ]
+          },
+          {
+            "id": "1113",
+            "name": "Baby Mosquito Nets",
+            "leaves": [
+              "Baby Mosquito Nets"
+            ]
+          },
+          {
+            "id": "1114",
+            "name": "Baby Pillows",
+            "leaves": [
+              "Baby Pillows"
+            ]
+          },
+          {
+            "id": "1115",
+            "name": "Baby Sleeping Bag",
+            "leaves": [
+              "Baby Sleeping Bag"
+            ]
+          },
+          {
+            "id": "1116",
+            "name": "Baby Towels",
+            "leaves": [
+              "Baby Towels"
+            ]
+          },
+          {
+            "id": "1117",
+            "name": "Baby Hanging Cradle",
+            "leaves": [
+              "Baby Hanging Cradle"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "119",
+        "name": "Pet Care",
+        "groups": [
+          {
+            "id": "1118",
+            "name": "Dog Mats",
+            "leaves": [
+              "Dog Mats"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "120",
+        "name": "Carpets & Doormats",
+        "groups": [
+          {
+            "id": "1119",
+            "name": "Medium Weight Carpets",
+            "leaves": [
+              "Medium Weight Carpets"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "121",
+        "name": "Soft Furnishing",
+        "groups": [
+          {
+            "id": "1120",
+            "name": "Pet Furnishing",
+            "leaves": [
+              "Pet Furnishing"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "122",
+        "name": "Furniture",
+        "groups": [
+          {
+            "id": "1121",
+            "name": "Storage Furniture",
+            "leaves": [
+              "Storage Furniture"
+            ]
+          },
+          {
+            "id": "1122",
+            "name": "Living room Furniture",
+            "leaves": [
+              "Living room Furniture"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "13",
+    "name": "Kids & Toys",
+    "subgroups": [
+      {
+        "id": "123",
+        "name": "Accessories",
+        "groups": [
+          {
+            "id": "1123",
+            "name": "Unisex",
+            "leaves": [
+              "Bags & Backpacks",
+              "Towel, Bathrobes & Showercaps",
+              "Bedsheets",
+              "Blankets",
+              "Bottles & Lunchboxes",
+              "Caps",
+              "Other Kids Accessories",
+              "Caps, Ties, Belts & Socks",
+              "Sunglasses",
+              "Suspenders",
+              "Handkerchiefs",
+              "Balaclavas",
+              "Kids Umbrella"
+            ]
+          },
+          {
+            "id": "1124",
+            "name": "Watches",
+            "leaves": [
+              "Sports Watches",
+              "Analog Watches",
+              "Chronograph Watches",
+              "Digital Watches",
+              "Watchbands"
+            ]
+          },
+          {
+            "id": "1125",
+            "name": "Badges",
+            "leaves": [
+              "Badges"
+            ]
+          },
+          {
+            "id": "1126",
+            "name": "School Supplies",
+            "leaves": [
+              "Lunch Boxes & Water Bottles",
+              "Travel Items",
+              "School bags"
+            ]
+          },
+          {
+            "id": "1127",
+            "name": "Hats & Caps",
+            "leaves": [
+              "Hats & Caps"
+            ]
+          },
+          {
+            "id": "1128",
+            "name": "Jewellery",
+            "leaves": [
+              "Bracelets",
+              "Bangles",
+              "Rings"
+            ]
+          },
+          {
+            "id": "1129",
+            "name": "Soft Toys",
+            "leaves": [
+              "Teddy Bears"
+            ]
+          },
+          {
+            "id": "1130",
+            "name": "Baby Safety & Training",
+            "leaves": [
+              "Baby Safety Guards & Locks",
+              "Baby Hearing Protection Earmuffs",
+              "Baby & Toddler Carriers",
+              "Potty Seats & Chairs",
+              "Potty Step Stools",
+              "Safety Harnesses",
+              "Baby Walker"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "124",
+        "name": "Apparel",
+        "groups": [
+          {
+            "id": "1131",
+            "name": "Girls",
+            "leaves": [
+              "Kurta Suit Sets",
+              "Dungarees & Jumpsuits"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "125",
+        "name": "Toys",
+        "groups": [
+          {
+            "id": "1132",
+            "name": "Unisex",
+            "leaves": [
+              "Educational Toys"
+            ]
+          },
+          {
+            "id": "1133",
+            "name": "Electronic Toys",
+            "leaves": [
+              "Remote Control Toys",
+              "Electronic Toys & games",
+              "Musical toys",
+              "Walkie Talkies",
+              "Plug & Play Video Games",
+              "Electronic Pets",
+              "Handheld Games"
+            ]
+          },
+          {
+            "id": "1134",
+            "name": "Soft Toys",
+            "leaves": [
+              "Stuffed Toys",
+              "Clip-On Toys for Baby Gear",
+              "Stuffed animals",
+              "Cartoon Characters"
+            ]
+          },
+          {
+            "id": "1135",
+            "name": "Sport & Outdoor",
+            "leaves": [
+              "Play Tents",
+              "Slumber Bags",
+              "Balance Boards",
+              "Beanbags & Foot Bags",
+              "Garden Tools",
+              "Table Soccer & Billiards",
+              "Racket Games",
+              "Pogo Sticks",
+              "Marbles",
+              "Badminton",
+              "Volleyballs & Set",
+              "Cricket Set",
+              "Foosball",
+              "Basketballs & Set",
+              "Baseball",
+              "Yoga Mats & Gym Accessories (361)",
+              "Cricket",
+              "Balls",
+              "Boxing Set",
+              "Lawn Tennis",
+              "Table Tennis"
+            ]
+          },
+          {
+            "id": "1136",
+            "name": "Pretend Play",
+            "leaves": [
+              "Pretend Play Sets",
+              "Dress ups & costumes"
+            ]
+          },
+          {
+            "id": "1137",
+            "name": "Games",
+            "leaves": [
+              "Board Games",
+              "Playing Cards",
+              "Travel games",
+              "Indoor Climbers & Play",
+              "Travel & Pocket Games",
+              "Games Collections",
+              "Stacking & Balancing Games",
+              "Floor Games",
+              "Magic Supplies",
+              "Dice & Dice Games",
+              "Chess",
+              "Domino & Tile Games",
+              "Carrom Board"
+            ]
+          },
+          {
+            "id": "1138",
+            "name": "Novelty & Gag Toys",
+            "leaves": [
+              "Money Banks"
+            ]
+          },
+          {
+            "id": "1139",
+            "name": "Baby & Toddler Toys",
+            "leaves": [
+              "Bath Toys",
+              "Toddler Toys",
+              "Rattle Sets",
+              "Spinning & Battling Tops",
+              "Animal Shaped Rattles",
+              "Baby Rattles"
+            ]
+          },
+          {
+            "id": "1140",
+            "name": "Dolls",
+            "leaves": [
+              "Dolls & Doll houses",
+              "Candy Dolls",
+              "Dolls Accessories",
+              "Fashion dolls"
+            ]
+          },
+          {
+            "id": "1141",
+            "name": "Learning & Education",
+            "leaves": [
+              "Reading & Writing Toys",
+              "Magnets & Magnetic Toys",
+              "Early Development & Activity Toys",
+              "Toy Tablets & Computers",
+              "Math Toys"
+            ]
+          },
+          {
+            "id": "1142",
+            "name": "Puzzles",
+            "leaves": [
+              "Wooden Puzzle",
+              "Jigsaw Puzzle",
+              "Floor Puzzles",
+              "3-D Puzzles",
+              "Sudoku Puzzles",
+              "Puzzle Mats",
+              "Framed Puzzles",
+              "Board Puzzle",
+              "Rubik Cubes",
+              "Knob & Peg Puzzles"
+            ]
+          },
+          {
+            "id": "1143",
+            "name": "Outdoor Games",
+            "leaves": [
+              "Pools & Water Fun",
+              "Outdoor Sports Play & Sets",
+              "Frisbees and Boomerangs",
+              "Air Pump",
+              "Bowling Set",
+              "Hopscotch",
+              "Picnic Tables",
+              "Ball Pit",
+              "Skipping Ropes & Hula Hoops",
+              "Ring Toss Set",
+              "Wooden Ladders & Hoppers",
+              "Beach Toys Set",
+              "Hit Me Toys",
+              "Catcher & Sling Shots",
+              "Trampoline"
+            ]
+          },
+          {
+            "id": "1144",
+            "name": "Building & Construction Toys",
+            "leaves": [
+              "Building Toys",
+              "Magnetic Building",
+              "Block Toys",
+              "Building sets"
+            ]
+          },
+          {
+            "id": "1145",
+            "name": "Toy Vehicles",
+            "leaves": [
+              "Die-Cast & Toy Vehicles",
+              "Motor vehicles",
+              "Free Wheel Toys"
+            ]
+          },
+          {
+            "id": "1146",
+            "name": "Action & Toy Figures",
+            "leaves": [
+              "Toy Figures",
+              "Bendables",
+              "Statues, Maquettes & Busts",
+              "Buildings & Scenery",
+              "Props & Replicas",
+              "Battle toys",
+              "Bobbleheads"
+            ]
+          },
+          {
+            "id": "1147",
+            "name": "Gun Toys",
+            "leaves": [
+              "Gun Toys",
+              "Dart Guns"
+            ]
+          },
+          {
+            "id": "1148",
+            "name": "Bikes, Trikes & Ride-Ons",
+            "leaves": [
+              "Baby Stroller",
+              "Pedal Vehicles",
+              "Rollerskates",
+              "Trikes",
+              "Electrical Vehicles",
+              "Scooters",
+              "Pull-Along Wagons",
+              "Skateboards"
+            ]
+          },
+          {
+            "id": "1149",
+            "name": "Model Building Kits",
+            "leaves": [
+              "Cars & Vehicles",
+              "Motorcycles",
+              "Robots",
+              "Boats & Watercraft",
+              "Aircraft",
+              "Model Trains & Accessories"
+            ]
+          },
+          {
+            "id": "1150",
+            "name": "Cosmetics & Jewellery",
+            "leaves": [
+              "Earrings",
+              "Makeup Bags & Cases",
+              "Necklaces",
+              "Makeup & Hair Dressing Heads"
+            ]
+          },
+          {
+            "id": "1151",
+            "name": "Coin & Stamp Collecting",
+            "leaves": [
+              "Coin & Stamp Collecting"
+            ]
+          },
+          {
+            "id": "1152",
+            "name": "Musical Toy Instruments",
+            "leaves": [
+              "Accessories",
+              "Wind & Brass",
+              "Mouth Organ / Harmonica",
+              "Xylophones",
+              "Pianos & Keyboards",
+              "Tambourine",
+              "Drums & Percussion",
+              "Guitars & Strings",
+              "Flute & Whistles"
+            ]
+          },
+          {
+            "id": "1153",
+            "name": "Learning & Educational Toys",
+            "leaves": [
+              "Toy Camera",
+              "Intellikit",
+              "Augmented Reality",
+              "Kaleidoscope & Projectors"
+            ]
+          },
+          {
+            "id": "1154",
+            "name": "Dressing Up & Costumes",
+            "leaves": [
+              "Face Paints"
+            ]
+          },
+          {
+            "id": "1155",
+            "name": "Die-Cast & Toy Vehicles",
+            "leaves": [
+              "Finger Toys",
+              "Aircraft",
+              "Slot Cars, Race Tracks & Accessories"
+            ]
+          },
+          {
+            "id": "1156",
+            "name": "Dolls & Accessories",
+            "leaves": [
+              "Paper & Magnetic Dolls"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "126",
+        "name": "Footwear",
+        "groups": [
+          {
+            "id": "1157",
+            "name": "Girls",
+            "leaves": [
+              "Casual Shoes",
+              "Flip Flops",
+              "Sandals",
+              "Sports Shoes",
+              "Heels",
+              "Boots",
+              "School Shoes",
+              "Sneakers",
+              "Juttis & Mojaris",
+              "Clogs"
+            ]
+          },
+          {
+            "id": "1158",
+            "name": "Boys",
+            "leaves": [
+              "Casual Shoes",
+              "Flip Flops",
+              "Sandals",
+              "Sports Shoes",
+              "Heels",
+              "Boots",
+              "School Shoes",
+              "Sneakers",
+              "Juttis & Mojaris",
+              "Clogs"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "127",
+        "name": "Kids - Boys Western Wear",
+        "groups": [
+          {
+            "id": "1159",
+            "name": "Infants",
+            "leaves": [
+              "Bodysuit",
+              "Onesies & Rompers",
+              "Swimwear"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "128",
+        "name": "Kids - Girls Western Wear",
+        "groups": [
+          {
+            "id": "1160",
+            "name": "Western Wear",
+            "leaves": [
+              "Swimwear"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "129",
+        "name": "Kids Clothing",
+        "groups": [
+          {
+            "id": "1161",
+            "name": "Boys Winterwear",
+            "leaves": [
+              "Jackets & Coats",
+              "Sweaters",
+              "Sweatshirts & Hoodies",
+              "Thermals",
+              "Earmuffs",
+              "Boys Scarves",
+              "Gloves"
+            ]
+          },
+          {
+            "id": "1162",
+            "name": "Boys Ethnicwear",
+            "leaves": [
+              "Ethnic Jackets",
+              "Sherwanis",
+              "Kurta Sets",
+              "Ethnic Pyjamas & Dhoti Pants"
+            ]
+          },
+          {
+            "id": "1163",
+            "name": "Boys Topwear",
+            "leaves": [
+              "Shirts",
+              "Tshirts & Polos"
+            ]
+          },
+          {
+            "id": "1164",
+            "name": "Boys Bottomwear",
+            "leaves": [
+              "Jeans",
+              "Pants",
+              "Shorts & Capris",
+              "Trackpants & Joggers"
+            ]
+          },
+          {
+            "id": "1165",
+            "name": "Boys Dungarees",
+            "leaves": [
+              "Dungarees"
+            ]
+          },
+          {
+            "id": "1166",
+            "name": "Boys Clothing Sets",
+            "leaves": [
+              "Clothing Set"
+            ]
+          },
+          {
+            "id": "1167",
+            "name": "Boys Sleepwear",
+            "leaves": [
+              "Nightsuits",
+              "Pajamas"
+            ]
+          },
+          {
+            "id": "1168",
+            "name": "Boys Suits",
+            "leaves": [
+              "Boys Suits"
+            ]
+          },
+          {
+            "id": "1169",
+            "name": "Boys Innerwear",
+            "leaves": [
+              "Innerwear"
+            ]
+          },
+          {
+            "id": "1170",
+            "name": "Boys Unstiched Fabrics",
+            "leaves": [
+              "Unstitched Fabric"
+            ]
+          },
+          {
+            "id": "1171",
+            "name": "Boys Oneseis & Rompers",
+            "leaves": [
+              "Oneseis & Rompers"
+            ]
+          },
+          {
+            "id": "1172",
+            "name": "Boys Swimwear",
+            "leaves": [
+              "Swimwear"
+            ]
+          },
+          {
+            "id": "1173",
+            "name": "Dresses & Frocks",
+            "leaves": [
+              "Frocks & Dresses"
+            ]
+          },
+          {
+            "id": "1174",
+            "name": "Jumpsuits",
+            "leaves": [
+              "Jumpsuits"
+            ]
+          },
+          {
+            "id": "1175",
+            "name": "Girls Winterwear",
+            "leaves": [
+              "Jackets & Coats",
+              "Sweaters",
+              "Sweatshirts & Hoodies",
+              "Thermals",
+              "Girls Scarves & Wraps",
+              "Gloves",
+              "Earmuffs"
+            ]
+          },
+          {
+            "id": "1176",
+            "name": "Girls Topwear",
+            "leaves": [
+              "Tshirts",
+              "Tops & Tunics",
+              "Shirts",
+              "Shrugs"
+            ]
+          },
+          {
+            "id": "1177",
+            "name": "Girls Bottomwear",
+            "leaves": [
+              "Jeans & Jeggings",
+              "Leggings & Tights",
+              "Pants",
+              "Shorts & Capris",
+              "Skirts",
+              "Trackpants & Joggers",
+              "Ethnic Bottoms"
+            ]
+          },
+          {
+            "id": "1178",
+            "name": "Girls Ethnicwear",
+            "leaves": [
+              "Kurtis & Kurtas",
+              "Kurta Sets",
+              "Lehenga Cholis",
+              "Ethnic Gowns",
+              "Sarees",
+              "Dupattas"
+            ]
+          },
+          {
+            "id": "1179",
+            "name": "Girls Clothing Sets",
+            "leaves": [
+              "Clothing Set"
+            ]
+          },
+          {
+            "id": "1180",
+            "name": "Girls Sleepwear",
+            "leaves": [
+              "Nightsuits",
+              "Pyjamas"
+            ]
+          },
+          {
+            "id": "1181",
+            "name": "Girls Innerwear",
+            "leaves": [
+              "Innerwear"
+            ]
+          },
+          {
+            "id": "1182",
+            "name": "Girls Oneseis & Rompers",
+            "leaves": [
+              "Oneseis & Rompers"
+            ]
+          },
+          {
+            "id": "1183",
+            "name": "Girls Dungarees",
+            "leaves": [
+              "Dungarees"
+            ]
+          },
+          {
+            "id": "1184",
+            "name": "Girls Swimwear",
+            "leaves": [
+              "Swimwear"
+            ]
+          },
+          {
+            "id": "1185",
+            "name": "Girls Sportswear",
+            "leaves": [
+              "Active Innerwear",
+              "Active Shorts",
+              "Active Undershorts",
+              "Active Tshirts",
+              "Active Clothing set",
+              "Active Skirts & Skorts",
+              "Unitards",
+              "Track suits"
+            ]
+          },
+          {
+            "id": "1186",
+            "name": "Boys Sportswear",
+            "leaves": [
+              "Active Shorts",
+              "Active Undershorts",
+              "Active Tshirts",
+              "Active Innerwear",
+              "Unitards",
+              "Track suits",
+              "Active Clothing set"
+            ]
+          },
+          {
+            "id": "1187",
+            "name": "Muslimwear",
+            "leaves": [
+              "Girls Muslimwear",
+              "Boys Muslimwear"
+            ]
+          },
+          {
+            "id": "1188",
+            "name": "Kids Rainwear",
+            "leaves": [
+              "Rainwear"
+            ]
+          },
+          {
+            "id": "1189",
+            "name": "Girls Unstiched Fabrics",
+            "leaves": [
+              "Unstitched Fabric"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "130",
+        "name": "Party Supplies",
+        "groups": [
+          {
+            "id": "1190",
+            "name": "Party Supplies",
+            "leaves": [
+              "Party Items",
+              "Party Tableware",
+              "Party & Gift Bags"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "14",
+    "name": "Personal Care & Wellness",
+    "subgroups": [
+      {
+        "id": "131",
+        "name": "Personal Care & Wellness",
+        "groups": [
+          {
+            "id": "1191",
+            "name": "Personal Care & Wellness",
+            "leaves": [
+              "Personal Care & Wellness"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "15",
+    "name": "Mobiles & Tablets",
+    "subgroups": [
+      {
+        "id": "132",
+        "name": "Mobiles & Tablets",
+        "groups": [
+          {
+            "id": "1192",
+            "name": "Mobiles & Tablets",
+            "leaves": [
+              "Mobiles & Tablets"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "16",
+    "name": "Consumer Electronics",
+    "subgroups": [
+      {
+        "id": "133",
+        "name": "Consumer Electronics",
+        "groups": [
+          {
+            "id": "1193",
+            "name": "Consumer Electronics",
+            "leaves": [
+              "Consumer Electronics"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "17",
+    "name": "Appliances",
+    "subgroups": [
+      {
+        "id": "134",
+        "name": "Appliances",
+        "groups": [
+          {
+            "id": "1194",
+            "name": "Appliances",
+            "leaves": [
+              "Appliances"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "18",
+    "name": "Automotive",
+    "subgroups": [
+      {
+        "id": "135",
+        "name": "Automotive",
+        "groups": [
+          {
+            "id": "1195",
+            "name": "Automotive",
+            "leaves": [
+              "Automotive"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "19",
+    "name": "Beauty & Personal Care",
+    "subgroups": [
+      {
+        "id": "136",
+        "name": "Beauty & Personal Care",
+        "groups": [
+          {
+            "id": "1196",
+            "name": "Beauty & Personal Care",
+            "leaves": [
+              "Beauty & Personal Care"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "20",
+    "name": "Home Utility",
+    "subgroups": [
+      {
+        "id": "137",
+        "name": "Home Utility",
+        "groups": [
+          {
+            "id": "1197",
+            "name": "Home Utility",
+            "leaves": [
+              "Home Utility"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "21",
+    "name": "Kids",
+    "subgroups": [
+      {
+        "id": "138",
+        "name": "Kids",
+        "groups": [
+          {
+            "id": "1198",
+            "name": "Kids",
+            "leaves": [
+              "Kids"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "22",
+    "name": "Grocery",
+    "subgroups": [
+      {
+        "id": "139",
+        "name": "Grocery",
+        "groups": [
+          {
+            "id": "1199",
+            "name": "Grocery",
+            "leaves": [
+              "Grocery"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "23",
+    "name": "Women",
+    "subgroups": [
+      {
+        "id": "140",
+        "name": "Women",
+        "groups": [
+          {
+            "id": "1200",
+            "name": "Women",
+            "leaves": [
+              "Women"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "24",
+    "name": "Home & Kitchen",
+    "subgroups": [
+      {
+        "id": "141",
+        "name": "Home & Kitchen",
+        "groups": [
+          {
+            "id": "1201",
+            "name": "Home & Kitchen",
+            "leaves": [
+              "Home & Kitchen"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "25",
+    "name": "Health & Wellness",
+    "subgroups": [
+      {
+        "id": "142",
+        "name": "Health & Wellness",
+        "groups": [
+          {
+            "id": "1202",
+            "name": "Health & Wellness",
+            "leaves": [
+              "Health & Wellness"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "26",
+    "name": "Beauty & Makeup",
+    "subgroups": [
+      {
+        "id": "143",
+        "name": "Beauty & Makeup",
+        "groups": [
+          {
+            "id": "1203",
+            "name": "Beauty & Makeup",
+            "leaves": [
+              "Beauty & Makeup"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "27",
+    "name": "Personal Care",
+    "subgroups": [
+      {
+        "id": "144",
+        "name": "Personal Care",
+        "groups": [
+          {
+            "id": "1204",
+            "name": "Personal Care",
+            "leaves": [
+              "Personal Care"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "28",
+    "name": "Men'S Grooming",
+    "subgroups": [
+      {
+        "id": "145",
+        "name": "Men'S Grooming",
+        "groups": [
+          {
+            "id": "1205",
+            "name": "Men'S Grooming",
+            "leaves": [
+              "Men'S Grooming"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "29",
+    "name": "Craft & Office Supplies",
+    "subgroups": [
+      {
+        "id": "146",
+        "name": "Craft & Office Supplies",
+        "groups": [
+          {
+            "id": "1206",
+            "name": "Craft & Office Supplies",
+            "leaves": [
+              "Craft & Office Supplies"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "30",
+    "name": "Sports & Fitness",
+    "subgroups": [
+      {
+        "id": "147",
+        "name": "Sports & Fitness",
+        "groups": [
+          {
+            "id": "1207",
+            "name": "Sports & Fitness",
+            "leaves": [
+              "Sports & Fitness"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "31",
+    "name": "Automotive Accessories",
+    "subgroups": [
+      {
+        "id": "148",
+        "name": "Automotive Accessories",
+        "groups": [
+          {
+            "id": "1208",
+            "name": "Automotive Accessories",
+            "leaves": [
+              "Automotive Accessories"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "32",
+    "name": "Pet Supplies",
+    "subgroups": [
+      {
+        "id": "149",
+        "name": "Pet Supplies",
+        "groups": [
+          {
+            "id": "1209",
+            "name": "Pet Supplies",
+            "leaves": [
+              "Pet Supplies"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "33",
+    "name": "Office Supplies & Stationery",
+    "subgroups": [
+      {
+        "id": "150",
+        "name": "Office Supplies & Stationery",
+        "groups": [
+          {
+            "id": "1210",
+            "name": "Office Supplies & Stationery",
+            "leaves": [
+              "Office Supplies & Stationery"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "34",
+    "name": "Industrial & Scientific Products",
+    "subgroups": [
+      {
+        "id": "151",
+        "name": "Industrial & Scientific Products",
+        "groups": [
+          {
+            "id": "1211",
+            "name": "Industrial & Scientific Products",
+            "leaves": [
+              "Industrial & Scientific Products"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "35",
+    "name": "Musical Instruments",
+    "subgroups": [
+      {
+        "id": "152",
+        "name": "Musical Instruments",
+        "groups": [
+          {
+            "id": "1212",
+            "name": "Musical Instruments",
+            "leaves": [
+              "Musical Instruments"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "36",
+    "name": "Books",
+    "subgroups": [
+      {
+        "id": "153",
+        "name": "Books",
+        "groups": [
+          {
+            "id": "1213",
+            "name": "Books",
+            "leaves": [
+              "Books"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "37",
+    "name": "Eye Utility",
+    "subgroups": [
+      {
+        "id": "154",
+        "name": "Eye Utility",
+        "groups": [
+          {
+            "id": "1214",
+            "name": "Eye Utility",
+            "leaves": [
+              "Eye Utility"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "38",
+    "name": "Bags, Luggage & Travel Accessories",
+    "subgroups": [
+      {
+        "id": "155",
+        "name": "Bags, Luggage & Travel Accessories",
+        "groups": [
+          {
+            "id": "1215",
+            "name": "Bags, Luggage & Travel Accessories",
+            "leaves": [
+              "Bags, Luggage & Travel Accessories"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "39",
+    "name": "Mens Personal Care & Grooming",
+    "subgroups": [
+      {
+        "id": "156",
+        "name": "Mens Personal Care & Grooming",
+        "groups": [
+          {
+            "id": "1216",
+            "name": "Mens Personal Care & Grooming",
+            "leaves": [
+              "Mens Personal Care & Grooming"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

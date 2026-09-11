@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { MapPin, ShoppingCart, Store, UserCheck, LogOut, Menu, X, LogIn, User as UserIcon } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -19,10 +19,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const {
     user,
+    sellerProfile,
     activeRole,
     setActiveRole,
     isAuthenticated,
     openCustomerAuthModal,
+    openSellerProfileModal,
+    openCustomerProfileModal,
     logout,
   } = useAuth();
   const { totalItems } = useCart();
@@ -48,12 +51,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <TouchableOpacity
           style={styles.brandTitleRow}
-          onPress={() => setActiveRole('buyer')}
+          onPress={() => {
+            if (!isAuthenticated || user?.role === 'customer') {
+              setActiveRole('buyer');
+            } else if (user?.role === 'seller') {
+              setActiveRole('seller');
+            }
+          }}
           activeOpacity={0.8}
         >
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoText}>DS</Text>
-          </View>
+          <Image source={require('../../assets/logo.png')} style={styles.logoBadge} resizeMode="contain" />
           <View>
             <View style={styles.titleWithBadge}>
               <Text style={styles.brandTitle}>DigiSewa</Text>
@@ -63,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </View>
 
             <View style={styles.locationRow}>
-              <MapPin size={12} color="#EA580C" />
+              <MapPin size={12} color="#4F46E5" />
               <Text numberOfLines={1} style={styles.locationText}>
                 {user?.address || 'Guwahati, Assam'}
               </Text>
@@ -76,29 +83,43 @@ export const Navbar: React.FC<NavbarProps> = ({
       <View style={styles.rightControls}>
         {/* Navigation Portal Switcher (Customer vs Seller) */}
         <View style={styles.portalGroup}>
-          <TouchableOpacity
-            style={[styles.portalBtn, activeRole === 'buyer' && styles.portalBtnActiveBuyer]}
-            onPress={() => setActiveRole('buyer')}
-          >
-            <Text style={[styles.portalText, activeRole === 'buyer' && styles.portalTextActive]}>
-              Customer
-            </Text>
-          </TouchableOpacity>
+          {(!isAuthenticated || user?.role === 'customer') && (
+            <TouchableOpacity
+              style={[styles.portalBtn, activeRole === 'buyer' && styles.portalBtnActiveBuyer]}
+              onPress={() => setActiveRole('buyer')}
+            >
+              <Text style={[styles.portalText, activeRole === 'buyer' && styles.portalTextActive]}>
+                Customer
+              </Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={[styles.portalBtn, activeRole === 'seller' && styles.portalBtnActiveSeller]}
-            onPress={() => setActiveRole('seller')}
-          >
-            <Store size={12} color={activeRole === 'seller' ? '#FFFFFF' : '#64748B'} style={{ marginRight: 4 }} />
-            <Text style={[styles.portalText, activeRole === 'seller' && styles.portalTextActive]}>
-              Seller Hub
-            </Text>
-          </TouchableOpacity>
+          {(!isAuthenticated || user?.role === 'seller') && (
+            <TouchableOpacity
+              style={[styles.portalBtn, activeRole === 'seller' && styles.portalBtnActiveSeller]}
+              onPress={() => setActiveRole('seller')}
+            >
+              <Store size={12} color={activeRole === 'seller' ? '#FFFFFF' : '#64748B'} style={{ marginRight: 4 }} />
+              <Text style={[styles.portalText, activeRole === 'seller' && styles.portalTextActive]}>
+                Seller Hub
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* User Account / Auth Actions */}
         {isAuthenticated && user ? (
-          <View style={styles.userProfilePill}>
+          <TouchableOpacity
+            style={styles.userProfilePill}
+            onPress={() => {
+              if (activeRole === 'seller' && sellerProfile) {
+                openSellerProfileModal();
+              } else {
+                openCustomerProfileModal();
+              }
+            }}
+            activeOpacity={0.8}
+          >
             <View style={styles.userAvatarBadge}>
               <UserIcon size={14} color="#0F172A" />
             </View>
@@ -108,7 +129,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <TouchableOpacity onPress={logout} style={styles.logoutBtn} activeOpacity={0.7}>
               <LogOut size={16} color="#DC2626" />
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         ) : (
           activeRole === 'buyer' && (
             <TouchableOpacity
@@ -171,17 +192,12 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   logoBadge: {
-    backgroundColor: '#0F172A',
     width: 38,
     height: 38,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#EA580C',
+    marginRight: 10,
   },
   logoText: {
-    color: '#EA580C',
+    color: '#4F46E5',
     fontWeight: '900',
     fontSize: 16,
     letterSpacing: 0.5,
@@ -203,17 +219,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   taglineBadge: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#FFEDD5',
+    borderColor: '#E0E7FF',
   },
   taglineText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#EA580C',
+    color: '#4F46E5',
   },
   locationRow: {
     flexDirection: 'row',
@@ -248,7 +264,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   portalBtnActiveBuyer: {
-    backgroundColor: '#EA580C',
+    backgroundColor: '#4F46E5',
   },
   portalBtnActiveSeller: {
     backgroundColor: '#4338CA',
@@ -292,14 +308,14 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   loginCtaBtn: {
-    backgroundColor: '#EA580C',
+    backgroundColor: '#4F46E5',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 8,
-    shadowColor: '#EA580C',
+    shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -323,7 +339,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#EA580C',
+    backgroundColor: '#4F46E5',
     borderRadius: 10,
     minWidth: 18,
     height: 18,

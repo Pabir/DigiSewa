@@ -17,6 +17,7 @@ export async function generateProductDetailsFromImage(base64Image: string): Prom
       description: 'Handpicked, naturally ripened sweet Alphonso mangoes direct from local orchards in Ratnagiri.',
       category: 'Fresh Grocery & Produce',
       suggestedPrice: 499,
+      suggestedOriginalPrice: 799,
       tags: ['Organic', 'Hyperlocal', 'Seasonal Fruit', 'Fresh', 'Premium Quality'],
     };
   }
@@ -29,7 +30,8 @@ Return ONLY a raw valid JSON object with the following schema, with no markdown 
   "title": "Short descriptive product title",
   "description": "Engaging product description (2-3 sentences)",
   "category": "Category name (e.g. Fresh Grocery, Electronics, Clothing, Home Care)",
-  "suggestedPrice": number (estimated price in Indian Rupees ₹),
+  "suggestedPrice": number (estimated discounted price in Indian Rupees ₹),
+  "suggestedOriginalPrice": number (estimated original MRP in Indian Rupees ₹),
   "tags": ["array", "of", "4-5", "relevant", "tags"]
 }`;
 
@@ -52,6 +54,7 @@ Return ONLY a raw valid JSON object with the following schema, with no markdown 
       description: parsed.description || 'Quality product from local seller.',
       category: parsed.category || 'General',
       suggestedPrice: Number(parsed.suggestedPrice) || 199,
+      suggestedOriginalPrice: Number(parsed.suggestedOriginalPrice) || 299,
       tags: Array.isArray(parsed.tags) ? parsed.tags : ['Hyperlocal', 'DigiSewa'],
     };
   } catch (error) {
@@ -62,6 +65,7 @@ Return ONLY a raw valid JSON object with the following schema, with no markdown 
       description: 'Authentic high-quality local product provided by verified DigiSewa sellers.',
       category: 'Hyperlocal Essentials',
       suggestedPrice: 299,
+      suggestedOriginalPrice: 499,
       tags: ['Local Seller', 'Hyperlocal', 'Verified Quality'],
     };
   }

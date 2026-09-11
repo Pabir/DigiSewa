@@ -1,4 +1,4 @@
-export type UserRole = 'guest' | 'buyer' | 'customer' | 'seller' | 'admin';
+export type UserRole = 'guest' | 'buyer' | 'customer' | 'seller' | 'admin' | 'super_admin';
 
 export interface User {
   id: string;
@@ -8,6 +8,13 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   address?: string;
+  password?: string;
+  cart?: CartItem[];
+}
+
+export interface SystemAdmin extends User {
+  status: 'active' | 'suspended';
+  createdDate: string;
 }
 
 export interface PickupAddress {
@@ -37,7 +44,7 @@ export interface Seller {
   phone: string;
   rating: number;
   totalSales: number;
-  verificationStatus: 'pending' | 'verified' | 'rejected';
+  verificationStatus: 'pending' | 'verified' | 'rejected' | 'suspended';
 
   // Comprehensive DigiSewa Onboarding Fields (Modeled after Supplier Signup)
   hasGst?: boolean;
@@ -52,12 +59,15 @@ export interface Seller {
   password?: string;
   rejectionReason?: string;
   joinedDate?: string;
+  eSignatureText?: string;
+  eSignatureUrl?: string;
 }
 
 export interface ClothSizeVariant {
   size: string; // 'S', 'M', 'L', 'XL', 'XXL', '3XL', 'Free Size'
   waistInches?: number; // e.g., 28, 30, 32, 34
   chestInches?: number; // e.g., 36, 38, 40, 42
+  breastInches?: number; // e.g., 32, 34, 36, 38 (for Women Upper Wear)
   hipInches?: number;
   lengthInches?: number;
   stock: number;
@@ -97,14 +107,17 @@ export interface Product {
   sellerCode?: string;
   meeshoDiscountPrice?: number;
   selectedSize?: string;
+  offerFreeShipping?: boolean;
+  variants?: any[];
 }
 
 export interface CartItem {
   product: Product;
   quantity: number;
+  deliveryPreference?: 'fast' | 'budget';
 }
 
-export type OrderStatus = 'pending' | 'processing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'reached_hub' | 'out_for_delivery' | 'delivered' | 'cancelled';
 
 export interface Order {
   id: string;
@@ -114,11 +127,22 @@ export interface Order {
   deliveryAddress: string;
   items: CartItem[];
   totalAmount: number;
+  productTotal?: number;
+  shippingFee?: number;
+  actualShippingCost?: number;
+  sellerOffersFreeShipping?: boolean;
+  platformFee?: number;
   paymentMode: 'cod' | 'upi' | 'card';
   paymentStatus: 'pending' | 'paid';
   status: OrderStatus;
   createdAt: string;
   estimatedDelivery: string;
+  shiprocketOrderId?: string;
+  shiprocketShipmentId?: string;
+  awbCode?: string;
+  labelUrl?: string;
+  isLabelDownloaded?: boolean;
+  razorpayPaymentId?: string;
 }
 
 export interface Category {
@@ -133,5 +157,43 @@ export interface AIProductSuggestion {
   description: string;
   category: string;
   suggestedPrice: number;
+  suggestedOriginalPrice?: number;
   tags: string[];
+}
+
+export interface ReturnItem {
+  id: string;
+  orderId: string;
+  sellerId?: string;
+  productName: string;
+  returnReason: string;
+  customerName: string;
+  status: 'rto_in_transit' | 'delivered_to_seller' | 'qc_failed' | 'replacement_requested';
+  returnDate: string;
+  amount: number;
+}
+
+export interface Settlement {
+  id: string;
+  sellerId: string;
+  storeName: string;
+  orderId: string;
+  amountOwed: number;
+  status: 'pending' | 'processing' | 'settled';
+  createdAt: string;
+  settledAt?: string;
+  payoutReference?: string;
+}
+export interface ProductReview {
+  id: string;
+  productId: string;
+  sellerId: string;
+  userId: string;
+  userName: string;
+  rating: number; // 1 to 5
+  title?: string;
+  comment: string;
+  createdAt: string;
+  sellerReply?: string;
+  repliedAt?: string;
 }

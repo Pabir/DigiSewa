@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, useWindowDimensions, TouchableOpacity } from 'react-native';
 import { AdminHeader } from '../../components/admin/AdminHeader';
 import { AdminSidebar, AdminTab } from '../../components/admin/AdminSidebar';
@@ -7,6 +7,9 @@ import { AdminSellerApprovalScreen } from './AdminSellerApprovalScreen';
 import { AdminCustomerManagementScreen } from './AdminCustomerManagementScreen';
 import { AdminSellerTicketsScreen } from './AdminSellerTicketsScreen';
 import { AdminCustomerTicketsScreen } from './AdminCustomerTicketsScreen';
+import { AdminCatalogFormBuilderScreen } from './AdminCatalogFormBuilderScreen';
+import { SuperAdminManagementScreen } from './SuperAdminManagementScreen';
+import { SuperadminSettlementsScreen } from './SuperadminSettlementsScreen';
 import {
   AdminSeller,
   AdminCustomer,
@@ -15,238 +18,25 @@ import {
   TicketStatus,
 } from '../../types/adminTypes';
 
-import { UserRole } from '../../types';
-
+import { UserRole, Seller } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { getSellersFromFirestore, getSupportTicketsFromFirestore, getUsersFromFirestore, getOrders } from '../../services/firebaseService';
 
 interface AdminDashboardScreenProps {
   onSwitchRole: (role: UserRole) => void;
 }
 
-// Initial Mock Data for Super Admin Panel
-const INITIAL_SELLERS: AdminSeller[] = [
-  {
-    id: 'sel-101',
-    storeName: 'Al Mursaleen Stores',
-    ownerName: 'Sk Pabirul Islam',
-    email: 'drskpabirulislam1995@gmail.com',
-    phone: '+91 98765 01234',
-    gstin: '18AABCU9603R1ZM',
-    panNumber: 'ABCDE1234F',
-    bankAccountNo: '918020044556611',
-    ifscCode: 'UTIB0000123',
-    bankName: 'Axis Bank - Guwahati Branch',
-    storeAddress: 'Building 4B, Sector 2, Main Bazaar Road',
-    city: 'Guwahati',
-    state: 'Assam',
-    pincode: '781001',
-    eSignatureUrl: 'verified',
-    status: 'pending',
-    joinedDate: '2026-07-26',
-    totalProductsCount: 4,
-    totalSalesVolume: 125400,
-  },
-  {
-    id: 'sel-102',
-    storeName: 'Sharma Fresh Organics',
-    ownerName: 'Ramesh Sharma',
-    email: 'sharma.organics@gmail.com',
-    phone: '+91 98111 22334',
-    gstin: '07AAACS9876Q1Z5',
-    panNumber: 'AAACS9876Q',
-    bankAccountNo: '501002341123',
-    ifscCode: 'ICIC0000456',
-    bankName: 'ICICI Bank',
-    storeAddress: 'Shop 12, Main Market',
-    city: 'Guwahati',
-    state: 'Assam',
-    pincode: '781001',
-    eSignatureUrl: 'verified',
-    status: 'approved',
-    joinedDate: '2026-06-15',
-    totalProductsCount: 32,
-    totalSalesVolume: 489000,
-  },
-  {
-    id: 'sel-103',
-    storeName: 'Gupta Electricals & Repairs',
-    ownerName: 'Sanjay Gupta',
-    email: 'gupta.repairs@gmail.com',
-    phone: '+91 99222 33445',
-    gstin: '09AABCG5432E1Z8',
-    panNumber: 'AABCG5432E',
-    bankAccountNo: '30981276345',
-    ifscCode: 'SBIN0001122',
-    bankName: 'State Bank of India',
-    storeAddress: 'G-4, Sector 18',
-    city: 'Noida',
-    state: 'Uttar Pradesh',
-    pincode: '201301',
-    eSignatureUrl: 'verified',
-    status: 'approved',
-    joinedDate: '2026-05-10',
-    totalProductsCount: 18,
-    totalSalesVolume: 340000,
-  },
-  {
-    id: 'sel-104',
-    storeName: 'Royal Handlooms & Sarees',
-    ownerName: 'Anita Verma',
-    email: 'anita.royalhandlooms@yahoo.com',
-    phone: '+91 97333 44556',
-    gstin: '27AABCR1122M1Z3',
-    panNumber: 'AABCR1122M',
-    bankAccountNo: '887766554433',
-    ifscCode: 'AXIS0000987',
-    bankName: 'Axis Bank',
-    storeAddress: 'Weaver Colony 8',
-    city: 'Surat',
-    state: 'Gujarat',
-    pincode: '395003',
-    eSignatureUrl: 'verified',
-    status: 'pending',
-    joinedDate: '2026-07-24',
-    totalProductsCount: 8,
-    totalSalesVolume: 92000,
-  },
-];
+// Initial Mock Data for Admin Panel
+const INITIAL_SELLERS: AdminSeller[] = [];
 
-const INITIAL_CUSTOMERS: AdminCustomer[] = [
-  {
-    id: 'cust-1',
-    name: 'Priya Sharma',
-    email: 'priya.sharma@gmail.com',
-    phone: '+91 98989 89898',
-    city: 'Noida',
-    state: 'Uttar Pradesh',
-    walletBalance: 450,
-    totalOrders: 12,
-    totalSpent: 14500,
-    status: 'active',
-    registeredDate: '2026-05-01',
-    lastActive: '2026-07-25',
-  },
-  {
-    id: 'cust-2',
-    name: 'Vikram Malhotra',
-    email: 'vikram.m@gmail.com',
-    phone: '+91 97777 66666',
-    city: 'New Delhi',
-    state: 'Delhi',
-    walletBalance: 200,
-    totalOrders: 8,
-    totalSpent: 9800,
-    status: 'active',
-    registeredDate: '2026-06-10',
-    lastActive: '2026-07-24',
-  },
-  {
-    id: 'cust-3',
-    name: 'Amit Patel',
-    email: 'amit.patel@gmail.com',
-    phone: '+91 96666 55555',
-    city: 'Ahmedabad',
-    state: 'Gujarat',
-    walletBalance: 0,
-    totalOrders: 3,
-    totalSpent: 3200,
-    status: 'blocked',
-    registeredDate: '2026-04-12',
-    lastActive: '2026-07-15',
-  },
-];
+const INITIAL_CUSTOMERS: AdminCustomer[] = [];
 
-const INITIAL_SELLER_TICKETS: SupportTicket[] = [
-  {
-    id: 'st-101',
-    ticketNumber: 'STK-9041',
-    ticketType: 'seller',
-    userId: 'sel-101',
-    userName: 'Al Mursaleen Apparel',
-    userEmail: 'almursaleen@digisewa.com',
-    userPhone: '+91 98765 43210',
-    category: 'Weekly Payout Settlement',
-    subject: 'Request for early payout disbursement for order #ORD-9841',
-    description: 'Our weekly payout settlement for batch #9841 is currently showing pending. Please verify GSTIN invoice and clear payout.',
-    priority: 'high',
-    status: 'open',
-    createdAt: '2026-07-25 09:30 AM',
-    updatedAt: '2026-07-25 09:30 AM',
-    messages: [
-      {
-        id: 'm1',
-        senderRole: 'seller',
-        senderName: 'Dr. SK P (Al Mursaleen)',
-        message: 'Hello Admin team, please clear our payout of ₹8,450 for order #ORD-9841.',
-        timestamp: '09:30 AM',
-      },
-    ],
-  },
-  {
-    id: 'st-102',
-    ticketNumber: 'STK-8920',
-    ticketType: 'seller',
-    userId: 'sel-102',
-    userName: 'Sharma Fresh Organics',
-    userEmail: 'sharma.organics@gmail.com',
-    userPhone: '+91 98111 22334',
-    category: 'Catalog Quality Check',
-    subject: 'Image QC verification status for Organic Alphonso Mangoes',
-    description: 'We updated white background high resolution photos. Kindly mark QC approved.',
-    priority: 'medium',
-    status: 'in_progress',
-    createdAt: '2026-07-24 02:15 PM',
-    updatedAt: '2026-07-24 04:30 PM',
-    messages: [
-      {
-        id: 'm1',
-        senderRole: 'seller',
-        senderName: 'Ramesh Sharma',
-        message: 'Reuploaded front and zoomed images as requested.',
-        timestamp: '02:15 PM',
-      },
-      {
-        id: 'm2',
-        senderRole: 'admin',
-        senderName: 'Admin Agent',
-        message: 'Catalog quality team is reviewing the white background images.',
-        timestamp: '04:30 PM',
-      },
-    ],
-  },
-];
+const INITIAL_SELLER_TICKETS: SupportTicket[] = [];
 
-const INITIAL_CUSTOMER_TICKETS: SupportTicket[] = [
-  {
-    id: 'ct-201',
-    ticketNumber: 'CTK-5410',
-    ticketType: 'customer',
-    userId: 'cust-1',
-    userName: 'Priya Sharma',
-    userEmail: 'priya.sharma@gmail.com',
-    userPhone: '+91 98989 89898',
-    category: 'Refund & Order Dispute',
-    subject: 'Return requested for Size M Kurti - Wrong fit received',
-    description: 'Received size M but waist fit was smaller than size chart. Requested return pickup and wallet refund.',
-    orderId: 'ORD-8820',
-    priority: 'high',
-    status: 'open',
-    createdAt: '2026-07-25 10:45 AM',
-    updatedAt: '2026-07-25 10:45 AM',
-    messages: [
-      {
-        id: 'm1',
-        senderRole: 'user',
-        senderName: 'Priya Sharma',
-        message: 'Please initiate reverse pickup and refund ₹499 to my DigiSewa Wallet.',
-        timestamp: '10:45 AM',
-      },
-    ],
-  },
-];
+const INITIAL_CUSTOMER_TICKETS: SupportTicket[] = [];
 
 export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSwitchRole }) => {
-  const { approveSellerApplication, rejectSellerApplication } = useAuth();
+  const { activeRole, approveSellerApplication, rejectSellerApplication, suspendSellerApplication } = useAuth();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
@@ -255,6 +45,91 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
   const [customers, setCustomers] = useState<AdminCustomer[]>(INITIAL_CUSTOMERS);
   const [sellerTickets, setSellerTickets] = useState<SupportTicket[]>(INITIAL_SELLER_TICKETS);
   const [customerTickets, setCustomerTickets] = useState<SupportTicket[]>(INITIAL_CUSTOMER_TICKETS);
+
+  useEffect(() => {
+    getSellersFromFirestore().then(remoteSellers => {
+      if (remoteSellers && remoteSellers.length > 0) {
+        const mappedAdminSellers: AdminSeller[] = remoteSellers.map((s: Seller) => ({
+          id: s.id,
+          storeName: s.storeName,
+          ownerName: s.ownerName || s.storeName,
+          email: s.email || 'seller@DigiSewa.in',
+          phone: s.phone,
+          gstin: s.gstin || 'GST-NOT-PROVIDED',
+          panNumber: s.panNumber || 'PAN-NOT-PROVIDED',
+          bankAccountNo: s.bankDetails?.accountNumber || '918020044556611',
+          ifscCode: s.bankDetails?.ifscCode || 'UTIB0000123',
+          bankName: s.bankDetails?.bankName || 'Axis Bank',
+          storeAddress: s.businessAddress || `${s.pickupAddress?.building || ''}, ${s.pickupAddress?.city || ''}`,
+          city: s.pickupAddress?.city || 'Guwahati',
+          state: s.pickupAddress?.state || 'Assam',
+          pincode: s.pickupAddress?.pincode || '781001',
+          status: s.verificationStatus === 'verified' ? 'approved' : s.verificationStatus === 'rejected' ? 'rejected' : 'pending',
+          joinedDate: s.joinedDate ? s.joinedDate.split('T')[0] : new Date().toISOString().split('T')[0],
+          totalProductsCount: 1,
+          totalSalesVolume: s.totalSales || 0,
+          rejectionReason: s.rejectionReason,
+          eSignatureText: s.eSignatureText,
+          eSignatureUrl: s.eSignatureUrl || (s.eSignatureText ? 'verified' : undefined),
+        }));
+
+        setSellers(prev => {
+          const map = new Map<string, AdminSeller>();
+          prev.forEach(item => map.set(item.id, item));
+          mappedAdminSellers.forEach(item => map.set(item.id, item));
+          return Array.from(map.values());
+        });
+      }
+    });
+
+    getSupportTicketsFromFirestore().then(remoteTickets => {
+      if (remoteTickets && remoteTickets.length > 0) {
+        setSellerTickets(remoteTickets.filter(t => t.ticketType === 'seller'));
+        setCustomerTickets(remoteTickets.filter(t => t.ticketType === 'customer'));
+      }
+    });
+
+    getUsersFromFirestore().then(async remoteUsers => {
+      if (remoteUsers && remoteUsers.length > 0) {
+        const customerUsers = remoteUsers.filter(u => u.role === 'customer' || u.role === 'buyer' || u.role === 'guest');
+        if (customerUsers.length > 0) {
+          try {
+            const allOrders = await getOrders();
+            const mappedAdminCustomers: AdminCustomer[] = customerUsers.map((u) => {
+              const userOrders = allOrders.filter(order => order.buyerId === u.id);
+              const totalOrders = userOrders.length;
+              const totalSpent = userOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+
+              return {
+                id: u.id,
+                name: u.name || 'Unknown',
+                email: u.email || 'N/A',
+                phone: u.phone || 'N/A',
+                city: 'N/A', 
+                state: 'N/A',
+                walletBalance: 0,
+                totalOrders: totalOrders,
+                totalSpent: totalSpent,
+                orders: userOrders,
+                status: 'active',
+                registeredDate: new Date().toISOString().split('T')[0],
+                lastActive: new Date().toISOString().split('T')[0]
+              };
+            });
+
+            setCustomers(prev => {
+              const map = new Map<string, AdminCustomer>();
+              prev.forEach(item => map.set(item.id, item));
+              mappedAdminCustomers.forEach(item => map.set(item.id, item));
+              return Array.from(map.values());
+            });
+          } catch (error) {
+            console.error('Failed to fetch orders for customers:', error);
+          }
+        }
+      }
+    });
+  }, []);
 
   // Computed Overview Metrics
   const pendingSellersCount = sellers.filter((s) => s.status === 'pending').length;
@@ -292,6 +167,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
   };
 
   const handleSuspendSeller = (sellerId: string) => {
+    suspendSellerApplication(sellerId);
     setSellers((prev) =>
       prev.map((s) => (s.id === sellerId ? { ...s, status: 'suspended' } : s))
     );
@@ -328,7 +204,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
             {
               id: 'm-' + Date.now(),
               senderRole: 'admin' as const,
-              senderName: 'DigiSewa Super Admin',
+              senderName: 'DigiSewa Admin',
               message: replyMessage,
               timestamp: 'Just now',
             },
@@ -387,7 +263,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
 
   return (
     <View style={styles.container}>
-      {/* Super Admin Top Navigation Bar */}
+      {/* Admin Top Navigation Bar */}
       <AdminHeader
         activeRole="admin"
         onSwitchRole={onSwitchRole}
@@ -436,6 +312,10 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
             <AdminOverviewScreen metrics={metrics} onNavigateTab={handleSelectAdminTab} />
           )}
 
+          {activeTab === 'catalog_builder' && (
+            <AdminCatalogFormBuilderScreen />
+          )}
+
           {activeTab === 'seller_approvals' && (
             <AdminSellerApprovalScreen
               sellers={sellers}
@@ -466,6 +346,14 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
               onReplyTicket={handleReplyCustomerTicket}
               onProcessInstantRefund={handleProcessInstantRefund}
             />
+          )}
+
+          {activeTab === 'settlements' && (
+            <SuperadminSettlementsScreen />
+          )}
+
+          {activeTab === 'team_management' && activeRole === 'super_admin' && (
+            <SuperAdminManagementScreen />
           )}
         </View>
       </View>

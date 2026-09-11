@@ -53,7 +53,7 @@ export const AdminLoginModal: React.FC = () => {
             {/* Dark Security Banner */}
             <View style={styles.securityHeader}>
               <View style={styles.iconCircle}>
-                <ShieldAlert size={28} color="#EA580C" />
+                <ShieldAlert size={28} color="#4F46E5" />
               </View>
               <Text style={styles.securityHeaderTitle}>DigiSewa Staff & Admin Portal</Text>
               <Text style={styles.securityHeaderSubtitle}>Restricted Area — Authorized Personnel Only</Text>
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: '#1E293B',
     borderWidth: 2,
-    borderColor: '#EA580C',
+    borderColor: '#4F46E5',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#EA580C',
+    borderColor: '#4F46E5',
   },
   loginBtnText: {
     color: '#FFFFFF',

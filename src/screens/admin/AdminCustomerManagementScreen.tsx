@@ -26,6 +26,7 @@ export const AdminCustomerManagementScreen: React.FC<AdminCustomerManagementScre
   const [selectedCustomer, setSelectedCustomer] = useState<AdminCustomer | null>(null);
   const [refundAmountInput, setRefundAmountInput] = useState<string>('200');
   const [showWalletModal, setShowWalletModal] = useState<boolean>(false);
+  const [selectedCustomerForOrders, setSelectedCustomerForOrders] = useState<AdminCustomer | null>(null);
 
   const filteredCustomers = customers.filter(
     (c) =>
@@ -96,7 +97,11 @@ export const AdminCustomerManagementScreen: React.FC<AdminCustomerManagementScre
 
                     {/* Orders */}
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.boldNum}>{cust.totalOrders} Orders</Text>
+                      <TouchableOpacity onPress={() => setSelectedCustomerForOrders(cust)}>
+                        <Text style={[styles.boldNum, { color: '#4338CA', textDecorationLine: 'underline' }]}>
+                          {cust.totalOrders} Orders
+                        </Text>
+                      </TouchableOpacity>
                     </View>
 
                     {/* Spent / Wallet */}
@@ -146,6 +151,58 @@ export const AdminCustomerManagementScreen: React.FC<AdminCustomerManagementScre
           </ScrollView>
         </View>
       </ScrollView>
+
+      {/* Orders Modal */}
+      {selectedCustomerForOrders && (
+        <Modal transparent animationType="slide" visible={true}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { maxWidth: 600, maxHeight: '80%' }]}>
+              <Text style={styles.modalTitle}>{selectedCustomerForOrders.name}'s Orders</Text>
+              <Text style={styles.modalSub}>
+                Viewing complete order history for this customer.
+              </Text>
+
+              <ScrollView style={{ marginTop: 10, marginBottom: 20 }}>
+                {selectedCustomerForOrders.orders && selectedCustomerForOrders.orders.length > 0 ? (
+                  selectedCustomerForOrders.orders.map((order, index) => (
+                    <View key={order.id || index} style={{ padding: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, marginBottom: 10 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ fontWeight: 'bold', fontSize: 13 }}>Order #{order.id}</Text>
+                        <Text style={{ fontWeight: 'bold', color: order.status === 'delivered' ? '#059669' : '#D97706', fontSize: 12 }}>
+                          {order.status ? order.status.toUpperCase() : 'PENDING'}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 12, color: '#475569', marginBottom: 2 }}>Amount: ₹{order.totalAmount}</Text>
+                      <Text style={{ fontSize: 12, color: '#475569', marginBottom: order.razorpayPaymentId ? 2 : 6 }}>Date: {new Date(order.createdAt).toLocaleDateString()}</Text>
+                      {order.razorpayPaymentId && (
+                        <Text style={{ fontSize: 12, color: '#4338CA', marginBottom: 6, fontWeight: '600' }}>
+                          Payment ID: {order.razorpayPaymentId}
+                        </Text>
+                      )}
+                      
+                      {order.items && order.items.map((item: any, i: number) => (
+                        <Text key={i} style={{ fontSize: 11, color: '#64748B' }}>
+                          • {item.product?.title} (x{item.quantity})
+                        </Text>
+                      ))}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', padding: 20 }}>
+                    No orders found for this customer.
+                  </Text>
+                )}
+              </ScrollView>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setSelectedCustomerForOrders(null)}>
+                  <Text style={styles.cancelBtnText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* Wallet Credit Refund Modal */}
       {showWalletModal && selectedCustomer && (

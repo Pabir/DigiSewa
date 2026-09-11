@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,12 +16,17 @@ import {
   Sparkles,
   PlusCircle,
   UploadCloud,
+  ArrowLeft,
 } from 'lucide-react-native';
 import { BulkCatalogUploadModal } from '../../components/seller/BulkCatalogUploadModal';
+import { L1_SUPER_CATEGORY_OPTIONS } from '../../constants/catalogDropdownOptions';
+import { useAuth } from '../../context/AuthContext';
+import { getProducts } from '../../services/firebaseService';
 
 interface CatalogUploadsScreenProps {
   onNavigateToAddSingleCatalog: () => void;
   onNavigateToManageCatalogs: () => void;
+  onBack?: () => void;
 }
 
 export interface CatalogUploadRecord {
@@ -35,60 +40,48 @@ export interface CatalogUploadRecord {
   errorMessage?: string;
 }
 
-const INITIAL_CATALOG_RECORDS: CatalogUploadRecord[] = [
-  {
-    fileId: 'CAT-FILE-98401',
-    title: 'Women High-Waist Stretchable Denim Jeans (4 Sizes)',
-    category: 'Women Western',
-    uploadType: 'single',
-    itemCount: 4,
-    qcStatus: 'pass',
-    uploadDate: '25 Jul 2026, 08:30 AM',
-  },
-  {
-    fileId: 'BULK-FILE-88902',
-    title: 'DigiSewa_Apparel_Catalog_Template_v2.xlsx',
-    category: 'Women Ethnic',
-    uploadType: 'bulk',
-    itemCount: 12,
-    qcStatus: 'error',
-    uploadDate: '25 Jul 2026, 07:15 AM',
-    errorMessage: 'Waist inch measurement missing for size XXL in row 4',
-  },
-  {
-    fileId: 'CAT-FILE-77103',
-    title: 'Designer Anarkali Floral Printed Rayon Kurti',
-    category: 'Women Ethnic',
-    uploadType: 'single',
-    itemCount: 4,
-    qcStatus: 'in_progress',
-    uploadDate: '25 Jul 2026, 06:45 AM',
-  },
-  {
-    fileId: 'BULK-FILE-66204',
-    title: 'Men_Summer_Shirts_Batch_01.xlsx',
-    category: 'Men Apparel',
-    uploadType: 'bulk',
-    itemCount: 8,
-    qcStatus: 'action_required',
-    uploadDate: '24 Jul 2026, 11:20 PM',
-    errorMessage: 'Missing front view high-res image URL',
-  },
-];
+const INITIAL_CATALOG_RECORDS: CatalogUploadRecord[] = [];
 
 export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
   onNavigateToAddSingleCatalog,
   onNavigateToManageCatalogs,
+  onBack,
 }) => {
-  const [records, setRecords] = useState<CatalogUploadRecord[]>(INITIAL_CATALOG_RECORDS);
+  const { sellerProfile } = useAuth();
+  const [uploadRecordsList, setRecords] = useState<CatalogUploadRecord[]>(INITIAL_CATALOG_RECORDS);
   const [activeUploadTab, setActiveUploadTab] = useState<'bulk' | 'single'>('bulk');
   const [qcStatusFilter, setQcStatusFilter] = useState<'all' | 'action_required' | 'in_progress' | 'error' | 'pass'>('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showBulkUploadModal, setShowBulkUploadModal] = useState<boolean>(false);
 
+  useEffect(() => {
+    const fetchUploads = async () => {
+      if (!sellerProfile?.id) return;
+      try {
+        const data = await getProducts(false, sellerProfile.id);
+        const myProducts = data.filter(p => p.sellerId === sellerProfile.id);
+        
+        // Map products into mock "upload records" for the dashboard
+        const mappedRecords: CatalogUploadRecord[] = myProducts.map(p => ({
+          fileId: p.id,
+          title: p.title || 'Untitled Upload',
+          category: p.category || 'Apparel',
+          uploadType: 'single',
+          itemCount: 1,
+          qcStatus: 'pass',
+          uploadDate: p.createdAt || new Date().toISOString()
+        }));
+        setRecords(mappedRecords);
+      } catch (err) {
+        console.error('Failed to fetch catalog uploads', err);
+      }
+    };
+    fetchUploads();
+  }, [sellerProfile?.id]);
+
   // Filtered list
-  const filteredRecords = records.filter((rec) => {
+  const filteredRecords = uploadRecordsList.filter((rec) => {
     // 1. Upload Type Tab
     if (rec.uploadType !== activeUploadTab) return false;
 
@@ -112,46 +105,14 @@ export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
   });
 
   // Metrics Count
-  const totalUploads = records.length;
-  const bulkUploadsCount = records.filter((r) => r.uploadType === 'bulk').length;
-  const singleUploadsCount = records.filter((r) => r.uploadType === 'single').length;
+  const totalUploads = uploadRecordsList.length;
+  const bulkUploadsCount = uploadRecordsList.filter((r) => r.uploadType === 'bulk').length;
+  const singleUploadsCount = uploadRecordsList.filter((r) => r.uploadType === 'single').length;
 
   const countByStatus = (status: CatalogUploadRecord['qcStatus']) =>
-    records.filter((r) => r.uploadType === activeUploadTab && r.qcStatus === status).length;
+    uploadRecordsList.filter((r) => r.uploadType === activeUploadTab && r.qcStatus === status).length;
 
-  const ALL_CATEGORIES = [
-    'All',
-    'Men Fashion',
-    'Women Fashion',
-    'Home & Living',
-    'Kids & Toys',
-    'Personal Care & Wellness',
-    'Mobiles & Tablets',
-    'Consumer Electronics',
-    'Appliances',
-    'Automotive',
-    'Beauty & Personal Care',
-    'Home Utility',
-    'Kids',
-    'Grocery',
-    'Women',
-    'Home & Kitchen',
-    'Health & Wellness',
-    'Beauty & Makeup',
-    'Personal Care',
-    "Men'S Grooming",
-    'Craft & Office Supplies',
-    'Sports & Fitness',
-    'Automotive Accessories',
-    'Pet Supplies',
-    'Office Supplies & Stationery',
-    'Industrial & Scientific Products',
-    'Musical Instruments',
-    'Books',
-    'Eye Utility',
-    'Bags, Luggage & Travel Accessories',
-    'Mens Personal Care & Grooming',
-  ];
+  const ALL_CATEGORIES = ['All', ...L1_SUPER_CATEGORY_OPTIONS];
 
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
 
@@ -159,7 +120,24 @@ export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
     <View style={styles.container}>
       {/* 1. TOP HEADER ROW */}
       <View style={styles.topHeader}>
-        <Text style={styles.screenTitle}>Upload Catalog</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {onBack && (
+            <TouchableOpacity
+              style={{
+                padding: 6,
+                borderRadius: 8,
+                backgroundColor: '#F1F5F9',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              onPress={onBack}
+              activeOpacity={0.7}
+            >
+              <ArrowLeft size={22} color="#0F172A" />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.screenTitle}>Upload Catalog</Text>
+        </View>
 
         <View style={styles.headerRightActions}>
           <TouchableOpacity style={styles.learnVideoBtn}>
@@ -232,7 +210,7 @@ export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
         {/* 4. SECONDARY QC STATUS PILLS */}
         <View style={styles.qcFilterBar}>
           {[
-            { key: 'all', label: `All (${records.filter((r) => r.uploadType === activeUploadTab).length})` },
+            { key: 'all', label: `All (${uploadRecordsList.filter((r) => r.uploadType === activeUploadTab).length})` },
             { key: 'action_required', label: `Action Required (${countByStatus('action_required')})` },
             { key: 'in_progress', label: `QC in Progress (${countByStatus('in_progress')})` },
             { key: 'error', label: `QC Error (${countByStatus('error')})` },
@@ -377,8 +355,8 @@ export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
                   )}
                   {rec.qcStatus === 'action_required' && (
                     <View style={[styles.qcBadge, styles.qcBadgeAction]}>
-                      <AlertTriangle size={12} color="#EA580C" />
-                      <Text style={[styles.qcBadgeText, { color: '#EA580C' }]}>Action Required</Text>
+                      <AlertTriangle size={12} color="#4F46E5" />
+                      <Text style={[styles.qcBadgeText, { color: '#4F46E5' }]}>Action Required</Text>
                     </View>
                   )}
                 </View>
@@ -442,7 +420,7 @@ export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
             qcStatus: 'pass',
             uploadDate: 'Just Now',
           };
-          setRecords([newRecord, ...records]);
+          setRecords([newRecord, ...uploadRecordsList]);
         }}
       />
     </View>
@@ -801,7 +779,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFBEB',
   },
   qcBadgeAction: {
-    backgroundColor: '#FFEDD5',
+    backgroundColor: '#E0E7FF',
   },
   qcBadgeText: {
     fontSize: 11,

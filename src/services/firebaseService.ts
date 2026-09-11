@@ -1,214 +1,45 @@
-import { collection, getDocs, addDoc, doc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, doc, updateDoc, setDoc, query, where, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
-import { Product, Order, Category, Seller } from '../types';
+import { Product, Order, Category, Seller, User, SystemAdmin, ReturnItem } from '../types';
+import { SupportTicket } from '../types/adminTypes';
 
 // Mock Initial Products for Hyperlocal E-Commerce Platform Demo
-export const INITIAL_MOCK_PRODUCTS: Product[] = [
-  {
-    id: 'prod-1',
-    sellerId: 'sel-101',
-    sellerName: 'Sharma Fresh Organics',
-    title: 'Fresh Alphonso Mangoes (1 Box - 12 pcs)',
-    description: 'Directly sourced from Ratnagiri farms. Naturally ripened, sweet and juicy premium Alphonso mangoes.',
-    category: 'Fresh Produce',
-    price: 650,
-    originalPrice: 850,
-    stock: 25,
-    unit: 'box',
-    imageUrl: 'https://images.unsplash.com/photo-1553279768-865429fa0078?auto=format&fit=crop&w=600&q=80',
-    rating: 4.8,
-    reviewCount: 42,
-    tags: ['Organic', 'Hyperlocal', 'Fruits', 'Fresh'],
-    isHyperlocalAvailable: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'prod-2',
-    sellerId: 'sel-102',
-    sellerName: 'Gupta Electricals & Repairs',
-    title: 'Smart LED Desk Lamp with Wireless Charging',
-    description: '3 Lighting modes with dimmable touch control and built-in 10W fast wireless phone charger.',
-    category: 'Electronics & Repairs',
-    price: 1299,
-    originalPrice: 1999,
-    stock: 12,
-    unit: 'piece',
-    imageUrl: 'https://images.unsplash.com/photo-1534073828943-f801091bb18c?auto=format&fit=crop&w=600&q=80',
-    rating: 4.6,
-    reviewCount: 18,
-    tags: ['Electronics', 'Home Office', 'Smart Device'],
-    isHyperlocalAvailable: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'prod-3',
-    sellerId: 'sel-103',
-    sellerName: 'Annapurna Sweets & Bakery',
-    title: 'Pure Desi Ghee Kaju Katli (500g)',
-    description: 'Handcrafted traditional Indian sweet made with 100% premium cashews and pure cow desi ghee.',
-    category: 'Sweets & Snacks',
-    price: 540,
-    originalPrice: 600,
-    stock: 40,
-    unit: 'pack',
-    imageUrl: 'https://images.unsplash.com/photo-1599488615731-7e5c2823ff28?auto=format&fit=crop&w=600&q=80',
-    rating: 4.9,
-    reviewCount: 89,
-    tags: ['Festival', 'Sweets', 'Desi Ghee', 'Handmade'],
-    isHyperlocalAvailable: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'prod-4',
-    sellerId: 'sel-101',
-    sellerName: 'Sharma Fresh Organics',
-    title: 'Pure Farm Fresh Cow Milk (1 Litre Pouch)',
-    description: 'Chilled, unadulterated fresh cow milk delivered daily within 30 minutes in your neighborhood.',
-    category: 'Dairy & Dairy Products',
-    price: 66,
-    originalPrice: 70,
-    stock: 100,
-    unit: 'litre',
-    imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=600&q=80',
-    rating: 4.7,
-    reviewCount: 154,
-    tags: ['Daily Dairy', 'Fresh Milk', '30 Min Delivery'],
-    isHyperlocalAvailable: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'prod-5',
-    sellerId: 'sel-104',
-    sellerName: 'Apna Handloom & Textiles',
-    title: 'Handcrafted Pure Cotton Chanderi Saree',
-    description: 'Traditional Indian loom saree with intricate zari border and matching blouse piece.',
-    category: 'Apparel & Fashion',
-    subcategory: 'Sarees',
-    price: 2499,
-    originalPrice: 3499,
-    stock: 8,
-    unit: 'piece',
-    imageUrl: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80',
-    rating: 4.9,
-    reviewCount: 27,
-    tags: ['Handloom', 'Fashion', 'Saree'],
-    isHyperlocalAvailable: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'prod-6',
-    sellerId: 'sel-104',
-    sellerName: 'Apna Handloom & Textiles',
-    title: 'Women High-Waist Stretchable Denim Jeans (Dark Blue)',
-    description: 'DigiSewa Special Collection: Premium stretchable denim ankle-length high waist jeans with 4 pockets.',
-    category: 'Women Western',
-    subcategory: 'Jeans & Trousers',
-    price: 599,
-    originalPrice: 1299,
-    meeshoDiscountPrice: 549,
-    stock: 45,
-    unit: 'piece',
-    imageUrl: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80',
-    additionalImages: [
-      'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80',
-      'https://images.unsplash.com/photo-1582552938357-32b906df40cb?auto=format&fit=crop&w=600&q=80',
-    ],
-    rating: 4.8,
-    reviewCount: 112,
-    tags: ['Jeans', 'DigiSewa Special', 'High Waist', 'Denim'],
-    isHyperlocalAvailable: false,
-    fabric: 'Stretchable Denim Cotton',
-    pattern: 'Solid Plain',
-    color: 'Dark Navy Blue',
-    fitType: 'High Waist Slim Fit',
-    catalogId: 'MSH-CAT-7701',
-    sellerCode: 'DNM-JN-01',
-    sizes: [
-      { size: 'S', waistInches: 28, hipInches: 34, lengthInches: 38, stock: 10, price: 599, mrp: 1299, enabled: true },
-      { size: 'M', waistInches: 30, hipInches: 36, lengthInches: 38.5, stock: 15, price: 599, mrp: 1299, enabled: true },
-      { size: 'L', waistInches: 32, hipInches: 38, lengthInches: 39, stock: 12, price: 599, mrp: 1299, enabled: true },
-      { size: 'XL', waistInches: 34, hipInches: 40, lengthInches: 39.5, stock: 8, price: 629, mrp: 1399, enabled: true },
-    ],
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'prod-7',
-    sellerId: 'sel-104',
-    sellerName: 'Apna Handloom & Textiles',
-    title: 'Designer Anarkali Floral Printed Rayon Kurti',
-    description: 'Elegant flared Anarkali Kurti crafted with soft breathable rayon fabric and gold foil prints.',
-    category: 'Women Ethnic',
-    subcategory: 'Kurtis & Sets',
-    price: 499,
-    originalPrice: 999,
-    meeshoDiscountPrice: 460,
-    stock: 60,
-    unit: 'piece',
-    imageUrl: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=600&q=80',
-    rating: 4.7,
-    reviewCount: 84,
-    tags: ['Kurti', 'Ethnic', 'Anarkali', 'Rayon'],
-    isHyperlocalAvailable: true,
-    fabric: '100% Pure Premium Rayon',
-    pattern: 'Floral Gold Foil Print',
-    color: 'Crimson Red',
-    fitType: 'Regular Anarkali Fit',
-    catalogId: 'MSH-CAT-8890',
-    sellerCode: 'KRT-ANK-04',
-    sizes: [
-      { size: 'S', chestInches: 36, lengthInches: 44, stock: 15, price: 499, mrp: 999, enabled: true },
-      { size: 'M', chestInches: 38, lengthInches: 44, stock: 20, price: 499, mrp: 999, enabled: true },
-      { size: 'L', chestInches: 40, lengthInches: 45, stock: 15, price: 499, mrp: 999, enabled: true },
-      { size: 'XL', chestInches: 42, lengthInches: 45, stock: 10, price: 519, mrp: 1049, enabled: true },
-    ],
-    createdAt: new Date().toISOString(),
-  },
-];
+export const INITIAL_MOCK_PRODUCTS: Product[] = [];
 
 export const INITIAL_MOCK_CATEGORIES: Category[] = [
-  { id: 'cat-1', name: 'Fresh Produce', iconName: 'apple', color: '#16A34A' },
-  { id: 'cat-2', name: 'Sweets & Snacks', iconName: 'cookie', color: '#D97706' },
-  { id: 'cat-3', name: 'Dairy & Milk', iconName: 'milk', color: '#2563EB' },
-  { id: 'cat-4', name: 'Electronics & Repairs', iconName: 'zap', color: '#7C3AED' },
-  { id: 'cat-5', name: 'Apparel & Fashion', iconName: 'shopping-bag', color: '#DB2777' },
-  { id: 'cat-6', name: 'Home Services', iconName: 'wrench', color: '#EA580C' },
+  { id: 'cat-1', name: 'Men Fashion', iconName: 'shirt', color: '#2563EB' },
+  { id: 'cat-2', name: 'Women Fashion', iconName: 'shopping-bag', color: '#EC4899' },
+  { id: 'cat-3', name: 'Home & Living', iconName: 'home', color: '#10B981' },
+  { id: 'cat-4', name: 'Kids & Toys', iconName: 'smile', color: '#F59E0B' },
+  { id: 'cat-5', name: 'Personal Care & Wellness', iconName: 'heart', color: '#8B5CF6' },
+  { id: 'cat-6', name: 'Mobiles & Tablets', iconName: 'smartphone', color: '#3B82F6' },
+  { id: 'cat-7', name: 'Consumer Electronics', iconName: 'tv', color: '#6366F1' },
+  { id: 'cat-8', name: 'Appliances', iconName: 'zap', color: '#6366F1' },
+  { id: 'cat-9', name: 'Automotive', iconName: 'car', color: '#EF4444' },
+  { id: 'cat-10', name: 'Beauty & Personal Care', iconName: 'sparkles', color: '#D946EF' },
+  { id: 'cat-11', name: 'Home Utility', iconName: 'wrench', color: '#059669' },
+  { id: 'cat-12', name: 'Kids', iconName: 'baby', color: '#F43F5E' },
+  { id: 'cat-13', name: 'Grocery', iconName: 'apple', color: '#16A34A' },
+  { id: 'cat-14', name: 'Women', iconName: 'user', color: '#F472B6' },
+  { id: 'cat-15', name: 'Home & Kitchen', iconName: 'coffee', color: '#84CC16' },
+  { id: 'cat-16', name: 'Health & Wellness', iconName: 'activity', color: '#06B6D4' },
+  { id: 'cat-17', name: 'Beauty & Makeup', iconName: 'feather', color: '#E11D48' },
+  { id: 'cat-18', name: 'Personal Care', iconName: 'shield', color: '#0284C7' },
+  { id: 'cat-19', name: "Men'S Grooming", iconName: 'scissors', color: '#1D4ED8' },
+  { id: 'cat-20', name: 'Craft & Office Supplies', iconName: 'box', color: '#D97706' },
+  { id: 'cat-21', name: 'Sports & Fitness', iconName: 'dribbble', color: '#4F46E5' },
+  { id: 'cat-22', name: 'Automotive Accessories', iconName: 'disc', color: '#64748B' },
+  { id: 'cat-23', name: 'Pet Supplies', iconName: 'dog', color: '#A855F7' },
+  { id: 'cat-24', name: 'Office Supplies & Stationery', iconName: 'paperclip', color: '#475569' },
+  { id: 'cat-25', name: 'Industrial & Scientific Products', iconName: 'cpu', color: '#0F172A' },
+  { id: 'cat-26', name: 'Musical Instruments', iconName: 'music', color: '#7C3AED' },
+  { id: 'cat-27', name: 'Books', iconName: 'book', color: '#B45309' },
+  { id: 'cat-28', name: 'Eye Utility', iconName: 'eye', color: '#0EA5E9' },
+  { id: 'cat-29', name: 'Bags, Luggage & Travel Accessories', iconName: 'briefcase', color: '#4338CA' },
+  { id: 'cat-30', name: 'Mens Personal Care & Grooming', iconName: 'user-check', color: '#2563EB' },
 ];
 
-export const INITIAL_MOCK_ORDERS: Order[] = [
-  {
-    id: 'ORD-9841',
-    buyerId: 'user-01',
-    buyerName: 'Rahul Verma',
-    buyerPhone: '+91 98765 43210',
-    deliveryAddress: 'Flat 402, Green Valley Heights, Civil Lines',
-    items: [
-      { product: INITIAL_MOCK_PRODUCTS[0], quantity: 1 },
-      { product: INITIAL_MOCK_PRODUCTS[2], quantity: 2 },
-    ],
-    totalAmount: 1730,
-    paymentMode: 'upi',
-    paymentStatus: 'paid',
-    status: 'out_for_delivery',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    estimatedDelivery: '30 mins',
-  },
-  {
-    id: 'ORD-9839',
-    buyerId: 'user-01',
-    buyerName: 'Priya Sundaram',
-    buyerPhone: '+91 91234 56789',
-    deliveryAddress: 'House No 14, Station Road, Main Market',
-    items: [
-      { product: INITIAL_MOCK_PRODUCTS[1], quantity: 1 },
-    ],
-    totalAmount: 1299,
-    paymentMode: 'cod',
-    paymentStatus: 'pending',
-    status: 'processing',
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    estimatedDelivery: 'Tomorrow, 11:00 AM',
-  },
-];
+export const INITIAL_MOCK_ORDERS: Order[] = [];
 
 // In-Memory Fallback State for dynamic updates during session
 let localProducts: Product[] = [...INITIAL_MOCK_PRODUCTS];
@@ -217,54 +48,118 @@ let localOrders: Order[] = [...INITIAL_MOCK_ORDERS];
 /**
  * Fetch all products from Firestore with fallback to mock data
  */
-export async function getProducts(): Promise<Product[]> {
+/**
+ * Fetch products from Firestore with optional filtering for only approved sellers
+ */
+export async function getProducts(onlyApproved: boolean = false, sellerId?: string): Promise<Product[]> {
+  let allProducts: Product[] = [];
+
   try {
-    const querySnapshot = await getDocs(collection(db, 'products'));
+    let q = collection(db, 'products') as any;
+    if (sellerId) {
+      q = query(q, where('sellerId', '==', sellerId));
+    }
+    const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
-      const products: Product[] = [];
-      querySnapshot.forEach(doc => {
-        products.push({ id: doc.id, ...doc.data() } as Product);
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data() as any;
+        let imageUrl = data.imageUrl;
+        let title = data.title;
+        allProducts.push({ id: docSnap.id, ...data, imageUrl } as Product);
       });
-      return products;
+    } else {
+      allProducts = localProducts;
     }
   } catch (err) {
     console.warn('Firestore fetch products failed/offline, using in-memory state:', err);
+    allProducts = localProducts;
+    if (sellerId) {
+      allProducts = allProducts.filter(p => p.sellerId === sellerId);
+    }
   }
-  return localProducts;
+
+  if (onlyApproved) {
+    const sellers = await getSellersFromFirestore();
+    const unapprovedSellerIds = new Set(
+      sellers.filter(s => s.verificationStatus && s.verificationStatus !== 'verified').map(s => s.id)
+    );
+    return allProducts.filter(p => !unapprovedSellerIds.has(p.sellerId));
+  }
+
+  return allProducts;
 }
 
 /**
- * Add a new product to Firestore / local state
+ * Add a new product to Firestore / local state (Validates Seller Status)
  */
-export async function addProduct(product: Omit<Product, 'id' | 'createdAt'>): Promise<Product> {
+export async function addProduct(
+  product: Omit<Product, 'id' | 'createdAt'>,
+  sellerVerificationStatus?: string
+): Promise<Product> {
+  if (sellerVerificationStatus && sellerVerificationStatus !== 'verified') {
+    const msg =
+      sellerVerificationStatus === 'rejected'
+        ? '❌ Account Rejected: Your seller application was rejected by Admin. You cannot add products.'
+        : sellerVerificationStatus === 'suspended'
+        ? '⚠️ Account Suspended: Your seller account has been suspended by Admin.'
+        : '⏳ Approval Pending: Your seller account is awaiting Admin approval. You cannot add or sell products until approved by Admin.';
+    alert(msg);
+    throw new Error(msg);
+  }
+
   const newProduct: Product = {
     ...product,
     id: 'prod-' + Date.now(),
     createdAt: new Date().toISOString(),
   };
 
-  // Strip undefined values for Firestore serialization compatibility
   const cleanProductData = JSON.parse(JSON.stringify(newProduct));
 
   try {
-    const docRef = await addDoc(collection(db, 'products'), cleanProductData);
+    const docRef = await Promise.race([
+      addDoc(collection(db, 'products'), cleanProductData),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 10000))
+    ]);
     console.log('✅ Successfully published catalog to Firestore with ID:', docRef.id);
     newProduct.id = docRef.id;
-    alert(`🎉 Catalog Published to Firestore!\n\nDocument ID: ${docRef.id}\nProject: digisewa-ac3c4`);
   } catch (err: any) {
     console.error('❌ Firestore addProduct error:', err);
-    alert(
-      `⚠️ Firestore Error: ${err?.message || err}\n\nCode: ${err?.code || 'unknown'}\n\nIf error is permission-denied, go to Firebase Console -> Firestore Database -> Rules and set allow read, write: if true;`
-    );
+    throw err;
   }
 
   localProducts.unshift(newProduct);
   return newProduct;
 }
 
-/**
- * Get all categories
- */
+  /**
+   * Update an existing product in Firestore / local state
+   */
+  export async function updateProduct(
+    productId: string,
+    updatedData: Partial<Product>
+  ): Promise<void> {
+    try {
+      const cleanData = JSON.parse(JSON.stringify(updatedData));
+      const docRef = doc(db, 'products', productId);
+      await updateDoc(docRef, cleanData);
+      console.log('✅ Successfully updated catalog in Firestore with ID:', productId);
+    } catch (err: any) {
+      console.error('❌ Firestore updateProduct error:', err);
+      alert(
+        `⚠️ Firestore Update Error: ${err?.message || err}\n\nCode: ${err?.code || 'unknown'}`
+      );
+    }
+  
+    // Update local state
+    const index = localProducts.findIndex(p => p.id === productId);
+    if (index !== -1) {
+      localProducts[index] = { ...localProducts[index], ...updatedData };
+    }
+  }
+
+  /**
+   * Get all categories
+   */
 export async function getCategories(): Promise<Category[]> {
   return INITIAL_MOCK_CATEGORIES;
 }
@@ -272,18 +167,24 @@ export async function getCategories(): Promise<Category[]> {
 /**
  * Fetch orders for Seller / Buyer
  */
-export async function getOrders(): Promise<Order[]> {
+export async function getOrders(sellerId?: string): Promise<Order[]> {
   try {
     const querySnapshot = await getDocs(collection(db, 'orders'));
     if (!querySnapshot.empty) {
-      const orders: Order[] = [];
+      let orders: Order[] = [];
       querySnapshot.forEach(doc => {
         orders.push({ id: doc.id, ...doc.data() } as Order);
       });
+      if (sellerId) {
+        orders = orders.filter(order => order.items.some(item => item.product.sellerId === sellerId));
+      }
       return orders;
     }
   } catch (err) {
     console.warn('Firestore fetch orders offline, returning local orders');
+  }
+  if (sellerId) {
+    return localOrders.filter(order => order.items.some(item => item.product.sellerId === sellerId));
   }
   return localOrders;
 }
@@ -291,17 +192,53 @@ export async function getOrders(): Promise<Order[]> {
 /**
  * Update order status (Pending -> Processing -> Out for Delivery -> Delivered)
  */
-export async function updateOrderStatus(orderId: string, newStatus: Order['status']): Promise<void> {
+export async function updateOrderStatus(orderId: string, newStatus: Order['status'], additionalData?: Partial<Order>): Promise<void> {
   const orderIndex = localOrders.findIndex(o => o.id === orderId);
   if (orderIndex !== -1) {
     localOrders[orderIndex].status = newStatus;
+    if (additionalData) {
+      Object.assign(localOrders[orderIndex], additionalData);
+    }
   }
 
   try {
     const orderRef = doc(db, 'orders', orderId);
-    await updateDoc(orderRef, { status: newStatus });
+    const updatePayload: any = { status: newStatus };
+    if (additionalData) {
+      Object.assign(updatePayload, additionalData);
+    }
+    await updateDoc(orderRef, updatePayload);
   } catch (err) {
     console.warn('Firestore update order status offline');
+  }
+
+  // Handle RTO Penalty for Cancellations
+  if (newStatus === 'cancelled') {
+    try {
+      const { chargeRTOPenalty } = await import('./settlementService');
+      let orderToCancel: Order | undefined;
+
+      if (orderIndex !== -1) {
+        orderToCancel = localOrders[orderIndex];
+      } else {
+        // Fetch from Firestore if not in localOrders
+        const { getDoc, doc } = await import('firebase/firestore');
+        const { db } = await import('../config/firebaseConfig');
+        const orderRef = doc(db, 'orders', orderId);
+        const docSnap = await getDoc(orderRef);
+        if (docSnap.exists()) {
+          orderToCancel = { id: docSnap.id, ...docSnap.data() } as Order;
+        }
+      }
+
+      if (orderToCancel) {
+        await chargeRTOPenalty(orderToCancel);
+      } else {
+        console.warn('Order not found for RTO penalty deduction');
+      }
+    } catch (err) {
+      console.warn('Failed to charge RTO penalty on cancellation', err);
+    }
   }
 }
 
@@ -318,10 +255,329 @@ export async function createOrder(newOrder: Omit<Order, 'id' | 'createdAt'>): Pr
   localOrders.unshift(created);
 
   try {
-    await addDoc(collection(db, 'orders'), created);
+    await setDoc(doc(db, 'orders', created.id), created);
   } catch (err) {
     console.warn('Firestore create order offline');
   }
 
   return created;
+}
+
+/**
+ * UTILITY: Wipe all orders from Firestore (for cleaning up dummy data)
+ */
+export async function wipeAllOrders(): Promise<void> {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'orders'));
+    const deletePromises = querySnapshot.docs.map(docSnap => deleteDoc(doc(db, 'orders', docSnap.id)));
+    await Promise.all(deletePromises);
+    console.log('✅ Wiped all orders from Firestore');
+  } catch (err) {
+    console.error('❌ Error wiping orders:', err);
+  }
+  localOrders.length = 0; // Clear local array too
+}
+
+/**
+ * UTILITY: Wipe all products from Firestore (for cleaning up dummy data)
+ */
+export async function wipeAllProducts(): Promise<void> {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'products'));
+    const deletePromises = querySnapshot.docs.map(docSnap => deleteDoc(doc(db, 'products', docSnap.id)));
+    await Promise.all(deletePromises);
+    console.log('✅ Wiped all products from Firestore');
+  } catch (err) {
+    console.error('❌ Error wiping products:', err);
+  }
+  localProducts.length = 0;
+}
+
+// In-Memory Fallback for Sellers
+let localSellers: Seller[] = [];
+
+/**
+ * Save / Update Seller Application Profile in Firestore
+ */
+export async function saveSellerToFirestore(seller: Seller): Promise<Seller> {
+  // Sanitize undefined fields for Firestore compatibility
+  const cleanSellerData = JSON.parse(JSON.stringify(seller));
+
+  try {
+    const sellerRef = doc(db, 'sellers', seller.id);
+    await setDoc(sellerRef, cleanSellerData, { merge: true });
+    console.log('✅ Successfully saved seller details to Firestore sellers collection:', seller.id);
+  } catch (err: any) {
+    console.error('❌ Firestore saveSeller error:', err);
+  }
+
+  // Update in-memory fallback list
+  const existingIdx = localSellers.findIndex(s => s.id === seller.id);
+  if (existingIdx !== -1) {
+    localSellers[existingIdx] = seller;
+  } else {
+    localSellers.push(seller);
+  }
+
+  return seller;
+}
+
+/**
+ * Fetch all Sellers from Firestore with fallback to local state
+ */
+export async function getSellersFromFirestore(): Promise<Seller[]> {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'sellers'));
+    if (!querySnapshot.empty) {
+      const sellers: Seller[] = [];
+      querySnapshot.forEach(docSnap => {
+        sellers.push({ id: docSnap.id, ...docSnap.data() } as Seller);
+      });
+      localSellers = sellers;
+      return sellers;
+    }
+  } catch (err) {
+    console.warn('Firestore fetch sellers failed/offline, returning local sellers:', err);
+  }
+  return localSellers;
+}
+
+/**
+ * Update Seller Verification Status (Pending -> Verified / Rejected / Suspended)
+ */
+export async function updateSellerStatusInFirestore(
+  sellerId: string,
+  verificationStatus: Seller['verificationStatus'],
+  rejectionReason?: string
+): Promise<void> {
+  const sellerIdx = localSellers.findIndex(s => s.id === sellerId);
+  if (sellerIdx !== -1) {
+    localSellers[sellerIdx].verificationStatus = verificationStatus;
+    if (rejectionReason) {
+      localSellers[sellerIdx].rejectionReason = rejectionReason;
+    }
+  }
+
+  try {
+    const sellerRef = doc(db, 'sellers', sellerId);
+    const updatePayload: any = { verificationStatus };
+    if (rejectionReason) updatePayload.rejectionReason = rejectionReason;
+    await updateDoc(sellerRef, updatePayload);
+    console.log(`✅ Updated seller ${sellerId} status to ${verificationStatus} in Firestore`);
+  } catch (err) {
+    console.warn('Firestore update seller status offline/error:', err);
+  }
+}
+
+/**
+ * Update Seller E-Signature in Firestore
+ */
+export async function updateSellerSignatureInFirestore(
+  sellerId: string,
+  signature: { text?: string; url?: string }
+): Promise<void> {
+  const sellerIdx = localSellers.findIndex(s => s.id === sellerId);
+  if (sellerIdx !== -1) {
+    if (signature.text !== undefined) localSellers[sellerIdx].eSignatureText = signature.text;
+    if (signature.url !== undefined) localSellers[sellerIdx].eSignatureUrl = signature.url;
+  }
+
+  try {
+    const sellerRef = doc(db, 'sellers', sellerId);
+    const updatePayload: any = {};
+    if (signature.text !== undefined) updatePayload.eSignatureText = signature.text;
+    if (signature.url !== undefined) updatePayload.eSignatureUrl = signature.url;
+    await updateDoc(sellerRef, updatePayload);
+    console.log(`✅ Updated seller ${sellerId} E-Signature in Firestore`);
+  } catch (err) {
+    console.warn('Firestore update seller signature offline/error:', err);
+  }
+}
+
+/**
+ * Update Seller Password in Firestore
+ */
+export async function updateSellerPasswordInFirestore(
+  sellerId: string,
+  newPassword: string
+): Promise<void> {
+  const sellerIdx = localSellers.findIndex(s => s.id === sellerId);
+  if (sellerIdx !== -1) {
+    localSellers[sellerIdx].password = newPassword;
+  }
+
+  try {
+    const sellerRef = doc(db, 'sellers', sellerId);
+    await updateDoc(sellerRef, { password: newPassword });
+    console.log(`✅ Updated seller ${sellerId} password in Firestore`);
+  } catch (err) {
+    console.warn('Firestore update seller password offline/error:', err);
+  }
+}
+
+/**
+ * Save User profile to Firestore
+ */
+export async function saveUserToFirestore(user: User): Promise<User> {
+  const cleanUserData = JSON.parse(JSON.stringify(user));
+  try {
+    const userRef = doc(db, 'users', user.id);
+    await setDoc(userRef, cleanUserData, { merge: true });
+    console.log('✅ User saved to Firestore:', user.id);
+  } catch (err) {
+    console.warn('Firestore save user offline/error:', err);
+  }
+  return user;
+}
+
+/**
+ * Fetch all Users from Firestore
+ */
+export async function getUsersFromFirestore(): Promise<User[]> {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    if (!querySnapshot.empty) {
+      const users: User[] = [];
+      querySnapshot.forEach(docSnap => {
+        users.push({ id: docSnap.id, ...docSnap.data() } as User);
+      });
+      return users;
+    }
+  } catch (err) {
+    console.warn('Firestore fetch users offline/error:', err);
+  }
+  return [];
+}
+
+/**
+ * Save Support Ticket to Firestore
+ */
+export async function createSupportTicketInFirestore(ticket: SupportTicket): Promise<SupportTicket> {
+  const cleanTicketData = JSON.parse(JSON.stringify(ticket));
+  try {
+    const ticketRef = doc(db, 'support_tickets', ticket.id);
+    await setDoc(ticketRef, cleanTicketData, { merge: true });
+    console.log('✅ Support ticket saved to Firestore:', ticket.id);
+  } catch (err) {
+    console.warn('Firestore create ticket error:', err);
+  }
+  return ticket;
+}
+
+/**
+ * Fetch Support Tickets from Firestore
+ */
+export async function getSupportTicketsFromFirestore(): Promise<SupportTicket[]> {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'support_tickets'));
+    if (!querySnapshot.empty) {
+      const tickets: SupportTicket[] = [];
+      querySnapshot.forEach(docSnap => {
+        tickets.push({ id: docSnap.id, ...docSnap.data() } as SupportTicket);
+      });
+      return tickets;
+    }
+  } catch (err) {
+    console.warn('Firestore fetch tickets error:', err);
+  }
+  return [];
+}
+
+/**
+ * Save SystemAdmin to Firestore
+ */
+export async function saveAdminToFirestore(admin: SystemAdmin): Promise<SystemAdmin> {
+  const cleanAdminData = JSON.parse(JSON.stringify(admin));
+  try {
+    const adminRef = doc(db, 'admins', admin.id);
+    await setDoc(adminRef, cleanAdminData, { merge: true });
+    console.log('✅ Admin saved to Firestore:', admin.id);
+  } catch (err) {
+    console.warn('Firestore save admin offline/error:', err);
+  }
+  return admin;
+}
+
+/**
+ * Fetch all SystemAdmins from Firestore
+ */
+export async function getAdminsFromFirestore(): Promise<SystemAdmin[]> {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'admins'));
+    if (!querySnapshot.empty) {
+      const admins: SystemAdmin[] = [];
+      querySnapshot.forEach(docSnap => {
+        admins.push({ id: docSnap.id, ...docSnap.data() } as SystemAdmin);
+      });
+      return admins;
+    }
+  } catch (err) {
+    console.warn('Firestore fetch admins offline/error:', err);
+  }
+  return [];
+}
+
+/**
+ * Save Return Item to Firestore
+ */
+export async function saveReturnToFirestore(returnItem: ReturnItem): Promise<ReturnItem> {
+  const cleanReturnData = JSON.parse(JSON.stringify(returnItem));
+  try {
+    const returnRef = doc(db, 'returns', returnItem.id);
+    await setDoc(returnRef, cleanReturnData, { merge: true });
+    console.log('✅ Return saved to Firestore:', returnItem.id);
+  } catch (err) {
+    console.warn('Firestore save return offline/error:', err);
+  }
+  return returnItem;
+}
+
+/**
+ * Fetch all Returns from Firestore
+ */
+export async function getReturnsFromFirestore(sellerId?: string): Promise<ReturnItem[]> {
+  try {
+    const q = collection(db, 'returns');
+    const querySnapshot = await getDocs(q);
+    let returns: ReturnItem[] = [];
+    if (!querySnapshot.empty) {
+      querySnapshot.forEach(docSnap => {
+        returns.push({ id: docSnap.id, ...(docSnap.data() as any) } as ReturnItem);
+      });
+    }
+
+    // Synthesize returns from cancelled orders if they are not explicitly in the returns collection
+    const allOrders = await getOrders(sellerId);
+    const returnedOrders = allOrders.filter(o => o.status === 'cancelled' || (o as any).status === 'returned' || (o as any).status === 'rto');
+    
+    returnedOrders.forEach(order => {
+      if (!returns.some(r => r.orderId === order.id)) {
+        const sellerItems = sellerId ? order.items.filter(i => i.product.sellerId === sellerId) : order.items;
+        if (sellerItems.length > 0) {
+          const productNames = sellerItems.map(i => i.product.title).join(', ');
+          returns.push({
+            id: `RET-${order.id}`,
+            orderId: order.id,
+            sellerId: sellerItems[0].product.sellerId,
+            productName: productNames,
+            returnReason: 'Customer Cancellation / RTO',
+            customerName: order.buyerName,
+            status: 'rto_in_transit', // Default synthetic status
+            returnDate: new Date().toISOString().split('T')[0],
+            amount: sellerItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0)
+          });
+        }
+      }
+    });
+
+    if (sellerId) {
+      const sellerOrderIds = new Set(allOrders.map(o => o.id));
+      returns = returns.filter(r => r.sellerId === sellerId || sellerOrderIds.has(r.orderId));
+    }
+
+    return returns;
+  } catch (err) {
+    console.warn('Firestore fetch returns offline/error:', err);
+  }
+  return [];
 }

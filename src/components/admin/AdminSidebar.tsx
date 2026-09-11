@@ -1,12 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { LogOut } from 'lucide-react-native';
+import { useAuth } from '../../context/AuthContext';
 
 export type AdminTab =
   | 'overview'
   | 'seller_approvals'
   | 'customers'
   | 'seller_tickets'
-  | 'customer_tickets';
+  | 'customer_tickets'
+  | 'catalog_builder'
+  | 'settlements'
+  | 'team_management';
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -14,6 +19,7 @@ interface AdminSidebarProps {
   pendingSellersCount: number;
   openSellerTicketsCount: number;
   openCustomerTicketsCount: number;
+  onLogout?: () => void;
 }
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
@@ -22,9 +28,17 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   pendingSellersCount,
   openSellerTicketsCount,
   openCustomerTicketsCount,
+  onLogout,
 }) => {
+  const { logout } = useAuth();
+
   const NAV_ITEMS: { id: AdminTab; label: string; icon: string; badge?: number; badgeColor?: string }[] = [
     { id: 'overview', label: 'Dashboard Overview', icon: '📊' },
+    {
+      id: 'catalog_builder',
+      label: 'Catalog & Form Engine',
+      icon: '⚡',
+    },
     {
       id: 'seller_approvals',
       label: 'Seller Approvals',
@@ -47,12 +61,22 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: openCustomerTicketsCount,
       badgeColor: '#2563EB',
     },
+    { id: 'settlements', label: 'Payouts & Settlements', icon: '💰' },
   ];
+
+  const { activeRole } = useAuth();
+  if (activeRole === 'super_admin') {
+    NAV_ITEMS.push({
+      id: 'team_management',
+      label: 'Team Management',
+      icon: '🛡️',
+    });
+  }
 
   return (
     <View style={styles.sidebarContainer}>
       <ScrollView style={{ flex: 1 }}>
-        <Text style={styles.sectionHeader}>SUPER ADMIN MODULES</Text>
+        <Text style={styles.sectionHeader}>ADMIN MODULES</Text>
 
         <View style={styles.navList}>
           {NAV_ITEMS.map((item) => {
@@ -79,10 +103,27 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         </View>
       </ScrollView>
 
-      {/* Admin Panel Footer Branding */}
+      {/* Admin Panel Footer Branding & Logout Action */}
       <View style={styles.footerBox}>
-        <Text style={styles.footerTitle}>DigiSewa Governance</Text>
-        <Text style={styles.footerVersion}>v2.4 Super Admin Portal</Text>
+        <TouchableOpacity
+          style={styles.adminLogoutBtn}
+          onPress={() => {
+            if (onLogout) {
+              onLogout();
+            } else {
+              logout();
+            }
+          }}
+          activeOpacity={0.8}
+        >
+          <LogOut size={16} color="#EF4444" />
+          <Text style={styles.adminLogoutBtnText}>Log Out Admin</Text>
+        </TouchableOpacity>
+
+        <View style={{ marginTop: 10 }}>
+          <Text style={styles.footerTitle}>DigiSewa Governance</Text>
+          <Text style={styles.footerVersion}>v2.4 Admin Portal</Text>
+        </View>
       </View>
     </View>
   );
@@ -148,6 +189,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
     paddingHorizontal: 8,
+  },
+  adminLogoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1E293B',
+    borderColor: '#334155',
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  adminLogoutBtnText: {
+    color: '#F87171',
+    fontSize: 13,
+    fontWeight: '700',
   },
   footerTitle: {
     fontSize: 11,

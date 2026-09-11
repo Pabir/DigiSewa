@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Sparkles, ArrowRight, Menu, X } from 'lucide-react-native';
 
 import { UserRole } from '../../types';
@@ -40,14 +40,12 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           </TouchableOpacity>
         )}
 
-        <View style={styles.logoBadge}>
-          <Sparkles size={18} color="#FFFFFF" />
-        </View>
+        <Image source={require('../../../assets/logo.png')} style={styles.logoBadge} resizeMode="contain" />
         <View>
           <View style={styles.titleRow}>
             <Text style={styles.brandTitle}>DigiSewa</Text>
             <View style={styles.adminRoleTag}>
-              <Text style={styles.adminRoleTagText}>SUPER ADMIN</Text>
+              <Text style={styles.adminRoleTagText}>ADMIN</Text>
             </View>
           </View>
           <Text style={styles.brandSub}>Platform Governance & Support Control Center</Text>
@@ -141,12 +139,8 @@ const styles = StyleSheet.create({
     marginRight: 2,
   },
   logoBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#4338CA',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 32,
+    height: 32,
   },
   titleRow: {
     flexDirection: 'row',

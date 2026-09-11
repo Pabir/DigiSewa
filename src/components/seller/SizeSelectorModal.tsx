@@ -16,6 +16,18 @@ interface SizeSelectorModalProps {
 }
 
 const ALL_SIZE_OPTIONS = [
+  'IND-2',
+  'IND-3',
+  'IND-4',
+  'IND-5',
+  'IND-6',
+  'IND-7',
+  'IND-8',
+  'IND-9',
+  'IND-10',
+  'IND-11',
+  'IND-12',
+  'IND-13',
   '24',
   '26',
   '28',

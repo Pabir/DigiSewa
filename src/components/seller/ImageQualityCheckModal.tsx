@@ -7,8 +7,11 @@ import {
   Modal,
   Image,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 import { Plus, Sparkles } from 'lucide-react-native';
+
+const PROHIBITED_GUIDELINE_IMAGE = require('../../assets/prohibited_image_types_guideline.png');
 
 interface ImageQualityCheckModalProps {
   visible: boolean;
@@ -17,65 +20,22 @@ interface ImageQualityCheckModalProps {
   initialImages?: string[];
 }
 
-const PROHIBITED_IMAGE_TYPES = [
-  {
-    title: 'Watermark image',
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    title: 'Fake branded/1st copy',
-    image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    title: 'Image with price',
-    image: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    title: 'Pixelated image',
-    image: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    title: 'Inverted image',
-    image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    title: 'Blur/unclear image',
-    image: 'https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    title: 'Incomplete image',
-    image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    title: 'Stretched/shrunk image',
-    image: 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    title: 'Image with props',
-    image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=200&q=80',
-  },
-  {
-    title: 'Image with text',
-    image: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=200&q=80',
-  },
-];
-
 const SAMPLE_CLOTHING_PHOTOS = [
-  'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80',
-  'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=600&q=80',
   'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=600&q=80',
 ];
 
 export const ImageQualityCheckModal: React.FC<ImageQualityCheckModalProps> = ({
   visible,
   onClose,
   onConfirm,
-  initialImages = [
-    'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80',
-  ],
+  initialImages = [],
 }) => {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
   const [uploadedImages, setUploadedImages] = useState<string[]>(initialImages);
   const [showPhotoPickerOption, setShowPhotoPickerOption] = useState<boolean>(false);
 
@@ -95,25 +55,69 @@ export const ImageQualityCheckModal: React.FC<ImageQualityCheckModalProps> = ({
       input.type = 'file';
       input.accept = 'image/*';
       input.multiple = true;
-      input.onchange = (e: any) => {
-        const files: FileList = e.target.files;
+      input.onchange = async (e: any) => {
+        const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        const newUrls: string[] = [];
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          const url = URL.createObjectURL(file);
-          newUrls.push(url);
-        }
+        const base64Promises = Array.from(files).map((file: any) => {
+          return new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+              const img = new window.Image();
+              img.src = event.target?.result as string;
+              img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
 
-        setUploadedImages((prev) => {
-          const combined = [...prev, ...newUrls];
-          if (combined.length > 9) {
-            alert('Maximum 9 products allowed per catalog. First 9 selected.');
-            return combined.slice(0, 9);
-          }
-          return combined;
+                if (width > height) {
+                  if (width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                  }
+                } else {
+                  if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                  }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                  ctx.drawImage(img, 0, 0, width, height);
+                  // Compress to JPEG with 0.6 quality to drastically reduce size
+                  resolve(canvas.toDataURL('image/jpeg', 0.6));
+                } else {
+                  resolve(event.target?.result as string); // Fallback
+                }
+              };
+              img.onerror = (error) => reject(error);
+            };
+            reader.onerror = (error) => reject(error);
+          });
         });
+
+        try {
+          const newUrls = await Promise.all(base64Promises);
+          
+          setUploadedImages((prev) => {
+            const combined = [...prev, ...newUrls];
+            if (combined.length > 9) {
+              alert('Maximum 9 products allowed per catalog. First 9 selected.');
+              return combined.slice(0, 9);
+            }
+            return combined;
+          });
+        } catch (err) {
+          console.error("Error reading files", err);
+          alert("Failed to read image files.");
+        }
+        
         setShowPhotoPickerOption(false);
       };
       input.click();
@@ -131,114 +135,113 @@ export const ImageQualityCheckModal: React.FC<ImageQualityCheckModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalCard}>
+      <View style={[styles.modalOverlay, isMobile && styles.modalOverlayMobile]}>
+        <View style={[styles.modalCard, isMobile && styles.modalCardMobile]}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Products in a catalog</Text>
-            <TouchableOpacity onPress={onClose}>
+            <Text style={[styles.title, isMobile && styles.titleMobile]}>Products in a catalog</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Text style={styles.closeBtnText}>✕</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, isMobile && styles.subtitleMobile]}>
             Please add only front image of your product. If you want to add multiple images for particular product, you can add it in next step.
           </Text>
 
-          {/* Main Grid: Left Uploads & Right Prohibited Rules */}
-          <View style={styles.bodyGrid}>
-            {/* Left Side: Uploaded Product Images & Add Slot */}
-            <View style={styles.leftCol}>
-              {/* Yellow Limit Alert Box */}
-              <View style={styles.yellowInfoAlert}>
-                <Sparkles size={16} color="#D97706" />
-                <Text style={styles.yellowInfoText}>
-                  You can add minimum 1 and maximum 9 products to create a catalog
-                </Text>
-              </View>
-
-              {/* Thumbnails & Add Slot Grid */}
-              <ScrollView style={styles.thumbnailsScroll} contentContainerStyle={styles.thumbnailsGrid}>
-                {uploadedImages.map((img, idx) => (
-                  <View key={idx} style={styles.thumbWrapper}>
-                    <Image source={{ uri: img }} style={styles.thumbImage} />
-                    <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemoveImage(idx)}>
-                      <Text style={styles.removeBtnText}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-
-                {/* Add Product Slot Button */}
-                {uploadedImages.length < 9 && (
-                  <TouchableOpacity
-                    style={styles.addProductSlotBtn}
-                    onPress={() => pickImageFromDevice()}
-                  >
-                    <View style={styles.plusCircleIcon}>
-                      <Plus size={16} color="#FFFFFF" />
-                    </View>
-                    <Text style={styles.addProductSlotText}>Add Product</Text>
-                  </TouchableOpacity>
-                )}
-              </ScrollView>
-
-              {/* Direct Device Upload & Sample Selection Button Bar */}
-              <View style={styles.samplePickerBox}>
-                <TouchableOpacity
-                  style={styles.deviceUploadBtn}
-                  onPress={pickImageFromDevice}
-                >
-                  <Text style={styles.deviceUploadBtnText}>📁 Upload Image from Device (PC / Phone)</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.toggleSampleBtn}
-                  onPress={() => setShowPhotoPickerOption(!showPhotoPickerOption)}
-                >
-                  <Text style={styles.toggleSampleBtnText}>
-                    {showPhotoPickerOption ? '▲ Hide Sample Photos' : '⚡ Select Sample Photo'}
+          {/* Scrollable Main Content Body */}
+          <ScrollView
+            style={styles.scrollBody}
+            contentContainerStyle={styles.scrollBodyContent}
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
+            <View style={[styles.bodyGrid, isMobile && styles.bodyGridMobile]}>
+              {/* Left Side: Uploaded Product Images & Add Slot */}
+              <View style={[styles.leftCol, isMobile && styles.leftColMobile]}>
+                {/* Yellow Limit Alert Box */}
+                <View style={styles.yellowInfoAlert}>
+                  <Sparkles size={16} color="#D97706" />
+                  <Text style={styles.yellowInfoText}>
+                    You can add minimum 1 and maximum 9 products to create a catalog
                   </Text>
-                </TouchableOpacity>
+                </View>
 
-                {showPhotoPickerOption && (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
-                    {SAMPLE_CLOTHING_PHOTOS.map((src, i) => (
-                      <TouchableOpacity key={i} onPress={() => handleAddSampleImage(src)}>
-                        <Image source={{ uri: src }} style={styles.sampleChoiceImg} />
+                {/* Thumbnails & Add Slot Grid */}
+                <View style={styles.thumbnailsGrid}>
+                  {uploadedImages.map((img, idx) => (
+                    <View key={idx} style={styles.thumbWrapper}>
+                      <Image source={{ uri: img }} style={styles.thumbImage} />
+                      <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemoveImage(idx)}>
+                        <Text style={styles.removeBtnText}>✕</Text>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-              </View>
-            </View>
-
-            {/* Right Side: Prohibited Image Types Panel */}
-            <View style={styles.rightCol}>
-              <View style={styles.prohibitedHeader}>
-                <Text style={styles.prohibitedNotAllowedSymbol}>🚫</Text>
-                <Text style={styles.prohibitedTitle}>Image types which are not allowed</Text>
-              </View>
-
-              <ScrollView style={styles.prohibitedScroll} showsVerticalScrollIndicator={true}>
-                <View style={styles.prohibitedGrid}>
-                  {PROHIBITED_IMAGE_TYPES.map((rule, idx) => (
-                    <View key={idx} style={styles.prohibitedItemCard}>
-                      <Image source={{ uri: rule.image }} style={styles.prohibitedThumb} />
-                      <View style={styles.prohibitedMetaCol}>
-                        <Text style={styles.prohibitedRuleTitle}>{rule.title}</Text>
-                        <View style={styles.notAllowedTag}>
-                          <Text style={styles.notAllowedTagText}>🚫 NOT ALLOWED</Text>
-                        </View>
-                      </View>
                     </View>
                   ))}
+
+                  {/* Add Product Slot Button */}
+                  {uploadedImages.length < 9 && (
+                    <TouchableOpacity
+                      style={styles.addProductSlotBtn}
+                      onPress={() => pickImageFromDevice()}
+                    >
+                      <View style={styles.plusCircleIcon}>
+                        <Plus size={16} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.addProductSlotText}>Add Product</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-              </ScrollView>
+
+                {/* Direct Device Upload & Sample Selection Button Bar */}
+                <View style={styles.samplePickerBox}>
+                  <TouchableOpacity
+                    style={styles.deviceUploadBtn}
+                    onPress={pickImageFromDevice}
+                  >
+                    <Text style={styles.deviceUploadBtnText}>📁 Upload Image from Device (PC / Phone)</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.toggleSampleBtn}
+                    onPress={() => setShowPhotoPickerOption(!showPhotoPickerOption)}
+                  >
+                    <Text style={styles.toggleSampleBtnText}>
+                      {showPhotoPickerOption ? '▲ Hide Sample Photos' : '⚡ Select Sample Photo'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showPhotoPickerOption && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+                      {SAMPLE_CLOTHING_PHOTOS.map((src, i) => (
+                        <TouchableOpacity key={i} onPress={() => handleAddSampleImage(src)}>
+                          <Image source={{ uri: src }} style={styles.sampleChoiceImg} />
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+              </View>
+
+              {/* Right Side: Prohibited Image Types Panel */}
+              <View style={[styles.rightCol, isMobile && styles.rightColMobile]}>
+                <View style={styles.prohibitedHeader}>
+                  <Text style={styles.prohibitedNotAllowedSymbol}>🚫</Text>
+                  <Text style={styles.prohibitedTitle}>Image types which are not allowed</Text>
+                </View>
+
+                <View style={styles.infographicCard}>
+                  <Image
+                    source={PROHIBITED_GUIDELINE_IMAGE}
+                    style={[styles.prohibitedInfographicBanner, isMobile && styles.prohibitedInfographicBannerMobile]}
+                    resizeMode="contain"
+                  />
+                </View>
+              </View>
             </View>
-          </View>
+          </ScrollView>
 
           {/* Footer Action Buttons */}
-          <View style={styles.footerRow}>
+          <View style={[styles.footerRow, isMobile && styles.footerRowMobile]}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
@@ -270,9 +273,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  modalOverlayMobile: {
+    padding: 10,
+  },
   modalCard: {
     width: '100%',
     maxWidth: 880,
+    maxHeight: '90%',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 24,
@@ -281,7 +288,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 15,
     elevation: 10,
-    maxHeight: '90%',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  modalCardMobile: {
+    padding: 14,
+    maxHeight: '94%',
+    borderRadius: 10,
   },
   header: {
     flexDirection: 'row',
@@ -294,22 +307,40 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0F172A',
   },
+  titleMobile: {
+    fontSize: 16,
+  },
   closeBtnText: {
     fontSize: 18,
     fontWeight: '800',
     color: '#64748B',
+    padding: 4,
   },
   subtitle: {
     fontSize: 13,
     color: '#64748B',
     lineHeight: 18,
-    marginBottom: 16,
+    marginBottom: 14,
+  },
+  subtitleMobile: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 10,
+  },
+  scrollBody: {
+    flex: 1,
+    flexShrink: 1,
+  },
+  scrollBodyContent: {
+    paddingBottom: 8,
   },
   bodyGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 16,
-    maxHeight: 520,
+  },
+  bodyGridMobile: {
+    flexDirection: 'column',
+    gap: 12,
   },
   leftCol: {
     flex: 1,
@@ -319,6 +350,11 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  leftColMobile: {
+    minWidth: 0,
+    width: '100%',
+    padding: 10,
   },
   yellowInfoAlert: {
     flexDirection: 'row',
@@ -338,17 +374,14 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 15,
   },
-  thumbnailsScroll: {
-    flex: 1,
-  },
   thumbnailsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
   thumbWrapper: {
-    width: 90,
-    height: 115,
+    width: 85,
+    height: 110,
     borderRadius: 8,
     overflow: 'hidden',
     position: 'relative',
@@ -366,7 +399,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#64748B',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -376,8 +409,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   addProductSlotBtn: {
-    width: 90,
-    height: 115,
+    width: 85,
+    height: 110,
     borderRadius: 8,
     borderWidth: 1.5,
     borderColor: '#818CF8',
@@ -437,7 +470,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   rightCol: {
-    flex: 1.5,
+    flex: 1.2,
     minWidth: 260,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
@@ -445,11 +478,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
+  rightColMobile: {
+    minWidth: 0,
+    width: '100%',
+    padding: 10,
+  },
   prohibitedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   prohibitedNotAllowedSymbol: {
     fontSize: 14,
@@ -459,55 +497,38 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#DC2626',
   },
-  prohibitedScroll: {
-    flex: 1,
-  },
-  prohibitedGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  prohibitedItemCard: {
-    width: '48%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F8FAFC',
-    padding: 6,
-    borderRadius: 6,
+  infographicCard: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#FCA5A5',
+    padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  prohibitedThumb: {
-    width: 48,
-    height: 48,
+  prohibitedInfographicBanner: {
+    width: '100%',
+    height: 380,
     borderRadius: 6,
   },
-  prohibitedMetaCol: {
-    flex: 1,
-  },
-  prohibitedRuleTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  notAllowedTag: {
-    marginTop: 2,
-  },
-  notAllowedTagText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#64748B',
+  prohibitedInfographicBannerMobile: {
+    height: 240,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 12,
-    marginTop: 20,
-    paddingTop: 16,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  footerRowMobile: {
+    marginTop: 8,
+    paddingTop: 10,
+    gap: 8,
   },
   cancelBtn: {
     paddingHorizontal: 20,
@@ -534,3 +555,4 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
+

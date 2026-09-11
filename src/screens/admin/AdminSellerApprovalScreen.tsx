@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { AdminSeller, SellerApprovalStatus } from '../../types/adminTypes';
 import { Search, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react-native';
+import { useAuth } from '../../context/AuthContext';
 
 interface AdminSellerApprovalScreenProps {
   sellers: AdminSeller[];
@@ -24,6 +25,7 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
   onRejectSeller,
   onSuspendSeller,
 }) => {
+  const { activeRole } = useAuth();
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<SellerApprovalStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedSellerForReview, setSelectedSellerForReview] = useState<AdminSeller | null>(null);
@@ -182,7 +184,7 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
                         <Text style={styles.reviewBtnText}>Review Details</Text>
                       </TouchableOpacity>
 
-                      {seller.status === 'pending' && (
+                      {seller.status === 'pending' && (activeRole === 'super_admin' || activeRole === 'admin') && (
                         <TouchableOpacity
                           style={styles.quickApproveBtn}
                           onPress={() => onApproveSeller(seller.id)}
@@ -274,7 +276,7 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
 
               {/* Modal Actions */}
               <View style={styles.modalFooter}>
-                {selectedSellerForReview.status !== 'approved' && (
+                {selectedSellerForReview.status !== 'approved' && (activeRole === 'super_admin' || activeRole === 'admin') && (
                   <TouchableOpacity
                     style={styles.approveActionBtn}
                     onPress={() => {

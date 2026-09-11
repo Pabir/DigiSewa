@@ -13,14 +13,18 @@ export const MeeshoSellerHeader: React.FC<MeeshoSellerHeaderProps> = ({
   activeTab,
   onSelectTab,
 }) => {
-  const { sellerProfile } = useAuth();
-  const sellerIdCode = `DIGISEWA-SLR-${sellerProfile.id.replace(/[^0-9]/g, '') || '98421'}`;
+  const { sellerProfile, openSellerProfileModal } = useAuth();
+  const sellerIdCode = `DigiSewa-SLR-${sellerProfile.id.replace(/[^0-9]/g, '') || '98421'}`;
 
   return (
     <View style={styles.container}>
       {/* Top Banner with DigiSewa Seller Brand */}
       <View style={styles.topBanner}>
-        <View style={styles.profileSection}>
+        <TouchableOpacity
+          style={styles.profileSection}
+          onPress={openSellerProfileModal}
+          activeOpacity={0.8}
+        >
           <View style={styles.avatarBox}>
             <Text style={styles.avatarText}>{sellerProfile.storeName.charAt(0).toUpperCase()}</Text>
           </View>
@@ -34,7 +38,7 @@ export const MeeshoSellerHeader: React.FC<MeeshoSellerHeaderProps> = ({
             </View>
             <Text style={styles.sellerIdText}>Seller ID: <Text style={styles.boldId}>{sellerIdCode}</Text></Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Quick Add Catalog Action Button */}
         <TouchableOpacity

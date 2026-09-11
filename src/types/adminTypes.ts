@@ -1,4 +1,5 @@
 export type SellerApprovalStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+import { Order } from './index';
 
 export interface AdminSeller {
   id: string;
@@ -16,6 +17,7 @@ export interface AdminSeller {
   state: string;
   pincode: string;
   eSignatureUrl?: string;
+  eSignatureText?: string;
   status: SellerApprovalStatus;
   joinedDate: string;
   totalProductsCount: number;
@@ -33,6 +35,7 @@ export interface AdminCustomer {
   walletBalance: number;
   totalOrders: number;
   totalSpent: number;
+  orders?: Order[];
   status: 'active' | 'blocked';
   registeredDate: string;
   lastActive: string;

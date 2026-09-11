@@ -10,40 +10,7 @@ interface BulkCatalogUploadModalProps {
   onSuccess: () => void;
 }
 
-const DEMO_BULK_ITEMS = [
-  {
-    title: 'Women High-Waist Skinny Fit Denim Jeans (Light Blue)',
-    category: 'Women Western',
-    subcategory: 'Jeans & Trousers',
-    price: 649,
-    mrp: 1399,
-    fabric: 'Stretchable Denim',
-    fit: 'High Waist Slim',
-    color: 'Light Blue',
-    sizes: [
-      { size: 'S', waistInches: 28, stock: 12, price: 649, mrp: 1399, enabled: true },
-      { size: 'M', waistInches: 30, stock: 15, price: 649, mrp: 1399, enabled: true },
-      { size: 'L', waistInches: 32, stock: 10, price: 649, mrp: 1399, enabled: true },
-    ],
-    imageUrl: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    title: 'Men Casual Pure Cotton Checked Shirt (Navy Blue)',
-    category: 'Men Apparel',
-    subcategory: 'Shirts',
-    price: 529,
-    mrp: 1099,
-    fabric: '100% Pure Cotton',
-    fit: 'Slim Fit',
-    color: 'Navy Blue Check',
-    sizes: [
-      { size: 'M', chestInches: 38, stock: 20, price: 529, mrp: 1099, enabled: true },
-      { size: 'L', chestInches: 40, stock: 25, price: 529, mrp: 1099, enabled: true },
-      { size: 'XL', chestInches: 42, stock: 15, price: 549, mrp: 1149, enabled: true },
-    ],
-    imageUrl: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=600&q=80',
-  },
-];
+const DEMO_BULK_ITEMS: any[] = [];
 
 export const BulkCatalogUploadModal: React.FC<BulkCatalogUploadModalProps> = ({
   visible,
@@ -66,37 +33,56 @@ export const BulkCatalogUploadModal: React.FC<BulkCatalogUploadModalProps> = ({
   };
 
   const handlePublishBulk = async () => {
+    if (sellerProfile?.verificationStatus !== 'verified') {
+      const status = sellerProfile?.verificationStatus || 'pending';
+      const msg =
+        status === 'rejected'
+          ? '❌ Account Rejected: Your seller application was rejected by Admin. You cannot add products.'
+          : status === 'suspended'
+          ? '⚠️ Account Suspended: Your seller account has been suspended by Admin. You cannot add products.'
+          : '⏳ Approval Pending: Your seller account is awaiting Admin approval. You cannot add or sell products until approved by Admin.';
+      alert(msg);
+      return;
+    }
+
     if (!parsedItems || parsedItems.length === 0) return;
     setIsUploading(true);
 
-    for (const item of parsedItems) {
-      await addProduct({
-        sellerId: sellerProfile.id || 'sel-104',
-        sellerName: sellerProfile.storeName || 'Al Mursaleen Stores',
-        title: item.title,
-        description: `Bulk Catalog Import: ${item.fabric} ${item.fit} ${item.subcategory}.`,
-        category: item.category,
-        subcategory: item.subcategory,
-        price: item.price,
-        originalPrice: item.mrp,
-        stock: 45,
-        unit: 'piece',
-        imageUrl: item.imageUrl,
-        rating: 5.0,
-        reviewCount: 1,
-        tags: ['Bulk Import', 'DigiSewa Catalog', item.category],
-        isHyperlocalAvailable: false,
-        fabric: item.fabric,
-        fitType: item.fit,
-        color: item.color,
-        sizes: item.sizes,
-        catalogId: `DGS-BULK-${Math.floor(1000 + Math.random() * 9000)}`,
-      });
+    try {
+      for (const item of parsedItems) {
+        await addProduct(
+          {
+            sellerId: sellerProfile.id || 'sel-104',
+            sellerName: sellerProfile.storeName || 'DigiSewa Express Store',
+            title: item.title,
+            description: `Bulk Catalog Import: ${item.fabric} ${item.fit} ${item.subcategory}.`,
+            category: item.category,
+            subcategory: item.subcategory,
+            price: item.price > item.mrp ? item.mrp : item.price,
+            originalPrice: item.price > item.mrp ? item.price : item.mrp,
+            stock: 45,
+            unit: 'piece',
+            imageUrl: item.imageUrl,
+            rating: 5.0,
+            reviewCount: 1,
+            tags: ['Bulk Import', 'DigiSewa Catalog', item.category],
+            isHyperlocalAvailable: false,
+            fabric: item.fabric,
+            fitType: item.fit,
+            color: item.color,
+            sizes: item.sizes,
+            catalogId: `DGS-BULK-${Math.floor(1000 + Math.random() * 9000)}`,
+          },
+          sellerProfile?.verificationStatus
+        );
+      }
+      setIsUploading(false);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error('Error publishing bulk catalogs:', err);
+      setIsUploading(false);
     }
-
-    setIsUploading(false);
-    onSuccess();
-    onClose();
   };
 
   return (

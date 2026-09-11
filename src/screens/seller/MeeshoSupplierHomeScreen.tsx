@@ -7,6 +7,15 @@ import {
   Plus,
   Zap,
   Sparkles,
+  FileText,
+  ArrowRight,
+  Book,
+  Truck,
+  Tag,
+  ShieldAlert,
+  CheckCircle,
+  TrendingUp,
+  LayoutDashboard
 } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { ESignatureModal } from '../../components/seller/ESignatureModal';
@@ -25,249 +34,269 @@ export const MeeshoSupplierHomeScreen: React.FC<MeeshoSupplierHomeScreenProps> =
   onNavigateToOrders,
 }) => {
   const { sellerProfile } = useAuth();
-  const storeName = sellerProfile.storeName || 'Al Mursaleen Stores';
+  const storeName = sellerProfile?.storeName || 'DigiSewa Express Store';
 
   const [showESignatureModal, setShowESignatureModal] = useState<boolean>(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState<boolean>(false);
   const [isSignatureAdded, setIsSignatureAdded] = useState<boolean>(false);
-  const [activeStepTab, setActiveStepTab] = useState<number>(1);
+
+  const isApproved = sellerProfile?.verificationStatus === 'verified';
+  const hasSignature = Boolean(sellerProfile?.eSignatureText || sellerProfile?.eSignatureUrl);
+
+  const handleSingleCatalogPress = () => {
+    if (!isApproved) {
+      const status = sellerProfile?.verificationStatus || 'pending';
+      const msg =
+        status === 'rejected'
+          ? '❌ Account Rejected: Your seller application was rejected by Admin. You cannot add or sell products.'
+          : status === 'suspended'
+          ? '⚠️ Account Suspended: Your seller account has been suspended by Admin. You cannot add or sell products.'
+          : '⏳ Approval Pending: Your seller account is awaiting Admin approval. You cannot add or sell products until approved by Admin.';
+      alert(msg);
+      return;
+    }
+    onNavigateToAddSingleCatalog();
+  };
+
+  const handleBulkCatalogPress = () => {
+    if (!isApproved) {
+      const status = sellerProfile?.verificationStatus || 'pending';
+      const msg =
+        status === 'rejected'
+          ? '❌ Account Rejected: Your seller application was rejected by Admin. You cannot add or sell products.'
+          : status === 'suspended'
+          ? '⚠️ Account Suspended: Your seller account has been suspended by Admin. You cannot add or sell products.'
+          : '⏳ Approval Pending: Your seller account is awaiting Admin approval. You cannot add or sell products until approved by Admin.';
+      alert(msg);
+      return;
+    }
+    setShowBulkUploadModal(true);
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* 1. TOP NOTIFICATION BANNERS */}
-
-      {/* Red Banner: E-Signature Missing */}
-      {!isSignatureAdded && (
-        <View style={styles.bannerRed}>
-          <View style={styles.bannerIconBoxRed}>
-            <AlertTriangle size={18} color="#DC2626" />
+      
+      {/* --- UNIFIED HEADER & ALERTS --- */}
+      <View style={styles.headerSection}>
+        {/* Welcome Header */}
+        <View style={styles.welcomeBanner}>
+          <View style={styles.welcomeContent}>
+            <Text style={styles.welcomeTitle}>Welcome back, {storeName}</Text>
+            <Text style={styles.welcomeSub}>Manage your catalog, track orders, and grow your business.</Text>
           </View>
-          <View style={styles.bannerTextCol}>
-            <Text style={styles.bannerRedTitle}>Your E-Signature is missing!</Text>
-            <Text style={styles.bannerRedSub}>
-              E-signature is required for raising invoices / credit notes on your behalf to customers
-            </Text>
+          <View style={styles.welcomeIconBox}>
+            <LayoutDashboard size={40} color="#4F46E5" opacity={0.2} />
           </View>
-          <TouchableOpacity
-            style={styles.addSignatureBtn}
-            onPress={() => setShowESignatureModal(true)}
-          >
-            <Text style={styles.addSignatureBtnText}>Add Signature</Text>
-          </TouchableOpacity>
         </View>
-      )}
 
-      {/* Yellow Banner: Bank Verification Pending */}
-      <View style={styles.bannerYellow}>
-        <View style={styles.bannerIconBoxYellow}>
-          <Clock size={18} color="#D97706" />
-        </View>
-        <View style={styles.bannerTextCol}>
-          <Text style={styles.bannerYellowTitle}>Bank Verification Pending</Text>
-          <Text style={styles.bannerYellowSub}>
-            We will inform you once your account is verified, please continue to upload your catalogs.
-          </Text>
+        {/* Global Alerts */}
+        <View style={styles.alertsContainer}>
+          {/* E-Signature Alert */}
+          {!hasSignature ? (
+            <View style={[styles.alertBanner, styles.alertDanger]}>
+              <View style={styles.alertIconBox}>
+                <ShieldAlert size={20} color="#DC2626" />
+              </View>
+              <View style={styles.alertTextContent}>
+                <Text style={styles.alertTitle}>Action Required: Missing E-Signature</Text>
+                <Text style={styles.alertDesc}>Required for automated customer invoicing & credit notes.</Text>
+              </View>
+              <TouchableOpacity style={styles.alertActionBtn} onPress={() => setShowESignatureModal(true)}>
+                <Text style={styles.alertActionBtnText}>Add Signature</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={[styles.alertBanner, styles.alertSuccess]}>
+              <View style={styles.alertIconBox}>
+                <CheckCircle size={20} color="#16A34A" />
+              </View>
+              <View style={styles.alertTextContent}>
+                <Text style={[styles.alertTitle, { color: '#166534' }]}>E-Signature Verified</Text>
+                <Text style={[styles.alertDesc, { color: '#15803D' }]}>Active for automated GST customer invoices.</Text>
+              </View>
+              <TouchableOpacity style={styles.alertActionBtnOutline} onPress={() => setShowESignatureModal(true)}>
+                <Text style={styles.alertActionBtnTextOutline}>Edit</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Verification Status */}
+          {sellerProfile?.verificationStatus !== 'verified' ? (
+            <View style={[styles.alertBanner, sellerProfile?.verificationStatus === 'rejected' ? styles.alertDanger : styles.alertWarning]}>
+              <View style={styles.alertIconBox}>
+                <Clock size={20} color={sellerProfile?.verificationStatus === 'rejected' ? '#DC2626' : '#D97706'} />
+              </View>
+              <View style={styles.alertTextContent}>
+                <Text style={[styles.alertTitle, sellerProfile?.verificationStatus === 'rejected' && { color: '#991B1B' }]}>
+                  {sellerProfile?.verificationStatus === 'rejected' ? 'Account Rejected' : sellerProfile?.verificationStatus === 'suspended' ? 'Account Suspended' : 'Approval Pending'}
+                </Text>
+                <Text style={[styles.alertDesc, sellerProfile?.verificationStatus === 'rejected' && { color: '#7F1D1D' }]}>
+                  {sellerProfile?.verificationStatus === 'rejected'
+                    ? `Reason: ${sellerProfile.rejectionReason || 'Document verification failed'}`
+                    : sellerProfile?.verificationStatus === 'suspended'
+                    ? 'Account suspended by Admin. Selling disabled.'
+                    : 'Account under review. You cannot sell products yet.'}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={[styles.alertBanner, styles.alertSuccess]}>
+              <View style={styles.alertIconBox}>
+                <CheckCircle size={20} color="#16A34A" />
+              </View>
+              <View style={styles.alertTextContent}>
+                <Text style={[styles.alertTitle, { color: '#166534' }]}>Store Approved & Live</Text>
+                <Text style={[styles.alertDesc, { color: '#15803D' }]}>Your store is verified. You can now publish catalogs.</Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
 
-      {/* 2. WELCOME HEADER & NEED HELP */}
-      <View style={styles.welcomeRow}>
-        <View>
-          <Text style={styles.welcomeTitle}>Welcome {storeName}</Text>
-          <Text style={styles.welcomeSub}>Let's get your business started in 3 steps</Text>
-        </View>
-
-        <TouchableOpacity style={styles.needHelpBtn}>
-          <Sparkles size={16} color="#4F46E5" />
-          <Text style={styles.needHelpBtnText}>Need Help?</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 3. MAIN DASHBOARD CONTENT (LEFT CATALOG CARDS & RIGHT WIDGETS) */}
+      {/* --- DASHBOARD MAIN CONTENT --- */}
       <View style={styles.dashboardGrid}>
-        {/* LEFT COLUMN: 3-STEP PROGRESS & CATALOG UPLOADS */}
+        
+        {/* LEFT COLUMN: ACTION HUB */}
         <View style={styles.leftCol}>
-          {/* 3-Step Progress Header */}
-          <View style={styles.stepTabsCard}>
-            <View style={styles.stepTabsHeader}>
-              <TouchableOpacity
-                style={[styles.stepTabItem, activeStepTab === 1 && styles.stepTabItemActive]}
-                onPress={() => setActiveStepTab(1)}
-              >
-                <View style={[styles.stepNum, activeStepTab === 1 && styles.stepNumActive]}>
-                  <Text style={[styles.stepNumText, activeStepTab === 1 && styles.stepNumTextActive]}>1</Text>
-                </View>
-                <Text style={[styles.stepTabText, activeStepTab === 1 && styles.stepTabTextActive]}>
-                  Upload catalogs to get started
-                </Text>
-              </TouchableOpacity>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <Text style={styles.sectionSub}>Select a method to upload your products</Text>
+          </View>
 
-              <TouchableOpacity
-                style={[styles.stepTabItem, activeStepTab === 2 && styles.stepTabItemActive]}
-                onPress={() => setActiveStepTab(2)}
-              >
-                <View style={[styles.stepNum, activeStepTab === 2 && styles.stepNumActive]}>
-                  <Text style={[styles.stepNumText, activeStepTab === 2 && styles.stepNumTextActive]}>2</Text>
-                </View>
-                <Text style={[styles.stepTabText, activeStepTab === 2 && styles.stepTabTextActive]}>
-                  Catalogs go live on DigiSewa
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.stepTabItem, activeStepTab === 3 && styles.stepTabItemActive]}
-                onPress={() => setActiveStepTab(3)}
-              >
-                <View style={[styles.stepNum, activeStepTab === 3 && styles.stepNumActive]}>
-                  <Text style={[styles.stepNumText, activeStepTab === 3 && styles.stepNumTextActive]}>3</Text>
-                </View>
-                <Text style={[styles.stepTabText, activeStepTab === 3 && styles.stepTabTextActive]}>
-                  Get your first order
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Catalog Upload Methods Row */}
-            <View style={styles.uploadCardsRow}>
-              {/* Card 1: Upload Single Catalog */}
-              <View style={styles.uploadCard}>
-                <Text style={styles.uploadCardTitle}>Upload Single Catalog</Text>
-
-                {/* Banner Thumbnail */}
-                <View style={styles.illustrationBox}>
-                  <Image
-                    source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80' }}
-                    style={styles.presenterImage}
-                  />
-                  <View style={styles.playBadge}>
-                    <Sparkles size={14} color="#FFFFFF" />
-                  </View>
-                </View>
-
-                {/* Bullet Points */}
-                <View style={styles.bulletsList}>
-                  <View style={styles.bulletRow}>
-                    <CheckCircle2 size={14} color="#059669" />
-                    <Text style={styles.bulletText}>Add one catalog at a time</Text>
-                  </View>
-                  <View style={styles.bulletRow}>
-                    <CheckCircle2 size={14} color="#059669" />
-                    <Text style={styles.bulletText}>Excel sheet not required</Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity style={styles.singleCatalogBtn} onPress={onNavigateToAddSingleCatalog}>
-                  <Text style={styles.singleCatalogBtnText}>Add Single Catalog</Text>
-                </TouchableOpacity>
+          <View style={styles.actionCardsRow}>
+            {/* Single Catalog Card */}
+            <TouchableOpacity style={styles.actionCard} onPress={handleSingleCatalogPress} activeOpacity={0.8}>
+              <View style={[styles.actionIconWrapper, { backgroundColor: '#EEF2FF' }]}>
+                <FileText size={28} color="#4F46E5" />
               </View>
-
-              {/* Card 2: Upload Bulk Catalog */}
-              <View style={styles.uploadCard}>
-                <Text style={styles.uploadCardTitle}>Upload Bulk Catalog</Text>
-
-                {/* Banner Thumbnail */}
-                <View style={styles.illustrationBox}>
-                  <Image
-                    source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80' }}
-                    style={styles.presenterImage}
-                  />
-                  <View style={styles.excelBadge}>
-                    <Sparkles size={16} color="#16A34A" />
-                  </View>
+              <Text style={styles.actionCardTitle}>Upload Single Catalog</Text>
+              <Text style={styles.actionCardDesc}>Perfect for adding one product with multiple variants interactively.</Text>
+              <View style={styles.featureList}>
+                <View style={styles.featureItem}>
+                  <CheckCircle2 size={14} color="#64748B" />
+                  <Text style={styles.featureText}>Step-by-step wizard</Text>
                 </View>
-
-                {/* Bullet Points */}
-                <View style={styles.bulletsList}>
-                  <View style={styles.bulletRow}>
-                    <CheckCircle2 size={14} color="#059669" />
-                    <Text style={styles.bulletText}>Add multiple catalog at a time</Text>
-                  </View>
-                  <View style={styles.bulletRow}>
-                    <CheckCircle2 size={14} color="#059669" />
-                    <Text style={styles.bulletText}>Requires excel sheet</Text>
-                  </View>
+                <View style={styles.featureItem}>
+                  <CheckCircle2 size={14} color="#64748B" />
+                  <Text style={styles.featureText}>No excel required</Text>
                 </View>
-
-                <TouchableOpacity style={styles.bulkCatalogBtn} onPress={() => setShowBulkUploadModal(true)}>
-                  <Text style={styles.bulkCatalogBtnText}>Add Catalogs in Bulk</Text>
-                </TouchableOpacity>
               </View>
-            </View>
+              <View style={styles.actionBtnPrimary}>
+                <Text style={styles.actionBtnPrimaryText}>Add Single Catalog</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Bulk Catalog Card */}
+            <TouchableOpacity style={styles.actionCard} onPress={handleBulkCatalogPress} activeOpacity={0.8}>
+              <View style={[styles.actionIconWrapper, { backgroundColor: '#F0FDF4' }]}>
+                <FileText size={28} color="#16A34A" />
+              </View>
+              <Text style={styles.actionCardTitle}>Upload Bulk Catalog</Text>
+              <Text style={styles.actionCardDesc}>Fastest way to upload hundreds of products via a spreadsheet.</Text>
+              <View style={styles.featureList}>
+                <View style={styles.featureItem}>
+                  <CheckCircle2 size={14} color="#64748B" />
+                  <Text style={styles.featureText}>Template provided</Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <CheckCircle2 size={14} color="#64748B" />
+                  <Text style={styles.featureText}>Automated validation</Text>
+                </View>
+              </View>
+              <View style={[styles.actionBtnPrimary, styles.actionBtnOutline]}>
+                <Text style={[styles.actionBtnPrimaryText, styles.actionBtnOutlineText]}>Upload Excel File</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* RIGHT COLUMN: ACCOUNT SETUP & LEARN & GROW WIDGETS */}
+        {/* RIGHT COLUMN: WIDGETS */}
         <View style={styles.rightCol}>
-          {/* Widget 1: Complete your account setup */}
+          
+          {/* Setup Checklist */}
           <View style={styles.widgetCard}>
-            <Text style={styles.widgetTitle}>Complete your account setup</Text>
-            <Text style={styles.widgetSub}>Add the below information to improve your selling journey</Text>
-
-            <TouchableOpacity style={styles.setupItemBtn}>
-              <Plus size={16} color="#4F46E5" />
-              <Text style={styles.setupItemText}>Set Password</Text>
-            </TouchableOpacity>
-
-            {!isSignatureAdded && (
-              <TouchableOpacity style={styles.setupItemBtn} onPress={() => setShowESignatureModal(true)}>
-                <Plus size={16} color="#E00A67" />
-                <Text style={styles.setupItemTextAlt}>Add E-Signature</Text>
+            <View style={styles.widgetHeader}>
+              <Text style={styles.widgetTitle}>Account Setup</Text>
+              <Text style={styles.widgetBadge}>1/2 Complete</Text>
+            </View>
+            <View style={styles.checklistContainer}>
+              <TouchableOpacity style={styles.checklistItem}>
+                <View style={[styles.checkCircle, styles.checkCircleDone]}>
+                  <CheckCircle2 size={16} color="#FFFFFF" />
+                </View>
+                <Text style={styles.checklistTextDone}>Set Password</Text>
               </TouchableOpacity>
-            )}
-          </View>
 
-          {/* Widget 2: Learn & Grow On DigiSewa */}
-          <View style={styles.widgetCard}>
-            <Text style={styles.widgetTitle}>Learn & Grow On DigiSewa</Text>
-
-            <TouchableOpacity style={styles.learnRow}>
-              <View style={styles.learnLeft}>
-                <View style={[styles.learnIconBox, { backgroundColor: '#EEF2FF' }]}>
-                  <Zap size={16} color="#4F46E5" />
-                </View>
-                <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={styles.learnTitle}>Book free live training</Text>
-                    <View style={styles.expertBadge}>
-                      <Text style={styles.expertBadgeText}>Expert Led</Text>
-                    </View>
+              {!hasSignature ? (
+                <TouchableOpacity style={styles.checklistItem} onPress={() => setShowESignatureModal(true)}>
+                  <View style={styles.checkCircle}>
+                    <Plus size={16} color="#4F46E5" />
                   </View>
-                  <Text style={styles.learnSub}>Learn to operate and grow your business on DigiSewa.</Text>
+                  <Text style={styles.checklistTextPending}>Add E-Signature</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.checklistItem}>
+                  <View style={[styles.checkCircle, styles.checkCircleDone]}>
+                    <CheckCircle2 size={16} color="#FFFFFF" />
+                  </View>
+                  <Text style={styles.checklistTextDone}>Add E-Signature</Text>
                 </View>
-              </View>
-              <Text style={{ color: '#94A3B8', fontSize: 14 }}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.learnRow}>
-              <View style={styles.learnLeft}>
-                <View style={[styles.learnIconBox, { backgroundColor: '#FEF2F2' }]}>
-                  <Sparkles size={16} color="#DC2626" />
-                </View>
-                <Text style={styles.learnTitle}>Prepare catalogs for DigiSewa</Text>
-              </View>
-              <Text style={{ color: '#94A3B8', fontSize: 14 }}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.learnRow}>
-              <View style={styles.learnLeft}>
-                <View style={[styles.learnIconBox, { backgroundColor: '#F0FDF4' }]}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#059669' }}>%</Text>
-                </View>
-                <Text style={styles.learnTitle}>Pricing & commission</Text>
-              </View>
-              <Text style={{ color: '#94A3B8', fontSize: 14 }}>›</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.learnRow}>
-              <View style={styles.learnLeft}>
-                <View style={[styles.learnIconBox, { backgroundColor: '#FDF2F8' }]}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#E00A67' }}>🚚</Text>
-                </View>
-                <Text style={styles.learnTitle}>Delivery & Returns</Text>
-              </View>
-              <Text style={{ color: '#94A3B8', fontSize: 14 }}>›</Text>
-            </TouchableOpacity>
+              )}
+            </View>
           </View>
+
+          {/* Resource Center */}
+          <View style={styles.widgetCard}>
+            <Text style={styles.widgetTitle}>Resource Center</Text>
+            <Text style={styles.widgetSub}>Learn how to grow your sales</Text>
+            
+            <View style={styles.resourcesList}>
+              <TouchableOpacity style={styles.resourceItem}>
+                <View style={[styles.resourceIcon, { backgroundColor: '#FDF2F8' }]}>
+                  <Book size={16} color="#DB2777" />
+                </View>
+                <View style={styles.resourceTextCol}>
+                  <Text style={styles.resourceTitle}>Seller Guidelines</Text>
+                  <Text style={styles.resourceDesc}>How to prepare your catalogs</Text>
+                </View>
+                <ArrowRight size={16} color="#CBD5E1" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.resourceItem}>
+                <View style={[styles.resourceIcon, { backgroundColor: '#FEF2F2' }]}>
+                  <Tag size={16} color="#DC2626" />
+                </View>
+                <View style={styles.resourceTextCol}>
+                  <Text style={styles.resourceTitle}>Pricing & Commission</Text>
+                  <Text style={styles.resourceDesc}>Understand your payouts</Text>
+                </View>
+                <ArrowRight size={16} color="#CBD5E1" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.resourceItem}>
+                <View style={[styles.resourceIcon, { backgroundColor: '#F0FDF4' }]}>
+                  <Truck size={16} color="#16A34A" />
+                </View>
+                <View style={styles.resourceTextCol}>
+                  <Text style={styles.resourceTitle}>Logistics & Returns</Text>
+                  <Text style={styles.resourceDesc}>Shipping procedures</Text>
+                </View>
+                <ArrowRight size={16} color="#CBD5E1" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.resourceItem, { borderBottomWidth: 0 }]}>
+                <View style={[styles.resourceIcon, { backgroundColor: '#EEF2FF' }]}>
+                  <TrendingUp size={16} color="#4F46E5" />
+                </View>
+                <View style={styles.resourceTextCol}>
+                  <Text style={styles.resourceTitle}>Live Training</Text>
+                  <Text style={styles.resourceDesc}>Book an expert-led session</Text>
+                </View>
+                <ArrowRight size={16} color="#CBD5E1" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
         </View>
       </View>
 
@@ -290,366 +319,317 @@ export const MeeshoSupplierHomeScreen: React.FC<MeeshoSupplierHomeScreenProps> =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F8FAFC',
   },
   contentContainer: {
-    padding: 20,
-    gap: 14,
+    padding: 24,
+    gap: 24,
   },
-  bannerRed: {
-    backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  headerSection: {
+    gap: 16,
   },
-  bannerIconBoxRed: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: '#FEE2E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bannerTextCol: {
-    flex: 1,
-  },
-  bannerRedTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#991B1B',
-  },
-  bannerRedSub: {
-    fontSize: 11,
-    color: '#7F1D1D',
-    marginTop: 2,
-  },
-  addSignatureBtn: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#4F46E5',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 6,
-  },
-  addSignatureBtnText: {
-    color: '#4F46E5',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  bannerYellow: {
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  bannerIconBoxYellow: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: '#FEF3C7',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bannerYellowTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#92400E',
-  },
-  bannerYellowSub: {
-    fontSize: 11,
-    color: '#78350F',
-    marginTop: 2,
-  },
-  welcomeRow: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
+  welcomeBanner: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 16,
+    padding: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  welcomeContent: {
+    flex: 1,
+    zIndex: 1,
   },
   welcomeTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
-    color: '#111827',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
   welcomeSub: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  needHelpBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#C7D2FE',
-  },
-  needHelpBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4F46E5',
-  },
-  dashboardGrid: {
-    flexDirection: 'row',
-    gap: 16,
-    flexWrap: 'wrap',
-  },
-  leftCol: {
-    flex: 2,
-    minWidth: 270,
-  },
-  rightCol: {
-    flex: 1,
-    minWidth: 260,
-    gap: 14,
-  },
-  stepTabsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  stepTabsHeader: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    paddingBottom: 12,
-    marginBottom: 20,
-    gap: 12,
-  },
-  stepTabItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-    flex: 1,
-  },
-  stepTabItemActive: {
-    borderBottomColor: '#4F46E5',
-  },
-  stepNum: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepNumActive: {
-    backgroundColor: '#EEF2FF',
-    borderWidth: 1,
-    borderColor: '#6366F1',
-  },
-  stepNumText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  stepNumTextActive: {
-    color: '#4F46E5',
-  },
-  stepTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    flex: 1,
-  },
-  stepTabTextActive: {
-    color: '#111827',
-    fontWeight: '700',
-  },
-  uploadCardsRow: {
-    flexDirection: 'row',
-    gap: 16,
-    flexWrap: 'wrap',
-  },
-  uploadCard: {
-    flex: 1,
-    minWidth: 220,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  uploadCardTitle: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  illustrationBox: {
-    height: 120,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 14,
-    position: 'relative',
-  },
-  presenterImage: {
-    width: '100%',
-    height: '100%',
-  },
-  playBadge: {
-    position: 'absolute',
-    top: '40%',
-    left: '42%',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#DC2626',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  excelBadge: {
-    position: 'absolute',
-    top: '36%',
-    left: '42%',
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  bulletsList: {
-    gap: 8,
-    marginBottom: 16,
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  bulletText: {
-    fontSize: 12,
-    color: '#4B5563',
+    color: '#E0E7FF',
     fontWeight: '500',
   },
-  singleCatalogBtn: {
-    backgroundColor: '#4338CA',
-    paddingVertical: 10,
-    borderRadius: 8,
+  welcomeIconBox: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    transform: [{ translateY: -20 }],
+    zIndex: 0,
+  },
+  alertsContainer: {
+    gap: 12,
+  },
+  alertBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  alertDanger: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  alertSuccess: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  alertWarning: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  alertIconBox: {
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  singleCatalogBtnText: {
+  alertTextContent: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  alertDesc: {
+    fontSize: 12,
+    color: '#7F1D1D',
+    marginTop: 2,
+  },
+  alertActionBtn: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  alertActionBtnText: {
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
   },
-  bulkCatalogBtn: {
-    backgroundColor: '#FFFFFF',
+  alertActionBtnOutline: {
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#3730A3',
-    paddingVertical: 10,
+    borderColor: '#16A34A',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
-    alignItems: 'center',
   },
-  bulkCatalogBtnText: {
-    color: '#3730A3',
+  alertActionBtnTextOutline: {
+    color: '#16A34A',
     fontSize: 13,
     fontWeight: '700',
   },
+  dashboardGrid: {
+    flexDirection: 'row',
+    gap: 24,
+    flexWrap: 'wrap',
+  },
+  leftCol: {
+    flex: 2,
+    minWidth: 280,
+  },
+  rightCol: {
+    flex: 1,
+    minWidth: 260,
+    gap: 24,
+  },
+  sectionHeader: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  sectionSub: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  actionCardsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  actionCard: {
+    flex: 1,
+    minWidth: 240,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  actionIconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  actionCardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  actionCardDesc: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
+    marginBottom: 16,
+    minHeight: 40,
+  },
+  featureList: {
+    gap: 8,
+    marginBottom: 24,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  featureText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  actionBtnPrimary: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  actionBtnPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  actionBtnOutline: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#16A34A',
+  },
+  actionBtnOutlineText: {
+    color: '#16A34A',
+  },
   widgetCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  widgetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   widgetTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#111827',
+    color: '#0F172A',
   },
-  widgetSub: {
+  widgetBadge: {
     fontSize: 11,
-    color: '#6B7280',
-    marginTop: 2,
-    marginBottom: 12,
-  },
-  setupItemBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-  },
-  setupItemText: {
-    fontSize: 12,
     fontWeight: '700',
     color: '#4F46E5',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  setupItemTextAlt: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6366F1',
+  widgetSub: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 16,
   },
-  learnRow: {
+  checklistContainer: {
+    gap: 12,
+  },
+  checklistItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    gap: 12,
+    paddingVertical: 4,
   },
-  learnLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  learnIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
+  checkCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  learnTitle: {
-    fontSize: 12,
+  checkCircleDone: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  checklistTextDone: {
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '600',
+    textDecorationLine: 'line-through',
+  },
+  checklistTextPending: {
+    fontSize: 14,
+    color: '#4F46E5',
     fontWeight: '700',
-    color: '#1F2937',
   },
-  learnSub: {
-    fontSize: 10,
-    color: '#6B7280',
-    marginTop: 1,
+  resourcesList: {
+    marginTop: 8,
   },
-  expertBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
+  resourceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-  expertBadgeText: {
-    color: '#15803D',
-    fontSize: 9,
-    fontWeight: '800',
+  resourceIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  resourceTextCol: {
+    flex: 1,
+  },
+  resourceTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  resourceDesc: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
   },
 });
+
+

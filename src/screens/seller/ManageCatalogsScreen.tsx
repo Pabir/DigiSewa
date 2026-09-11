@@ -9,29 +9,61 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { Search, CheckCircle, ShoppingBag, Sparkles } from 'lucide-react-native';
-import { getProducts } from '../../services/firebaseService';
+import { Search, CheckCircle, ShoppingBag, Sparkles, ArrowLeft } from 'lucide-react-native';
+import { getProducts, wipeAllProducts } from '../../services/firebaseService';
 import { Product, ClothSizeVariant } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { getMeasurementInfo, getSizeVariantMeasurement } from '../../utils/productSizeUtils';
+import { ProductEditModal } from '../../components/seller/ProductEditModal';
 
-export const ManageCatalogsScreen: React.FC = () => {
+interface ManageCatalogsScreenProps {
+  onBack?: () => void;
+}
+
+export const ManageCatalogsScreen: React.FC<ManageCatalogsScreenProps> = ({ onBack }) => {
+  const { sellerProfile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const loadCatalogs = async () => {
     setIsLoading(true);
-    const data = await getProducts();
-    setProducts(data);
-    if (data.length > 0) {
-      setSelectedProduct(data[0]);
+    try {
+      const data = await getProducts(false, sellerProfile?.id);
+      
+      // Client-side isolation check (bulletproof fallback)
+      const myProducts = data.filter(product => {
+        if (!sellerProfile?.id) return false;
+        return product.sellerId === sellerProfile.id;
+      });
+      
+      setProducts(myProducts);
+      if (myProducts.length > 0) {
+        setSelectedProduct(myProducts[0]);
+      }
+    } catch (err) {
+      console.error(err);
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
-    loadCatalogs();
-  }, []);
+    if (sellerProfile?.id) {
+      loadCatalogs();
+    }
+  }, [sellerProfile?.id]);
+
+  const handleWipeProducts = async () => {
+    setIsLoading(true);
+    await wipeAllProducts();
+    setProducts([]);
+    setIsLoading(false);
+    alert('All products wiped from database!');
+  };
 
   const filteredProducts = products.filter(
     (p) =>
@@ -42,16 +74,32 @@ export const ManageCatalogsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity 
+        style={{backgroundColor: '#DC2626', padding: 16, margin: 16, borderRadius: 8, alignItems: 'center'}} 
+        onPress={handleWipeProducts}
+      >
+        <Text style={{color: 'white', fontWeight: '900', fontSize: 16}}>CLICK HERE TO WIPE DUMMY PRODUCTS FROM DATABASE</Text>
+      </TouchableOpacity>
+
       {/* Header */}
       <View style={styles.topHeader}>
-        <View>
-          <Text style={styles.title}>DigiSewa Catalog Manager</Text>
-          <Text style={styles.subtitle}>Update stock per size, waist measurements, and pricing</Text>
+        <View style={styles.titleContainer}>
+          {onBack && (
+            <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
+              <ArrowLeft size={22} color="#0F172A" />
+            </TouchableOpacity>
+          )}
+          <View>
+            <Text style={styles.title}>DigiSewa Catalog Manager</Text>
+            <Text style={styles.subtitle}>Update stock per size, waist measurements, and pricing</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.refreshBtn} onPress={loadCatalogs}>
-          <Sparkles size={16} color="#9F2089" />
-          <Text style={styles.refreshText}>Refresh</Text>
-        </TouchableOpacity>
+        <View style={{flexDirection: 'row', gap: 8}}>
+          <TouchableOpacity style={styles.refreshBtn} onPress={loadCatalogs}>
+            <Sparkles size={16} color="#9F2089" />
+            <Text style={styles.refreshText}>Refresh</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Input */}
@@ -78,12 +126,20 @@ export const ManageCatalogsScreen: React.FC = () => {
                 <Image source={{ uri: product.imageUrl }} style={styles.catalogThumb} />
                 <View style={styles.catalogMeta}>
                   <View style={styles.tagRow}>
-                    <Text style={styles.catalogIdTag}>
-                      {product.catalogId || `MSH-CAT-${product.id}`}
-                    </Text>
-                    {product.subcategory && (
-                      <Text style={styles.subCatTag}>{product.subcategory}</Text>
-                    )}
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <Text style={styles.catalogIdTag}>
+                        {product.catalogId || `MSH-CAT-${product.id}`}
+                      </Text>
+                      {product.subcategory && (
+                        <Text style={styles.subCatTag}>{product.subcategory}</Text>
+                      )}
+                    </View>
+                    <TouchableOpacity 
+                      onPress={() => setEditingProduct(product)}
+                      style={{ padding: 4 }}
+                    >
+                      <Text style={{ color: '#9F2089', fontSize: 13, fontWeight: '600' }}>Edit</Text>
+                    </TouchableOpacity>
                   </View>
                   <Text style={styles.productTitle} numberOfLines={2}>
                     {product.title}
@@ -108,27 +164,43 @@ export const ManageCatalogsScreen: React.FC = () => {
 
               {/* Size & Stock Breakdown Table */}
               {product.sizes && product.sizes.length > 0 ? (
-                <View style={styles.sizesBox}>
-                  <View style={styles.sizesHeader}>
-                    <Sparkles size={14} color="#9F2089" />
-                    <Text style={styles.sizesTitle}>Size & Inch Breakdown</Text>
-                  </View>
-                  <View style={styles.sizePillsRow}>
-                    {product.sizes.map((sz, sIdx) => (
-                      <View key={sIdx} style={styles.sizePillCard}>
-                        <Text style={styles.sizeName}>{sz.size}</Text>
-                        {sz.waistInches && (
-                          <Text style={styles.inchDetail}>Waist: {sz.waistInches}"</Text>
-                        )}
-                        {sz.chestInches && (
-                          <Text style={styles.inchDetail}>Chest: {sz.chestInches}"</Text>
-                        )}
-                        <Text style={styles.stockBadge}>Stock: {sz.stock}</Text>
-                        <Text style={styles.sizePrice}>₹{sz.price}</Text>
+                (() => {
+                  const measInfo = getMeasurementInfo(
+                    product.category,
+                    product.subcategory,
+                    null,
+                    null,
+                    product.title,
+                    product.tags
+                  );
+                  return (
+                    <View style={styles.sizesBox}>
+                      <View style={styles.sizesHeader}>
+                        <Sparkles size={14} color="#9F2089" />
+                        <Text style={styles.sizesTitle}>Size & Inch Breakdown</Text>
                       </View>
-                    ))}
-                  </View>
-                </View>
+                      <View style={styles.sizePillsRow}>
+                        {product.sizes.map((sz, sIdx) => {
+                          const { val: measVal, label: measLabel } = getSizeVariantMeasurement(sz, measInfo);
+
+                          return (
+                            <View key={sIdx} style={styles.sizePillCard}>
+                              <Text style={styles.sizeName}>{sz.size}</Text>
+                              {sz.sku ? (
+                                <Text style={[styles.inchDetail, { color: '#64748B', fontSize: 10 }]}>SKU: {sz.sku}</Text>
+                              ) : null}
+                              {measVal !== undefined && (
+                                <Text style={styles.inchDetail}>{measLabel}: {measVal}"</Text>
+                              )}
+                              <Text style={styles.stockBadge}>Stock: {sz.stock}</Text>
+                              <Text style={styles.sizePrice}>₹{sz.price}</Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })()
               ) : (
                 <View style={styles.singleStockBox}>
                   <ShoppingBag size={14} color="#64748B" />
@@ -141,6 +213,20 @@ export const ManageCatalogsScreen: React.FC = () => {
           ))}
         </ScrollView>
       )}
+
+      {/* Edit Product Modal */}
+      <ProductEditModal
+        visible={!!editingProduct}
+        product={editingProduct}
+        onClose={() => setEditingProduct(null)}
+        onSuccess={(updatedProduct) => {
+          setEditingProduct(null);
+          // Update local state instantly to reflect the change
+          setProducts((prev) => 
+            prev.map((p) => p.id === updatedProduct.id ? updatedProduct : p)
+          );
+        }}
+      />
     </View>
   );
 };
@@ -159,6 +245,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  backBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 18,
@@ -250,7 +348,7 @@ const styles = StyleSheet.create({
   tagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     marginBottom: 4,
   },
   catalogIdTag: {

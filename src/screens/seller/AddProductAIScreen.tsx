@@ -41,6 +41,7 @@ export const AddProductAIScreen: React.FC<AddProductAIScreenProps> = ({ onBack, 
   const [description, setDescription] = useState<string>('');
   const [category, setCategory] = useState<string>('');
   const [price, setPrice] = useState<string>('');
+  const [originalPrice, setOriginalPrice] = useState<string>('');
   const [unit, setUnit] = useState<string>('piece');
   const [stock, setStock] = useState<string>('20');
   const [tags, setTags] = useState<string[]>([]);
@@ -55,36 +56,60 @@ export const AddProductAIScreen: React.FC<AddProductAIScreenProps> = ({ onBack, 
     setDescription(aiDetails.description);
     setCategory(aiDetails.category);
     setPrice(aiDetails.suggestedPrice.toString());
+    if (aiDetails.suggestedOriginalPrice) {
+      setOriginalPrice(aiDetails.suggestedOriginalPrice.toString());
+    }
     setTags(aiDetails.tags);
     setAiGenerated(true);
     setIsAnalyzing(false);
   };
 
   const handlePublishProduct = async () => {
+    if (sellerProfile?.verificationStatus !== 'verified') {
+      const status = sellerProfile?.verificationStatus || 'pending';
+      const msg =
+        status === 'rejected'
+          ? '❌ Account Rejected: Your seller application was rejected by Admin. You cannot add products.'
+          : status === 'suspended'
+          ? '⚠️ Account Suspended: Your seller account has been suspended by Admin. You cannot add products.'
+          : '⏳ Approval Pending: Your seller account is awaiting Admin approval. You cannot add or sell products until approved by Admin.';
+      alert(msg);
+      return;
+    }
+
     if (!title.trim() || !price.trim()) {
       alert('Please fill product title and price.');
       return;
     }
 
     setIsPublishing(true);
-    await addProduct({
-      sellerId: sellerProfile.id,
-      sellerName: sellerProfile.storeName,
-      title,
-      description,
-      category: category || 'General',
-      price: Number(price) || 0,
-      stock: Number(stock) || 10,
-      unit,
-      imageUrl: selectedImageUrl,
-      rating: 5.0,
-      reviewCount: 1,
-      tags,
-      isHyperlocalAvailable: true,
-    });
+    try {
+      await addProduct(
+        {
+          sellerId: sellerProfile.id,
+          sellerName: sellerProfile.storeName,
+          title,
+          description,
+          category: category || 'General',
+          price: Number(price) || 0,
+          originalPrice: originalPrice ? Number(originalPrice) : undefined,
+          stock: Number(stock) || 10,
+          unit,
+          imageUrl: selectedImageUrl,
+          rating: 5.0,
+          reviewCount: 1,
+          tags,
+          isHyperlocalAvailable: true,
+        },
+        sellerProfile?.verificationStatus
+      );
 
-    setIsPublishing(false);
-    onSuccess();
+      setIsPublishing(false);
+      onSuccess();
+    } catch (err) {
+      console.error('Error publishing AI product:', err);
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -213,7 +238,7 @@ export const AddProductAIScreen: React.FC<AddProductAIScreenProps> = ({ onBack, 
           {/* Price & Stock */}
           <View style={styles.twoColRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.inputLabel}>Price (₹) *</Text>
+              <Text style={styles.inputLabel}>Selling Price (₹) *</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
@@ -222,6 +247,19 @@ export const AddProductAIScreen: React.FC<AddProductAIScreenProps> = ({ onBack, 
                 placeholder="499"
               />
             </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.inputLabel}>Original MRP (₹)</Text>
+              <TextInput
+                style={styles.textInput}
+                keyboardType="numeric"
+                value={originalPrice}
+                onChangeText={setOriginalPrice}
+                placeholder="999"
+              />
+            </View>
+          </View>
+
+          <View style={styles.twoColRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.inputLabel}>Stock Quantity</Text>
               <TextInput
@@ -358,8 +396,8 @@ const styles = StyleSheet.create({
     width: 80,
   },
   sampleItemActive: {
-    borderColor: '#EA580C',
-    backgroundColor: '#FFF7ED',
+    borderColor: '#4F46E5',
+    backgroundColor: '#EEF2FF',
   },
   sampleThumb: {
     width: 70,
@@ -374,7 +412,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   analyzeBtn: {
-    backgroundColor: '#EA580C',
+    backgroundColor: '#4F46E5',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -437,16 +475,16 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   tagPill: {
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#EEF2FF',
     borderWidth: 1,
-    borderColor: '#FFEDD5',
+    borderColor: '#E0E7FF',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   tagPillText: {
     fontSize: 11,
-    color: '#EA580C',
+    color: '#4F46E5',
     fontWeight: '700',
   },
   footerBar: {

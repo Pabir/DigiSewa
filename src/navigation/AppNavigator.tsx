@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, useWindowDimensions, SafeAreaView, StatusBar, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, StyleSheet, useWindowDimensions, SafeAreaView, StatusBar, TouchableOpacity, ScrollView, BackHandler } from 'react-native';
 import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
+import { MeeshoSupplierSidebar } from '../components/seller/MeeshoSupplierSidebar';
 import { Footer } from '../components/Footer';
 import { AuthModal } from '../components/auth/AuthModal';
-import { AdminLoginModal } from '../components/auth/AdminLoginModal';
+import { AdminLoginScreen } from '../screens/admin/AdminLoginScreen';
 import { useAuth } from '../context/AuthContext';
 import { Product } from '../types';
 
@@ -21,14 +22,26 @@ import { AddProductAIScreen } from '../screens/seller/AddProductAIScreen';
 import { AddMeeshoCatalogScreen } from '../screens/seller/AddMeeshoCatalogScreen';
 import { ManageCatalogsScreen } from '../screens/seller/ManageCatalogsScreen';
 import { ManageOrdersScreen } from '../screens/seller/ManageOrdersScreen';
+import { SellerGuideScreen } from '../screens/seller/SellerGuideScreen';
+import { CatalogUploadsScreen } from '../screens/seller/CatalogUploadsScreen';
+import { SellerReturnsScreen } from '../screens/seller/SellerReturnsScreen';
+import { SellerPricingScreen } from '../screens/seller/SellerPricingScreen';
+import { SellerBulkUploadScreen } from '../screens/seller/SellerBulkUploadScreen';
+import { SellerQualityScreen } from '../screens/seller/SellerQualityScreen';
+import { SellerGenericTabScreen } from '../screens/seller/SellerGenericTabScreen';
 
 // Admin Screens
 import { AdminDashboardScreen } from '../screens/admin/AdminDashboardScreen';
 
+import { SellerProfileModal } from '../components/seller/SellerProfileModal';
+import { CustomerProfileModal } from '../components/auth/CustomerProfileModal';
+import { CustomerSupportModal } from '../components/buyer/CustomerSupportModal';
+import { CustomerWalletModal } from '../components/buyer/CustomerWalletModal';
+
 export const AppNavigator: React.FC = () => {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
-  const { activeRole, setActiveRole, isAuthenticated, user, openAdminAuthModal } = useAuth();
+  const { activeRole, setActiveRole, isAuthenticated, user, openAdminAuthModal, openCustomerAuthModal } = useAuth();
 
   // Active Tab per role
   const [buyerTab, setBuyerTab] = useState<string>('home');
@@ -38,30 +51,143 @@ export const AppNavigator: React.FC = () => {
   // Active Selected Product for Detail Screen
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isViewingCart, setIsViewingCart] = useState<boolean>(false);
+  const [isCustomerSupportOpen, setIsCustomerSupportOpen] = useState<boolean>(false);
+  const [supportOrderId, setSupportOrderId] = useState<string | undefined>(undefined);
+  const [isCustomerWalletOpen, setIsCustomerWalletOpen] = useState<boolean>(false);
 
-  // Auto-detect admin URL parameter (e.g. ?admin=true or #admin)
+  // Auto-detect admin, seller or customer URL parameters
   React.useEffect(() => {
     if (typeof window !== 'undefined' && window.location) {
       const href = window.location.href.toLowerCase();
       const search = window.location.search.toLowerCase();
       const hash = window.location.hash.toLowerCase();
+      const savedIntent = (window.localStorage && window.localStorage.getItem('emailIntent')) || '';
+
+      const isSellerLink =
+        href.includes('mode=sellerverifyemail') ||
+        href.includes('mode=sellerresetpassword') ||
+        href.includes('mode=verifyemail') ||
+        search.includes('verifyemail') ||
+        savedIntent === 'sellerRegister' ||
+        savedIntent === 'register' ||
+        savedIntent === 'sellerResetPassword';
+
+      const isCustomerLink =
+        search.includes('customerresetpassword') ||
+        search.includes('customeremail') ||
+        href.includes('mode=customerresetpassword') ||
+        href.includes('mode=customeremail') ||
+        savedIntent === 'customerResetPassword' ||
+        savedIntent === 'customerEmail';
+
       if (search.includes('admin') || hash.includes('admin') || href.includes('/admin')) {
-        openAdminAuthModal();
+        setActiveRole('admin');
+      } else if (isSellerLink) {
+        setActiveRole('seller');
+      } else if (isCustomerLink) {
+        openCustomerAuthModal();
+      } else if (search.includes('oobcode') || href.includes('mode=resetpassword')) {
+        if (savedIntent === 'sellerRegister' || savedIntent === 'register' || savedIntent === 'sellerResetPassword') {
+          setActiveRole('seller');
+        } else if (savedIntent === 'customerResetPassword' || search.includes('customerresetpassword')) {
+          openCustomerAuthModal();
+        }
       }
     }
   }, []);
 
+  // Back action handler (for Android BackHandler, Browser popstate, and UI buttons)
+  const handleBackAction = useCallback(() => {
+    if (activeRole === 'seller') {
+      if (sellerTab !== 'dashboard' && sellerTab !== 'home') {
+        setSellerTab('dashboard');
+        return true;
+      }
+    } else if (activeRole === 'buyer') {
+      if (isViewingCart) {
+        setIsViewingCart(false);
+        return true;
+      }
+      if (selectedProduct) {
+        setSelectedProduct(null);
+        return true;
+      }
+      if (buyerTab !== 'home') {
+        setBuyerTab('home');
+        return true;
+      }
+    }
+    return false;
+  }, [activeRole, sellerTab, buyerTab, isViewingCart, selectedProduct]);
+
+  // 1. Hardware Back Button on Android / React Native
+  useEffect(() => {
+    const onBackPress = () => {
+      return handleBackAction();
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, [handleBackAction]);
+
+  // 2. Web Browser History (popstate) & pushState integration
+  const isNavigatingFromPopState = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.addEventListener) return;
+
+    const handlePopState = () => {
+      isNavigatingFromPopState.current = true;
+      handleBackAction();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [handleBackAction]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.history) return;
+
+    if (isNavigatingFromPopState.current) {
+      isNavigatingFromPopState.current = false;
+      return;
+    }
+
+    const isRoot = activeRole === 'seller'
+      ? (sellerTab === 'dashboard' || sellerTab === 'home')
+      : (buyerTab === 'home' && !isViewingCart && !selectedProduct);
+
+    if (!isRoot) {
+      window.history.pushState({ activeRole, sellerTab, buyerTab, isViewingCart, hasSelectedProduct: !!selectedProduct }, '');
+    }
+  }, [activeRole, sellerTab, buyerTab, isViewingCart, selectedProduct]);
+
   // 1. ADMIN FLOW (Requires authenticated admin user)
-  if (activeRole === 'admin') {
-    if (isAuthenticated && user?.role === 'admin') {
+  const isAdminRole = activeRole === 'admin' || activeRole === 'super_admin';
+  const isAdminAuthenticated = isAuthenticated && (user?.role === 'admin' || user?.role === 'super_admin');
+
+  if (isAdminRole) {
+    if (isAdminAuthenticated) {
       return (
         <SafeAreaView style={styles.safeArea}>
           <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
           <AdminDashboardScreen onSwitchRole={setActiveRole} />
-          <AdminLoginModal />
         </SafeAreaView>
       );
     }
+    
+    // Show new Admin Login Screen if not authenticated
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+        <AdminLoginScreen 
+          onSuccess={() => {}} 
+          onBack={() => setActiveRole('buyer')}
+        />
+      </SafeAreaView>
+    );
   }
 
   const currentTab = activeRole === 'seller' ? sellerTab : buyerTab;
@@ -113,7 +239,10 @@ export const AppNavigator: React.FC = () => {
             />
           );
         case 'orders':
-          return <OrderHistoryScreen />;
+          return <OrderHistoryScreen onBack={() => setBuyerTab('home')} onOpenSupport={(orderId) => {
+            setSupportOrderId(orderId);
+            setIsCustomerSupportOpen(true);
+          }} />;
         default:
           return <HomeScreen onSelectProduct={p => setSelectedProduct(p)} isDesktop={isDesktop} />;
       }
@@ -127,11 +256,13 @@ export const AppNavigator: React.FC = () => {
 
       switch (sellerTab) {
         case 'dashboard':
+        case 'home':
           return (
             <DashboardScreen
               onNavigateToAddProduct={() => setSellerTab('add_catalog')}
               onNavigateToManageCatalogs={() => setSellerTab('manage_catalogs')}
               onNavigateToOrders={() => setSellerTab('manage_orders')}
+              onNavigateTab={(tab) => setSellerTab(tab)}
               isDesktop={isDesktop}
             />
           );
@@ -143,16 +274,45 @@ export const AppNavigator: React.FC = () => {
               onSuccess={() => setSellerTab('manage_catalogs')}
             />
           );
+        case 'inventory':
         case 'manage_catalogs':
-          return <ManageCatalogsScreen />;
+          return <ManageCatalogsScreen onBack={() => setSellerTab('dashboard')} />;
+        case 'orders':
         case 'manage_orders':
-          return <ManageOrdersScreen />;
+          return <ManageOrdersScreen onBack={() => setSellerTab('dashboard')} />;
+        case 'catalog_uploads':
+          return (
+            <CatalogUploadsScreen
+              onNavigateToAddSingleCatalog={() => setSellerTab('add_catalog')}
+              onNavigateToManageCatalogs={() => setSellerTab('manage_catalogs')}
+              onBack={() => setSellerTab('dashboard')}
+            />
+          );
+        case 'returns':
+          return <SellerReturnsScreen onBack={() => setSellerTab('dashboard')} />;
+        case 'pricing':
+          return <SellerPricingScreen onBack={() => setSellerTab('dashboard')} />;
+        case 'bulk_upload':
+          return <SellerBulkUploadScreen onBack={() => setSellerTab('dashboard')} />;
+        case 'quality':
+          return <SellerQualityScreen onBack={() => setSellerTab('dashboard')} />;
+        case 'claims':
+        case 'payments':
+        case 'warehouse':
+        case 'influencer':
+        case 'promotions':
+        case 'instant_cash':
+          return <SellerGenericTabScreen tabKey={sellerTab} onBack={() => setSellerTab('dashboard')} />;
+        case 'guide':
+        case 'help':
+          return <SellerGuideScreen onBack={() => setSellerTab('dashboard')} />;
         default:
           return (
             <DashboardScreen
               onNavigateToAddProduct={() => setSellerTab('add_catalog')}
               onNavigateToManageCatalogs={() => setSellerTab('manage_catalogs')}
               onNavigateToOrders={() => setSellerTab('manage_orders')}
+              onNavigateTab={(tab) => setSellerTab(tab)}
               isDesktop={isDesktop}
             />
           );
@@ -177,17 +337,23 @@ export const AppNavigator: React.FC = () => {
       {/* Layout Body: Desktop Side-Drawer vs Mobile Layout */}
       <View style={styles.mainLayout}>
         {/* Desktop Permanent / Toggleable Sidebar */}
-        {isDesktop && isSidebarOpen && (
+        {isDesktop && isSidebarOpen && activeRole !== 'seller' && (
           <Sidebar
             currentTab={currentTab}
             onSelectTab={handleSelectTab}
             onCloseSidebar={() => setIsSidebarOpen(false)}
+            onOpenCart={() => setIsViewingCart(true)}
+            onOpenSupport={() => {
+              setSupportOrderId(undefined);
+              setIsCustomerSupportOpen(true);
+            }}
+            onOpenWallet={() => setIsCustomerWalletOpen(true)}
             isDesktop={true}
           />
         )}
 
         {/* Mobile / Tablet Off-Canvas Drawer Overlay */}
-        {!isDesktop && isSidebarOpen && (
+        {!isDesktop && isSidebarOpen && (activeRole !== 'seller' || (isAuthenticated && user?.role === 'seller')) && (
           <View style={styles.mobileDrawerOverlay}>
             <TouchableOpacity
               style={styles.backdrop}
@@ -195,15 +361,32 @@ export const AppNavigator: React.FC = () => {
               onPress={() => setIsSidebarOpen(false)}
             />
             <View style={styles.drawerContainer}>
-              <Sidebar
-                currentTab={currentTab}
-                onSelectTab={(tab) => {
-                  handleSelectTab(tab);
-                  setIsSidebarOpen(false);
-                }}
-                onCloseSidebar={() => setIsSidebarOpen(false)}
-                isDesktop={true}
-              />
+              {activeRole === 'seller' ? (
+                <MeeshoSupplierSidebar
+                  currentTab={currentTab}
+                  onSelectTab={(tab) => {
+                    handleSelectTab(tab);
+                    setIsSidebarOpen(false);
+                  }}
+                  onCloseSidebar={() => setIsSidebarOpen(false)}
+                />
+              ) : (
+                <Sidebar
+                  currentTab={currentTab}
+                  onSelectTab={(tab) => {
+                    handleSelectTab(tab);
+                    setIsSidebarOpen(false);
+                  }}
+                  onCloseSidebar={() => setIsSidebarOpen(false)}
+                  onOpenCart={() => setIsViewingCart(true)}
+                  onOpenSupport={() => {
+                    setSupportOrderId(undefined);
+                    setIsCustomerSupportOpen(true);
+                  }}
+                  onOpenWallet={() => setIsCustomerWalletOpen(true)}
+                  isDesktop={true}
+                />
+              )}
             </View>
           </View>
         )}
@@ -223,9 +406,22 @@ export const AppNavigator: React.FC = () => {
         />
       )}
 
-      {/* Global Auth Modals */}
+      {/* Global Auth & Profile Modals */}
       <AuthModal />
-      <AdminLoginModal />
+      <SellerProfileModal />
+      <CustomerProfileModal />
+      <CustomerSupportModal
+        visible={isCustomerSupportOpen}
+        onClose={() => {
+          setIsCustomerSupportOpen(false);
+          setSupportOrderId(undefined);
+        }}
+        initialOrderId={supportOrderId}
+      />
+      <CustomerWalletModal
+        visible={isCustomerWalletOpen}
+        onClose={() => setIsCustomerWalletOpen(false)}
+      />
     </SafeAreaView>
   );
 };

@@ -26,7 +26,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, isDeskt
     if (width >= 1024) return { width: '25%' as const, paddingHorizontal: 8 };
     if (width >= 768) return { width: '33.33%' as const, paddingHorizontal: 8 };
     if (width >= 540) return { width: '50%' as const, paddingHorizontal: 6 };
-    return { width: '100%' as const, paddingHorizontal: 6 };
+    return { width: '50%' as const, paddingHorizontal: 6 };
   };
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, isDeskt
   const loadData = async () => {
     setLoading(true);
     const [fetchedProducts, fetchedCategories] = await Promise.all([
-      getProducts(),
+      getProducts(true),
       getCategories(),
     ]);
     setProducts(fetchedProducts);
@@ -78,10 +78,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, isDeskt
       {/* Hyperlocal Hero Banner */}
       <View style={[styles.heroBanner, isDesktop && styles.heroBannerDesktop]}>
         <View style={styles.bannerTextCol}>
-          <View style={styles.hyperlocalTag}>
-            <Zap size={14} color="#EA580C" />
-            <Text style={styles.hyperlocalTagText}>Hyperlocal 30-Min Delivery</Text>
-          </View>
           <Text style={styles.heroTitle}>Support Local Stores in Your Neighborhood</Text>
           <Text style={styles.heroSubtext}>
             Fresh produce, daily groceries, sweets, and instant home repair services direct from verified local shopkeepers.
@@ -134,7 +130,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, isDeskt
           style={[styles.aiToggleBtn, isAISearchEnabled && styles.aiToggleBtnActive]}
           onPress={() => setIsAISearchEnabled(!isAISearchEnabled)}
         >
-          <Sparkles size={16} color={isAISearchEnabled ? '#FFFFFF' : '#EA580C'} />
+          <Sparkles size={16} color={isAISearchEnabled ? '#FFFFFF' : '#4F46E5'} />
           <Text style={[styles.aiToggleText, isAISearchEnabled && styles.aiToggleTextActive]}>
             {isAISearchEnabled ? 'Gemini AI Search Active' : 'Enable AI Assistant'}
           </Text>
@@ -144,7 +140,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, isDeskt
       {/* AI Search Assistant Summary Banner */}
       {isSearchingAI && (
         <View style={styles.aiLoadingBanner}>
-          <ActivityIndicator size="small" color="#EA580C" />
+          <ActivityIndicator size="small" color="#4F46E5" />
           <Text style={styles.aiLoadingText}>Gemini AI is analyzing local product catalog...</Text>
         </View>
       )}
@@ -152,7 +148,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, isDeskt
       {aiResponseSummary && !isSearchingAI && (
         <View style={styles.aiResponseCard}>
           <View style={styles.aiResponseHeader}>
-            <Sparkles size={16} color="#EA580C" />
+            <Sparkles size={16} color="#4F46E5" />
             <Text style={styles.aiResponseTitle}>Gemini AI Shopping Assistant</Text>
           </View>
           <Text style={styles.aiResponseText}>{aiResponseSummary}</Text>
@@ -196,7 +192,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, isDeskt
         </View>
 
         {loading ? (
-          <ActivityIndicator size="large" color="#EA580C" style={{ marginVertical: 32 }} />
+          <ActivityIndicator size="large" color="#4F46E5" style={{ marginVertical: 32 }} />
         ) : filteredProducts.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyTitle}>No items found</Text>
@@ -240,22 +236,7 @@ const styles = StyleSheet.create({
   bannerTextCol: {
     maxWidth: 700,
   },
-  hyperlocalTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF7ED',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 12,
-    gap: 4,
-  },
-  hyperlocalTagText: {
-    color: '#EA580C',
-    fontSize: 11,
-    fontWeight: '800',
-  },
+
   heroTitle: {
     color: '#FFFFFF',
     fontSize: 22,
@@ -308,25 +289,25 @@ const styles = StyleSheet.create({
   },
   clearText: {
     fontSize: 12,
-    color: '#EA580C',
+    color: '#4F46E5',
     fontWeight: '700',
   },
   aiToggleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#EEF2FF',
     borderWidth: 1.5,
-    borderColor: '#EA580C',
+    borderColor: '#4F46E5',
     paddingVertical: 8,
     borderRadius: 10,
     gap: 6,
   },
   aiToggleBtnActive: {
-    backgroundColor: '#EA580C',
+    backgroundColor: '#4F46E5',
   },
   aiToggleText: {
-    color: '#EA580C',
+    color: '#4F46E5',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -336,7 +317,7 @@ const styles = StyleSheet.create({
   aiLoadingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#EEF2FF',
     marginHorizontal: 16,
     padding: 12,
     borderRadius: 10,
@@ -344,7 +325,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   aiLoadingText: {
-    color: '#C2410C',
+    color: '#4338CA',
     fontSize: 13,
     fontWeight: '600',
   },

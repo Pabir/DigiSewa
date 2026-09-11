@@ -246,7 +246,7 @@ export const AdminSellerTicketsScreen: React.FC<AdminSellerTicketsScreenProps> =
                   <TouchableOpacity
                     style={styles.resolveTicketBtn}
                     onPress={() => {
-                      onReplyTicket(selectedTicket.id, adminReplyText || 'Ticket resolved by Super Admin.', 'resolved');
+                      onReplyTicket(selectedTicket.id, adminReplyText || 'Ticket resolved by Admin.', 'resolved');
                       setAdminReplyText('');
                       setSelectedTicket(null);
                       alert('Ticket marked as RESOLVED!');
