@@ -10,19 +10,98 @@ import {
   Image,
 } from 'react-native';
 import { AdminCustomer } from '../../types/adminTypes';
-import { Search, IndianRupee, AlertTriangle, CheckCircle2 } from 'lucide-react-native';
+import { Search, IndianRupee, AlertTriangle, CircleCheck } from 'lucide-react-native';
 
 interface AdminCustomerManagementScreenProps {
-  customers: AdminCustomer[];
   onUpdateWalletBalance: (customerId: string, newBalance: number) => void;
   onToggleBlockUser: (customerId: string) => void;
 }
 
+import { getUsersPaginated } from '../../services/firebaseService';
+import { ActivityIndicator } from 'react-native';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../config/firebaseConfig';
+
 export const AdminCustomerManagementScreen: React.FC<AdminCustomerManagementScreenProps> = ({
-  customers,
   onUpdateWalletBalance,
   onToggleBlockUser,
 }) => {
+  const [customers, setCustomers] = useState<AdminCustomer[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  React.useEffect(() => {
+    fetchCustomers(false);
+  }, []);
+
+  const fetchCustomers = async (loadMore = false) => {
+    if (loadMore) {
+      if (!hasMore || loadingMore) return;
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setLastVisible(null);
+    }
+
+    try {
+      const startAfterDoc = loadMore ? lastVisible : null;
+      const { users, lastDoc } = await getUsersPaginated(startAfterDoc, 20);
+      
+      const customerUsers = users.filter(u => u.role === 'customer' || u.role === 'buyer' || u.role === 'guest');
+      
+      const mappedCustomers: AdminCustomer[] = await Promise.all(customerUsers.map(async (u) => {
+        let totalOrders = 0;
+        let totalSpent = 0;
+        let orders: any[] = [];
+        try {
+          const q = query(collection(db, 'orders'), where('buyerId', '==', u.id));
+          const querySnapshot = await getDocs(q);
+          querySnapshot.forEach(docSnap => {
+            const orderData = docSnap.data();
+            orders.push({ id: docSnap.id, ...orderData });
+            totalOrders++;
+            totalSpent += (orderData.totalAmount || 0);
+          });
+          // Sort orders by createdAt descending
+          orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        } catch (err) {
+          console.warn("Error fetching orders for user", u.id, err);
+        }
+
+        return {
+          id: u.id,
+          name: u.name || 'Unknown',
+          email: u.email || 'N/A',
+          phone: u.phone || 'N/A',
+          city: 'N/A',
+          state: 'N/A',
+          walletBalance: 0,
+          totalOrders,
+          totalSpent,
+          orders,
+          status: 'active',
+          registeredDate: new Date().toISOString().split('T')[0],
+          lastActive: new Date().toISOString().split('T')[0]
+        };
+      }));
+
+      setLastVisible(lastDoc);
+      if (users.length < 20) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+      
+      setCustomers(prev => loadMore ? [...prev, ...mappedCustomers] : mappedCustomers);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      if (loadMore) setLoadingMore(false);
+      else setLoading(false);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<AdminCustomer | null>(null);
   const [refundAmountInput, setRefundAmountInput] = useState<string>('200');
@@ -148,6 +227,20 @@ export const AdminCustomerManagementScreen: React.FC<AdminCustomerManagementScre
                   </View>
                 ))
               )}
+              
+              {hasMore && customers.length > 0 && (
+                <TouchableOpacity 
+                  style={{ padding: 16, alignItems: 'center', backgroundColor: '#F8FAFC', borderTopWidth: 1, borderColor: '#E2E8F0' }}
+                  onPress={() => fetchCustomers(true)}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? (
+                    <ActivityIndicator size="small" color="#4F46E5" />
+                  ) : (
+                    <Text style={{ color: '#4F46E5', fontWeight: '600' }}>Load More Customers</Text>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </View>
@@ -169,8 +262,8 @@ export const AdminCustomerManagementScreen: React.FC<AdminCustomerManagementScre
                     <View key={order.id || index} style={{ padding: 12, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, marginBottom: 10 }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                         <Text style={{ fontWeight: 'bold', fontSize: 13 }}>Order #{order.id}</Text>
-                        <Text style={{ fontWeight: 'bold', color: order.status === 'delivered' ? '#059669' : '#D97706', fontSize: 12 }}>
-                          {order.status ? order.status.toUpperCase() : 'PENDING'}
+                        <Text style={{ fontWeight: 'bold', color: order.deliveryStatus === 'delivered' ? '#059669' : '#D97706', fontSize: 12 }}>
+                          {order.fulfillmentStatus === 'cancelled' ? 'CANCELLED' : (order.deliveryStatus ? order.deliveryStatus.toUpperCase() : (order.fulfillmentStatus ? order.fulfillmentStatus.toUpperCase() : 'PENDING'))}
                         </Text>
                       </View>
                       <Text style={{ fontSize: 12, color: '#475569', marginBottom: 2 }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { AlertTriangle, CheckCircle2, DollarSign, RefreshCw, Box } from 'lucide-react-native';
-import { getOrders, getReturnRequests, updateOrderStatus, updateReturnRequest } from '../../services/firebaseService';
+import { AlertTriangle, CircleCheck, DollarSign, RefreshCw, Box } from 'lucide-react-native';
+import { getOrders, getReturnsFromFirestore, updateOrderStatus, updateReturnRequest } from '../../services/firebaseService';
 import { Order, ReturnItem } from '../../types';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../config/firebaseConfig';
@@ -10,12 +10,13 @@ import { createSettlement, chargeRTOPenalty } from '../../services/settlementSer
 export const AdminPendingTasksScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchPendingTasks = async () => {
     setLoading(true);
     try {
       const allOrders = await getOrders();
-      const allReturns = await getReturnRequests();
+      const allReturns = await getReturnsFromFirestore();
 
       const pendingTasksList = [];
 
@@ -53,25 +54,38 @@ export const AdminPendingTasksScreen: React.FC = () => {
         });
       });
 
-      // Task 3: COD Returns Needing Manual Payout
-      // Find returns delivered to seller where original order was COD
-      const codReturns = allReturns.filter(
+      // Task 3 & 4: Returns Needing Manual Payout/Refund (COD & Prepaid)
+      // Find returns delivered to seller where refund hasn't been processed
+      const deliveredReturns = allReturns.filter(
         (r) => r.status === 'delivered_to_seller' && !(r as any).refundProcessed
       );
       
-      for (const ret of codReturns) {
+      for (const ret of deliveredReturns) {
         const originalOrder = allOrders.find(o => o.id === ret.orderId);
-        if (originalOrder && originalOrder.paymentMode === 'cod') {
-          pendingTasksList.push({
-            id: `codret-${ret.id}`,
-            type: 'COD_RETURN_PAYOUT',
-            title: 'Manual Payout for COD Return',
-            description: `Return ${ret.id} (Order ${ret.orderId}) delivered back to seller. Manual payout required. Bank Details: ${ret.refundDetails || 'None provided'}`,
-            orderId: ret.orderId,
-            amount: ret.amount,
-            action: 'Mark Payout Processed',
-            returnItem: ret
-          });
+        if (originalOrder) {
+          if (originalOrder.paymentMode === 'cod') {
+            pendingTasksList.push({
+              id: `codret-${ret.id}`,
+              type: 'COD_RETURN_PAYOUT',
+              title: 'Manual Payout for COD Return',
+              description: `Return ${ret.id} (Order ${ret.orderId}) delivered back to seller. Manual payout required. Bank Details: ${ret.refundDetails || 'None provided'}`,
+              orderId: ret.orderId,
+              amount: ret.amount,
+              action: 'Mark Payout Processed',
+              returnItem: ret
+            });
+          } else {
+            pendingTasksList.push({
+              id: `prepaidret-${ret.id}`,
+              type: 'PREPAID_RETURN_REFUND',
+              title: 'Manual Refund for Prepaid Return',
+              description: `Return ${ret.id} (Order ${ret.orderId}) delivered back to seller. Manual Razorpay refund required for prepaid order.`,
+              orderId: ret.orderId,
+              amount: ret.amount,
+              action: 'Mark Refund Processed',
+              returnItem: ret
+            });
+          }
         }
       }
 
@@ -110,8 +124,36 @@ export const AdminPendingTasksScreen: React.FC = () => {
           title: 'Charge RTO Penalty for Cancelled COD',
           description: `Order ${o.id} was cancelled by customer but has an AWB. Convert to RTO in Transit and charge seller for forward & reverse shipping.`,
           orderId: o.id,
-          amount: o.actualShippingCost ? o.actualShippingCost * 2 : 98,
+          amount: (o.actualShippingCost ? o.actualShippingCost * 2 : 98) + ((o.platformFee || 5) * 2),
           action: 'Charge Penalty & Mark RTO',
+          order: o
+        });
+      });
+
+      // Task 6: Prepaid Delivered Orders (Return Window Expired)
+      // Temporarily set to 0 for testing. Revert back to 7 * 24 * 60 * 60 * 1000 when done.
+      const SEVEN_DAYS_MS = 0; 
+      const prepaidDelivered = allOrders.filter(o => {
+        if (o.paymentMode !== 'cod' && (o.status === 'delivered' || o.deliveryStatus === 'delivered') && !o.settlementCreated) {
+          const hasReturn = ['requested', 'approved', 'picked_up', 'refunded'].includes(o.returnStatus || 'not_requested');
+          if (hasReturn) return false;
+          if (o.deliveredAt) {
+            const deliveredTime = new Date(o.deliveredAt).getTime();
+            return (now - deliveredTime) >= SEVEN_DAYS_MS;
+          }
+        }
+        return false;
+      });
+
+      prepaidDelivered.forEach(o => {
+        pendingTasksList.push({
+          id: `prepaid-settle-${o.id}`,
+          type: 'PREPAID_SETTLEMENT_READY',
+          title: 'Settle Prepaid Order (Return Window Expired)',
+          description: `Order ${o.id} was delivered over 7 days ago. No active returns found. Ready to settle with seller.`,
+          orderId: o.id,
+          amount: o.productTotal !== undefined ? o.productTotal : o.totalAmount,
+          action: 'Create Settlement',
           order: o
         });
       });
@@ -129,65 +171,78 @@ export const AdminPendingTasksScreen: React.FC = () => {
   }, []);
 
   const handleAction = async (task: any) => {
+    const processTask = async () => {
+      try {
+        setProcessingId(task.id);
+        if (task.type === 'RTO_REFUND') {
+          await chargeRTOPenalty(task.order);
+          const orderRef = doc(db, 'orders', task.orderId);
+          await updateDoc(orderRef, { rtoRefundProcessed: true, rtoPenaltyCharged: true });
+          Alert.alert('Success', 'Marked RTO refund as processed and charged seller RTO penalty.');
+        } else if (task.type === 'COD_REMITTANCE') {
+          const orderRef = doc(db, 'orders', task.orderId);
+          await updateDoc(orderRef, { 
+            codRemitted: true, 
+            remittanceAmount: task.amount,
+            remittanceDate: new Date().toISOString()
+          });
+          
+          const sellerId = task.order.items[0]?.product?.sellerId;
+          const storeName = task.order.items[0]?.product?.sellerName;
+          if (sellerId && storeName) {
+            await createSettlement(task.order, sellerId, storeName);
+          }
+          
+          Alert.alert('Success', 'COD marked as remitted and seller settlement created.');
+        } else if (task.type === 'COD_RETURN_PAYOUT') {
+          await updateReturnRequest(task.returnItem.id, 'approved' as any);
+          const returnRef = doc(db, 'returns', task.returnItem.id);
+          await updateDoc(returnRef, { refundProcessed: true });
+          Alert.alert('Success', 'Marked COD Return payout as processed.');
+        } else if (task.type === 'PREPAID_RETURN_REFUND') {
+          await updateReturnRequest(task.returnItem.id, 'approved' as any);
+          const returnRef = doc(db, 'returns', task.returnItem.id);
+          await updateDoc(returnRef, { refundProcessed: true });
+          Alert.alert('Success', 'Marked Prepaid Return refund as processed.');
+        } else if (task.type === 'EXPIRED_PAYMENT') {
+          const orderRef = doc(db, 'orders', task.orderId);
+          await updateDoc(orderRef, { status: 'cancelled' });
+          Alert.alert('Success', 'Cancelled expired order.');
+        } else if (task.type === 'CANCELLED_COD_RTO') {
+          await chargeRTOPenalty(task.order);
+          const orderRef = doc(db, 'orders', task.orderId);
+          await updateDoc(orderRef, { 
+            status: 'rto_in_transit',
+            rtoPenaltyCharged: true 
+          });
+          Alert.alert('Success', 'Charged RTO penalty and marked order as RTO In Transit.');
+        } else if (task.type === 'PREPAID_SETTLEMENT_READY') {
+          const sellerId = task.order.items[0]?.product?.sellerId;
+          const storeName = task.order.items[0]?.product?.sellerName;
+          if (sellerId && storeName) {
+            await createSettlement(task.order, sellerId, storeName);
+            const orderRef = doc(db, 'orders', task.orderId);
+            await updateDoc(orderRef, { settlementCreated: true });
+            Alert.alert('Success', 'Settlement created for prepaid order.');
+          } else {
+             Alert.alert('Error', 'Missing seller details on order items.');
+          }
+        }
+        
+        fetchPendingTasks();
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Error', 'Failed to process task.');
+        setProcessingId(null);
+      }
+    };
+
     Alert.alert(
       'Confirm Action',
       `Are you sure you want to process this task: ${task.title}?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              if (task.type === 'RTO_REFUND') {
-                const orderRef = doc(db, 'orders', task.orderId);
-                await updateDoc(orderRef, { rtoRefundProcessed: true });
-                Alert.alert('Success', 'Marked RTO refund as processed.');
-              } else if (task.type === 'COD_REMITTANCE') {
-                const orderRef = doc(db, 'orders', task.orderId);
-                await updateDoc(orderRef, { 
-                  codRemitted: true, 
-                  remittanceAmount: task.amount,
-                  remittanceDate: new Date().toISOString()
-                });
-                
-                // Now create settlement for the seller since we got the cash
-                const sellerId = task.order.items[0]?.product?.sellerId;
-                const storeName = task.order.items[0]?.product?.sellerName;
-                if (sellerId && storeName) {
-                  await createSettlement(task.order, sellerId, storeName);
-                }
-                
-                Alert.alert('Success', 'COD marked as remitted and seller settlement created.');
-              } else if (task.type === 'COD_RETURN_PAYOUT') {
-                await updateReturnRequest(task.returnItem.id, 'approved' as any);
-                const returnRef = doc(db, 'returns', task.returnItem.id);
-                await updateDoc(returnRef, { refundProcessed: true });
-                Alert.alert('Success', 'Marked COD Return payout as processed.');
-              } else if (task.type === 'EXPIRED_PAYMENT') {
-                const orderRef = doc(db, 'orders', task.orderId);
-                await updateDoc(orderRef, { status: 'cancelled' });
-                Alert.alert('Success', 'Cancelled expired order.');
-              } else if (task.type === 'CANCELLED_COD_RTO') {
-                // Charge the penalty
-                await chargeRTOPenalty(task.order);
-                // Update order status to rto_in_transit so the seller can track the return
-                const orderRef = doc(db, 'orders', task.orderId);
-                await updateDoc(orderRef, { 
-                  status: 'rto_in_transit',
-                  rtoPenaltyCharged: true 
-                });
-                Alert.alert('Success', 'Charged RTO penalty and marked order as RTO In Transit.');
-              }
-              
-              fetchPendingTasks();
-            } catch (error) {
-              console.error(error);
-              Alert.alert('Error', 'Failed to process task.');
-              setLoading(false);
-            }
-          }
-        }
+        { text: 'Confirm', onPress: processTask }
       ]
     );
   };
@@ -208,7 +263,7 @@ export const AdminPendingTasksScreen: React.FC = () => {
         <ActivityIndicator size="large" color="#4F46E5" style={{ marginTop: 40 }} />
       ) : tasks.length === 0 ? (
         <View style={styles.emptyState}>
-          <CheckCircle2 size={48} color="#10B981" />
+          <CircleCheck size={48} color="#10B981" />
           <Text style={styles.emptyText}>All Caught Up!</Text>
           <Text style={styles.emptySubtext}>There are no pending manual tasks right now.</Text>
         </View>
@@ -226,9 +281,19 @@ export const AdminPendingTasksScreen: React.FC = () => {
               <Text style={styles.taskDesc}>{task.description}</Text>
               
               <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => handleAction(task)}>
-                  <CheckCircle2 size={16} color="#FFFFFF" />
-                  <Text style={styles.actionBtnText}>{task.action}</Text>
+                <TouchableOpacity 
+                  style={[styles.actionBtn, processingId === task.id && { opacity: 0.7 }]} 
+                  onPress={() => handleAction(task)}
+                  disabled={processingId === task.id}
+                >
+                  {processingId === task.id ? (
+                     <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                     <CircleCheck size={16} color="#FFFFFF" />
+                  )}
+                  <Text style={styles.actionBtnText}>
+                    {processingId === task.id ? 'Processing...' : task.action}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

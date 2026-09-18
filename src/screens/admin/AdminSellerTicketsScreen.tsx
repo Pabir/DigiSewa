@@ -9,17 +9,58 @@ import {
   Modal,
 } from 'react-native';
 import { SupportTicket, TicketStatus } from '../../types/adminTypes';
-import { Search, ArrowRight, CheckCircle2 } from 'lucide-react-native';
+import { Search, ArrowRight, CircleCheck } from 'lucide-react-native';
 
 interface AdminSellerTicketsScreenProps {
-  tickets: SupportTicket[];
   onReplyTicket: (ticketId: string, replyMessage: string, newStatus?: TicketStatus) => void;
+  onResolveTicket?: (ticketId: string) => void;
 }
 
+import { getSupportTicketsPaginated } from '../../services/firebaseService';
+import { ActivityIndicator } from 'react-native';
+
 export const AdminSellerTicketsScreen: React.FC<AdminSellerTicketsScreenProps> = ({
-  tickets,
   onReplyTicket,
+  onResolveTicket,
 }) => {
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  React.useEffect(() => {
+    fetchTickets(false);
+  }, []);
+
+  const fetchTickets = async (loadMore = false) => {
+    if (loadMore) {
+      if (!hasMore || loadingMore) return;
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setLastVisible(null);
+    }
+
+    try {
+      const startAfterDoc = loadMore ? lastVisible : null;
+      const { tickets: fetchedTickets, lastDoc } = await getSupportTicketsPaginated('seller', startAfterDoc, 20);
+      
+      setLastVisible(lastDoc);
+      if (fetchedTickets.length < 20) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+      
+      setTickets(prev => loadMore ? [...prev, ...fetchedTickets] : fetchedTickets);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      if (loadMore) setLoadingMore(false);
+      else setLoading(false);
+    }
+  };
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -168,6 +209,20 @@ export const AdminSellerTicketsScreen: React.FC<AdminSellerTicketsScreenProps> =
                   </View>
                 ))
               )}
+              
+              {hasMore && tickets.length > 0 && (
+                <TouchableOpacity 
+                  style={{ padding: 16, alignItems: 'center', backgroundColor: '#F8FAFC', borderTopWidth: 1, borderColor: '#E2E8F0' }}
+                  onPress={() => fetchTickets(true)}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? (
+                    <ActivityIndicator size="small" color="#4F46E5" />
+                  ) : (
+                    <Text style={{ color: '#4F46E5', fontWeight: '600' }}>Load More Tickets</Text>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </View>
@@ -252,7 +307,7 @@ export const AdminSellerTicketsScreen: React.FC<AdminSellerTicketsScreenProps> =
                       alert('Ticket marked as RESOLVED!');
                     }}
                   >
-                    <CheckCircle2 size={14} color="#FFFFFF" />
+                    <CircleCheck size={14} color="#FFFFFF" />
                     <Text style={styles.resolveTicketBtnText}>Mark Resolved & Close</Text>
                   </TouchableOpacity>
                 </View>

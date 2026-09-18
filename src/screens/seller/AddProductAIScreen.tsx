@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
-import { Sparkles, UploadCloud, CheckCircle2, ArrowLeft, Image as ImageIcon } from 'lucide-react-native';
+import { Sparkles, UploadCloud, CircleCheck, ArrowLeft, Image as ImageIcon } from 'lucide-react-native';
 import { generateProductDetailsFromImage } from '../../services/geminiAIService';
 import { addProduct } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
@@ -188,7 +188,7 @@ export const AddProductAIScreen: React.FC<AddProductAIScreenProps> = ({ onBack, 
             <Text style={styles.sectionHeading}>Product Specifications</Text>
             {aiGenerated && (
               <View style={styles.aiBadge}>
-                <CheckCircle2 size={12} color="#16A34A" />
+                <CircleCheck size={12} color="#16A34A" />
                 <Text style={styles.aiBadgeText}>AI Populated</Text>
               </View>
             )}

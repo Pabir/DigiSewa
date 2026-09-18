@@ -15,7 +15,7 @@ import {
   LogOut,
   User,
   Sparkles,
-  CheckCircle2,
+  CircleCheck,
   X,
   ArrowRight,
 } from 'lucide-react-native';
@@ -79,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         if (onOpenWallet) onOpenWallet();
         break;
       case 'support':
-        if (onOpenSupport) onOpenSupport();
+        onSelectTab('support');
         break;
       case 'switch_role':
         setActiveRole(activeRole === 'seller' ? 'buyer' : 'seller');
@@ -213,7 +213,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {user?.name || 'Valued Customer'}
             </Text>
             <View style={styles.verifiedRow}>
-              <CheckCircle2 size={12} color="#10B981" />
+              <CircleCheck size={12} color="#10B981" />
               <Text style={styles.roleSubtext}>Verified Customer • Edit Profile</Text>
             </View>
           </View>

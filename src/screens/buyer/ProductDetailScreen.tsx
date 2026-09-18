@@ -1239,15 +1239,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     marginTop: 2,
   },
-  bottomBar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    gap: 12,
-  },
+
   cartBtn: {
     flex: 1,
     flexDirection: 'row',

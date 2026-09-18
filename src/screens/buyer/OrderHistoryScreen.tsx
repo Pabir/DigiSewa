@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
-import { PackageCheck, Clock, MapPin, Truck, CheckCircle2, AlertCircle, LogIn, ArrowLeft } from 'lucide-react-native';
+import { PackageCheck, Clock, MapPin, Truck, CircleCheck, AlertCircle, LogIn, ArrowLeft } from 'lucide-react-native';
 import { Order, OrderStatus } from '../../types';
 import { getOrders, updateOrderStatus } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
@@ -37,7 +37,8 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
     try {
       setLoading(true);
       const data = await getOrders();
-      setOrders(data);
+      const sortedData = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setOrders(sortedData);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -48,8 +49,8 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
   const handleCancelOrder = async (orderId: string) => {
     try {
       setLoading(true);
-      await updateOrderStatus(orderId, 'cancelled');
-      setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, status: 'cancelled' } : o)));
+      await updateOrderStatus(orderId, 'cancelled', { fulfillmentStatus: 'cancelled' });
+      setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, fulfillmentStatus: 'cancelled' } : o)));
     } catch (error) {
       console.error('Failed to cancel order', error);
       alert('Failed to cancel the order. Please try again.');
@@ -76,10 +77,10 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
           currency: "INR",
           name: "TafDeal",
           description: "Order Payment Retry",
-          order_id: order.razorpayOrderId,
+          // removed razorpayOrderId dependency
           handler: async function (response: any) {
-            await updateOrderStatus(order.id, 'pending', { paymentStatus: 'paid' });
-            setOrders(prev => prev.map(o => (o.id === order.id ? { ...o, status: 'pending', paymentStatus: 'paid' } : o)));
+            await updateOrderStatus(order.id, 'pending', { paymentStatus: 'paid', fulfillmentStatus: 'pending' });
+            setOrders(prev => prev.map(o => (o.id === order.id ? { ...o, fulfillmentStatus: 'pending', paymentStatus: 'paid' } : o)));
             alert("Payment successful! Your order is now confirmed.");
           },
           theme: { color: "#4F46E5" }
@@ -105,8 +106,11 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
     }
   };
 
-  const getStatusBadgeStyle = (status: OrderStatus) => {
-    switch (status) {
+  const getStatusBadgeStyle = (order: Order) => {
+    if (order.fulfillmentStatus === 'cancelled') {
+      return { bg: '#FEE2E2', text: '#B91C1C', label: 'Rejected/Cancelled' };
+    }
+    switch (order.deliveryStatus) {
       case 'delivered':
         return { bg: '#DCFCE7', text: '#15803D', label: 'Delivered' };
       case 'out_for_delivery':
@@ -115,11 +119,10 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
         return { bg: '#E0E7FF', text: '#4338CA', label: 'Reached Hub' };
       case 'shipped':
         return { bg: '#F3E8FF', text: '#7E22CE', label: 'Shipped' };
-      case 'processing':
-        return { bg: '#FEF3C7', text: '#B45309', label: 'Accepted/Processing' };
-      case 'cancelled':
-        return { bg: '#FEE2E2', text: '#B91C1C', label: 'Rejected/Cancelled' };
       default:
+        if (order.fulfillmentStatus === 'processing' || order.fulfillmentStatus === 'ready_to_ship') {
+          return { bg: '#FEF3C7', text: '#B45309', label: 'Accepted/Processing' };
+        }
         return { bg: '#F1F5F9', text: '#475569', label: 'Pending Approval' };
     }
   };
@@ -178,7 +181,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
         </View>
       ) : (
         orders.map(order => {
-          const statusStyle = getStatusBadgeStyle(order.status);
+          const statusStyle = getStatusBadgeStyle(order);
           return (
             <View key={order.id} style={styles.orderCard}>
               {/* Order Header */}
@@ -211,42 +214,42 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
               </View>
 
               {/* Status Message Banner */}
-              {order.status === 'processing' && (
+              {(order.fulfillmentStatus === 'processing' || order.fulfillmentStatus === 'ready_to_ship') && order.deliveryStatus === 'unshipped' && (
                 <View style={{ backgroundColor: '#ECFDF5', padding: 10, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#D1FAE5' }}>
                   <Text style={{ color: '#047857', fontSize: 12, fontWeight: '700' }}>
                     ✅ Your order is accepted and being processed.
                   </Text>
                 </View>
               )}
-              {order.status === 'shipped' && (
+              {order.deliveryStatus === 'shipped' && (
                 <View style={{ backgroundColor: '#F3E8FF', padding: 10, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#E9D5FF' }}>
                   <Text style={{ color: '#7E22CE', fontSize: 12, fontWeight: '700' }}>
                     🚚 Your order has been dispatched.
                   </Text>
                 </View>
               )}
-              {order.status === 'reached_hub' && (
+              {order.deliveryStatus === 'reached_hub' && (
                 <View style={{ backgroundColor: '#E0E7FF', padding: 10, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#C7D2FE' }}>
                   <Text style={{ color: '#4338CA', fontSize: 12, fontWeight: '700' }}>
                     🏢 Your order has reached the hub nearest to you.
                   </Text>
                 </View>
               )}
-              {order.status === 'out_for_delivery' && (
+              {order.deliveryStatus === 'out_for_delivery' && (
                 <View style={{ backgroundColor: '#DBEAFE', padding: 10, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#BFDBFE' }}>
                   <Text style={{ color: '#1D4ED8', fontSize: 12, fontWeight: '700' }}>
                     🛵 Your order is out for delivery today!
                   </Text>
                 </View>
               )}
-              {order.status === 'delivered' && (
+              {order.deliveryStatus === 'delivered' && (
                 <View style={{ backgroundColor: '#DCFCE7', padding: 10, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#BBF7D0' }}>
                   <Text style={{ color: '#15803D', fontSize: 12, fontWeight: '700' }}>
                     ✅ Your order has been successfully delivered.
                   </Text>
                 </View>
               )}
-              {order.status === 'cancelled' && (
+              {order.fulfillmentStatus === 'cancelled' && (
                 <View style={{ backgroundColor: '#FEF2F2', padding: 10, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#FEE2E2' }}>
                   <Text style={{ color: '#B91C1C', fontSize: 12, fontWeight: '700' }}>
                     ❌ Your order could not be processed. Please try after sometime.
@@ -256,7 +259,26 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
 
               {/* Order Items List */}
               <View style={styles.itemsBox}>
-                {order.items.map((item, idx) => (
+                {order.items.map((item, idx) => {
+                  const sizeText = item.product.selectedSize ? `Size: ${item.product.selectedSize}` : null;
+                  
+                  // Try to find color from product root or fallback to matching variant
+                  let resolvedColor = item.product.color || (item.product as any).selectedColor || (item as any).color || (item as any).selectedColor;
+                  if (!resolvedColor && item.product.variants && item.product.selectedSize) {
+                    const matchedVar = item.product.variants.find((v: any) => {
+                      const vSize = v.attributeValues?.Size || v.attributeValues?.size || v.attributeValues?.['Shirt Size'] || v.title?.split('-')?.pop()?.trim();
+                      return vSize === item.product.selectedSize;
+                    });
+                    if (matchedVar) {
+                      resolvedColor = matchedVar.attributeValues?.color || matchedVar.attributeValues?.Color;
+                    }
+                  }
+                  
+                  const colorText = resolvedColor ? `Color: ${resolvedColor}` : null;
+                  const variants = [sizeText, colorText].filter(Boolean).join(', ');
+                  const variantText = variants ? ` (${variants})` : '';
+
+                  return (
                   <View key={idx} style={[styles.itemRow, { alignItems: 'flex-start', gap: 12 }]}>
                     <Image 
                       source={{ uri: item.product.imageUrl }} 
@@ -265,9 +287,9 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
                     />
                     <View style={{flex: 1}}>
                       <Text style={styles.itemName}>
-                        {item.quantity}x {item.product.title} {item.product.selectedSize ? `(Size: ${item.product.selectedSize})` : ''}
+                        {item.quantity}x {item.product.title}{variantText}
                       </Text>
-                      {order.status === 'delivered' && (
+                      {order.deliveryStatus === 'delivered' && (
                         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                           <TouchableOpacity
                             style={{ marginTop: 6, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 1, borderColor: '#FF6B00', borderRadius: 4 }}
@@ -293,7 +315,8 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
                     </View>
                     <Text style={styles.itemPrice}>₹{item.product.price * item.quantity}</Text>
                   </View>
-                ))}
+                  );
+                })}
               </View>
 
               {/* Order Footer */}
@@ -314,7 +337,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
               </View>
 
               {/* Track Package Button */}
-              {order.status !== 'cancelled' && order.status !== 'payment_pending' && (
+              {order.fulfillmentStatus !== 'cancelled' && order.paymentStatus !== 'payment_pending' && order.paymentStatus !== 'payment_failed' && (
                 <TouchableOpacity
                   style={{
                     marginTop: 12,
@@ -330,7 +353,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
               )}
 
               {/* Retry Payment Button */}
-              {order.status === 'payment_pending' && (
+              {(order.paymentStatus === 'payment_pending' || order.paymentStatus === 'payment_failed') && order.fulfillmentStatus !== 'cancelled' && (
                 <TouchableOpacity
                   style={{
                     marginTop: 12,
@@ -346,7 +369,7 @@ export const OrderHistoryScreen: React.FC<OrderHistoryScreenProps> = ({ onBack, 
               )}
 
               {/* Cancel Button */}
-              {['pending', 'processing', 'shipped', 'reached_hub', 'out_for_delivery', 'payment_pending'].includes(order.status) && (
+              {order.fulfillmentStatus !== 'cancelled' && order.deliveryStatus === 'unshipped' && (
                 <TouchableOpacity 
                   style={{
                     marginTop: 12,

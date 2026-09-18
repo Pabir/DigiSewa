@@ -9,11 +9,10 @@ import {
   Modal,
 } from 'react-native';
 import { AdminSeller, SellerApprovalStatus } from '../../types/adminTypes';
-import { Search, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react-native';
+import { Search, CircleCheck, AlertTriangle, Sparkles } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { AdminSellerInventoryModal } from '../../components/admin/AdminSellerInventoryModal';
 interface AdminSellerApprovalScreenProps {
-  sellers: AdminSeller[];
   onApproveSeller: (sellerId: string) => void;
   onRejectSeller: (sellerId: string, reason: string) => void;
   onSuspendSeller: (sellerId: string) => void;
@@ -21,8 +20,10 @@ interface AdminSellerApprovalScreenProps {
   onRejectGst?: (sellerId: string, reason: string) => void;
 }
 
+import { getSellersPaginated } from '../../services/firebaseService';
+import { ActivityIndicator } from 'react-native';
+
 export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps> = ({
-  sellers,
   onApproveSeller,
   onRejectSeller,
   onSuspendSeller,
@@ -36,6 +37,70 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
   const [rejectionReasonInput, setRejectionReasonInput] = useState<string>('');
   const [showRejectModal, setShowRejectModal] = useState<boolean>(false);
   const [selectedSellerForInventory, setSelectedSellerForInventory] = useState<AdminSeller | null>(null);
+
+  const [sellers, setSellers] = useState<AdminSeller[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  React.useEffect(() => {
+    fetchSellers(false);
+  }, []);
+
+  const fetchSellers = async (loadMore = false) => {
+    if (loadMore) {
+      if (!hasMore || loadingMore) return;
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setLastVisible(null);
+    }
+
+    try {
+      const startAfterDoc = loadMore ? lastVisible : null;
+      const { sellers: fetchedSellers, lastDoc } = await getSellersPaginated(startAfterDoc, 20);
+      
+      const mappedAdminSellers: AdminSeller[] = fetchedSellers.map((s: any) => ({
+        id: s.id,
+        storeName: s.storeName,
+        ownerName: s.ownerName || s.storeName,
+        email: s.email || 'seller@TafDeal.in',
+        phone: s.phone,
+        gstin: s.gstin || 'GST-NOT-PROVIDED',
+        panNumber: s.panNumber || 'PAN-NOT-PROVIDED',
+        bankAccountNo: s.bankDetails?.accountNumber || '918020044556611',
+        ifscCode: s.bankDetails?.ifscCode || 'UTIB0000123',
+        bankName: s.bankDetails?.bankName || 'Axis Bank',
+        storeAddress: s.businessAddress || `${s.pickupAddress?.building || ''}, ${s.pickupAddress?.city || ''}`,
+        city: s.pickupAddress?.city || 'Guwahati',
+        state: s.pickupAddress?.state || 'Assam',
+        pincode: s.pickupAddress?.pincode || '781001',
+        status: s.verificationStatus === 'verified' ? 'approved' : s.verificationStatus === 'rejected' ? 'rejected' : 'pending',
+        joinedDate: s.joinedDate ? s.joinedDate.split('T')[0] : new Date().toISOString().split('T')[0],
+        totalProductsCount: 1,
+        totalSalesVolume: s.totalSales || 0,
+        rejectionReason: s.rejectionReason,
+        eSignatureText: s.eSignatureText,
+        eSignatureUrl: s.eSignatureUrl || (s.eSignatureText ? 'verified' : undefined),
+        gstAdditionRequest: s.gstAdditionRequest,
+      }));
+
+      setLastVisible(lastDoc);
+      if (fetchedSellers.length < 20) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+      
+      setSellers(prev => loadMore ? [...prev, ...mappedAdminSellers] : mappedAdminSellers);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      if (loadMore) setLoadingMore(false);
+      else setLoading(false);
+    }
+  };
 
   const filteredSellers = sellers.filter((s) => {
     if (selectedStatusFilter === 'gst_requests') {
@@ -217,6 +282,20 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
                   </View>
                 ))
               )}
+              
+              {hasMore && sellers.length > 0 && (
+                <TouchableOpacity 
+                  style={{ padding: 16, alignItems: 'center', backgroundColor: '#F8FAFC', borderTopWidth: 1, borderColor: '#E2E8F0' }}
+                  onPress={() => fetchSellers(true)}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? (
+                    <ActivityIndicator size="small" color="#4F46E5" />
+                  ) : (
+                    <Text style={{ color: '#4F46E5', fontWeight: '600' }}>Load More Sellers</Text>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </View>
@@ -338,7 +417,7 @@ export const AdminSellerApprovalScreen: React.FC<AdminSellerApprovalScreenProps>
                       setSelectedSellerForReview(null);
                     }}
                   >
-                    <CheckCircle2 size={16} color="#FFFFFF" />
+                    <CircleCheck size={16} color="#FFFFFF" />
                     <Text style={styles.approveActionBtnText}>Approve & Activate Account</Text>
                   </TouchableOpacity>
                 )}

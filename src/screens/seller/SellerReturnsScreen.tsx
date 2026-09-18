@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { ArrowLeft, PackageCheck, AlertTriangle, CheckCircle2, Search, ShieldCheck, ArrowRight } from 'lucide-react-native';
+import { ArrowLeft, PackageCheck, AlertTriangle, CircleCheck, Search, ShieldCheck, ArrowRight } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
-import { getReturnsFromFirestore } from '../../services/firebaseService';
+import { getReturnsFromFirestore, updateReturnRequest, getOrders } from '../../services/firebaseService';
 import { trackShadowfaxOrder } from '../../services/shadowfaxService';
+import { chargeSellerFaultPenalty } from '../../services/settlementService';
 import { ReturnItem } from '../../types';
 import { Modal, ActivityIndicator } from 'react-native';
 
@@ -41,6 +42,41 @@ export const SellerReturnsScreen: React.FC<SellerReturnsScreenProps> = ({ onBack
     };
     fetchReturns();
   }, [sellerProfile?.id]);
+
+  const handleQCAccept = async (item: ReturnItem) => {
+    setIsLoading(true);
+    try {
+      if (item.returnReason === 'Wrong Item Delivered' || item.returnReason === 'Defective/Damaged') {
+        const orders = await getOrders();
+        const relatedOrder = orders.find(o => o.id === item.orderId);
+        if (relatedOrder) {
+          await chargeSellerFaultPenalty(relatedOrder, item);
+        }
+      }
+      await updateReturnRequest(item.id, 'approved', 'passed', 'Seller accepted return');
+      setReturns(prev => prev.map(r => r.id === item.id ? { ...r, status: 'approved', qcStatus: 'passed' } : r));
+      alert('Return Accepted. Refund will be processed for the buyer.');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to accept return.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleQCFail = async (item: ReturnItem) => {
+    setIsLoading(true);
+    try {
+      await updateReturnRequest(item.id, 'qc_failed', 'failed_admin_review', 'Seller claimed buyer fraud/wrong item returned');
+      setReturns(prev => prev.map(r => r.id === item.id ? { ...r, status: 'qc_failed', qcStatus: 'failed_admin_review' } : r));
+      alert('QC Failed. This return is now paused for Admin review.');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update QC status.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredReturns = returns.filter(item => {
     if (activeTab === 'rto' && item.status !== 'rto_in_transit') return false;
@@ -115,7 +151,7 @@ export const SellerReturnsScreen: React.FC<SellerReturnsScreenProps> = ({ onBack
             <Text style={styles.metricValue}>{returns.filter(r => r.status === 'rto_in_transit').length} Packages</Text>
           </View>
           <View style={styles.metricCard}>
-            <CheckCircle2 size={20} color="#16A34A" />
+            <CircleCheck size={20} color="#16A34A" />
             <Text style={styles.metricLabel}>Delivered</Text>
             <Text style={styles.metricValue}>{returns.filter(r => r.status === 'delivered_to_seller').length} Packages</Text>
           </View>
@@ -168,16 +204,19 @@ export const SellerReturnsScreen: React.FC<SellerReturnsScreenProps> = ({ onBack
 
               <Text style={styles.productName}>{item.productName}</Text>
               <Text style={styles.reasonText}>Reason: {item.returnReason}</Text>
+              <Text style={[styles.reasonText, { fontWeight: '600', color: item.returnAction === 'refund' ? '#EA580C' : '#059669', marginTop: 4 }]}>
+                Action Requested: {item.returnAction === 'refund' ? 'Refund' : (item.returnAction === 'replace' ? 'Replacement' : 'N/A')}
+              </Text>
               
-              {item.awbNumber && (
+              {item.awbCode && (
                 <View style={{ backgroundColor: '#F8FAFC', padding: 10, borderRadius: 8, marginTop: 8, borderWidth: 1, borderColor: '#E2E8F0', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <View>
                     <Text style={{ fontSize: 11, color: '#64748B' }}>Reverse AWB Number</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>{item.awbNumber}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>{item.awbCode}</Text>
                   </View>
                   <TouchableOpacity 
                     style={{ backgroundColor: '#4F46E5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 }}
-                    onPress={() => handleTrackReturn(item.awbNumber!)}
+                    onPress={() => handleTrackReturn(item.awbCode!)}
                   >
                     <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>Track Status</Text>
                   </TouchableOpacity>
@@ -188,6 +227,25 @@ export const SellerReturnsScreen: React.FC<SellerReturnsScreenProps> = ({ onBack
                 <Text style={styles.customerText}>Buyer: {item.customerName} • {item.returnDate}</Text>
                 <Text style={styles.amountText}>₹{item.amount}</Text>
               </View>
+
+              {item.status === 'delivered_to_seller' && (
+                <View style={styles.qcActionContainer}>
+                  <TouchableOpacity 
+                    style={[styles.qcBtn, { backgroundColor: '#DCFCE7', borderColor: '#22C55E' }]}
+                    onPress={() => handleQCAccept(item)}
+                  >
+                    <CircleCheck size={16} color="#15803D" />
+                    <Text style={[styles.qcBtnText, { color: '#15803D' }]}>Accept Return (QC Pass)</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.qcBtn, { backgroundColor: '#FEE2E2', borderColor: '#EF4444' }]}
+                    onPress={() => handleQCFail(item)}
+                  >
+                    <AlertTriangle size={16} color="#B91C1C" />
+                    <Text style={[styles.qcBtnText, { color: '#B91C1C' }]}>Fail QC</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           );
         })}
@@ -325,10 +383,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 8,
+    marginTop: 16,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
   customerText: { fontSize: 11, color: '#94A3B8' },
   amountText: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  qcActionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 16,
+  },
+  qcBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderRadius: 8,
+    gap: 6,
+  },
+  qcBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });

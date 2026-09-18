@@ -12,28 +12,70 @@ import {
 } from 'react-native';
 import { SupportTicket, TicketStatus, AdminCustomer, TicketPriority } from '../../types/adminTypes';
 import { Order, OrderTrackingEvent, OrderStatus } from '../../types';
-import { Search, ArrowRight, CheckCircle2, IndianRupee, Truck, AlertTriangle, Package, MapPin, Clock, Plus, X } from 'lucide-react-native';
+import { Search, ArrowRight, CircleCheck, IndianRupee, Truck, AlertTriangle, Package, MapPin, Clock, Plus, X } from 'lucide-react-native';
 import { createShiprocketReturnOrder, shiprocketLogin } from '../../services/shiprocketService';
 import { chargeRTOPenalty } from '../../services/settlementService';
 import { createSupportTicketInFirestore } from '../../services/firebaseService';
 
 interface AdminCustomerTicketsScreenProps {
-  tickets: SupportTicket[];
   customers?: AdminCustomer[];
   orders?: Order[];
   onReplyTicket: (ticketId: string, replyMessage: string, newStatus?: TicketStatus) => void;
+  onResolveTicket?: (ticketId: string) => void;
   onCreateTicket?: (ticket: SupportTicket) => void;
   onProcessInstantRefund?: (ticketId: string, customerId: string, amount: number) => void;
 }
 
+import { getSupportTicketsPaginated } from '../../services/firebaseService';
+import { ActivityIndicator } from 'react-native';
+
 export const AdminCustomerTicketsScreen: React.FC<AdminCustomerTicketsScreenProps> = ({
-  tickets,
   customers = [],
   orders = [],
   onReplyTicket,
+  onResolveTicket,
   onCreateTicket,
   onProcessInstantRefund,
 }) => {
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  React.useEffect(() => {
+    fetchTickets(false);
+  }, []);
+
+  const fetchTickets = async (loadMore = false) => {
+    if (loadMore) {
+      if (!hasMore || loadingMore) return;
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setLastVisible(null);
+    }
+
+    try {
+      const startAfterDoc = loadMore ? lastVisible : null;
+      const { tickets: fetchedTickets, lastDoc } = await getSupportTicketsPaginated('customer', startAfterDoc, 20);
+      
+      setLastVisible(lastDoc);
+      if (fetchedTickets.length < 20) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+      
+      setTickets(prev => loadMore ? [...prev, ...fetchedTickets] : fetchedTickets);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      if (loadMore) setLoadingMore(false);
+      else setLoading(false);
+    }
+  };
+
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -192,18 +234,29 @@ export const AdminCustomerTicketsScreen: React.FC<AdminCustomerTicketsScreenProp
     }
   };
 
+  const getCurrentStepKey = (o: Order) => {
+    if (o.fulfillmentStatus === 'cancelled') return 'cancelled';
+    if (o.deliveryStatus === 'delivered') return 'delivered';
+    if (o.deliveryStatus === 'out_for_delivery') return 'out_for_delivery';
+    if (o.deliveryStatus === 'reached_hub') return 'reached_hub';
+    if (o.deliveryStatus === 'shipped') return 'shipped';
+    if (o.fulfillmentStatus === 'ready_to_ship' || o.fulfillmentStatus === 'processing') return 'processing';
+    return 'pending';
+  };
+
   const generateTrackingHistory = (order: Order): OrderTrackingEvent[] => {
     if (order.trackingHistory && order.trackingHistory.length > 0) return [...order.trackingHistory].reverse();
     
     const statuses: OrderStatus[] = ['pending', 'processing', 'shipped', 'reached_hub', 'out_for_delivery', 'delivered'];
-    const currentStatusIndex = statuses.indexOf(order.status);
+    const currentStatusKey = getCurrentStepKey(order);
+    const currentStatusIndex = statuses.indexOf(currentStatusKey as OrderStatus);
     
-    if (currentStatusIndex === -1 && order.status !== 'cancelled') return [];
+    if (currentStatusIndex === -1 && currentStatusKey !== 'cancelled') return [];
     
     const history: OrderTrackingEvent[] = [];
     const baseDate = new Date(order.createdAt);
     
-    if (order.status === 'cancelled') {
+    if (currentStatusKey === 'cancelled') {
         history.push({ status: 'pending', timestamp: new Date(baseDate).toISOString(), message: 'Order Placed' });
         history.push({ status: 'cancelled', timestamp: new Date(baseDate.getTime() + 86400000).toISOString(), message: 'Order Cancelled' });
         return history.reverse();
@@ -233,6 +286,19 @@ export const AdminCustomerTicketsScreen: React.FC<AdminCustomerTicketsScreenProp
     }
     
     return history.reverse();
+  };
+
+  const handleResolutionAction = (ticketId: string, actionType: 'refund' | 'replacement') => {
+    // Note: Since this is an admin UI, in a fully implemented system this would trigger 
+    // the payment gateway's refund API or create a new replacement order in the database.
+    if (actionType === 'refund') {
+      alert(`Initiating manual refund to bank account for ticket ${ticketId}...`);
+      onReplyTicket(ticketId, 'Your refund has been initiated to your bank account and should reflect in 5-7 business days.', 'resolved');
+    } else {
+      alert(`Creating replacement order for ticket ${ticketId}...`);
+      onReplyTicket(ticketId, 'A replacement order has been successfully created. We will share the tracking details soon.', 'resolved');
+    }
+    setSelectedTicket(null);
   };
 
   return (
@@ -357,6 +423,20 @@ export const AdminCustomerTicketsScreen: React.FC<AdminCustomerTicketsScreenProp
                   </View>
                 ))
               )}
+              
+              {hasMore && tickets.length > 0 && (
+                <TouchableOpacity 
+                  style={{ padding: 16, alignItems: 'center', backgroundColor: '#F8FAFC', borderTopWidth: 1, borderColor: '#E2E8F0' }}
+                  onPress={() => fetchTickets(true)}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? (
+                    <ActivityIndicator size="small" color="#4F46E5" />
+                  ) : (
+                    <Text style={{ color: '#4F46E5', fontWeight: '600' }}>Load More Tickets</Text>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </ScrollView>
         </View>
@@ -403,12 +483,52 @@ export const AdminCustomerTicketsScreen: React.FC<AdminCustomerTicketsScreenProp
                   )}
                 </View>
 
+                {/* --- RESOLUTION PREFERENCE SECTION --- */}
+                {(selectedTicket.resolutionPreference || selectedTicket.subCategory === 'wrong_item_delivered') && (
+                  <View style={styles.resolutionBox}>
+                    <Text style={styles.resolutionTitle}>Action Required: {selectedTicket.subCategory === 'wrong_item_delivered' ? 'Wrong Item Delivered' : 'Resolution'}</Text>
+                    <View style={styles.resolutionBadge}>
+                      <Text style={styles.resolutionBadgeText}>
+                        {selectedTicket.resolutionPreference === 'refund' ? 'Requested Refund' : 'Requested Replacement'}
+                      </Text>
+                    </View>
+                    
+                    {selectedTicket.resolutionPreference === 'refund' && selectedTicket.bankDetails && (
+                      <View style={styles.bankDetailsBox}>
+                        <Text style={styles.bankDetailsTitle}>Verified Bank Details (For Refund):</Text>
+                        <Text style={styles.bankDetailsText}>Acc No: {selectedTicket.bankDetails.accountNumber}</Text>
+                        <Text style={styles.bankDetailsText}>IFSC: {selectedTicket.bankDetails.ifscCode}</Text>
+                        <Text style={styles.bankDetailsText}>Name: {selectedTicket.bankDetails.accountName}</Text>
+                        {selectedTicket.bankDetails.bankName ? <Text style={styles.bankDetailsText}>Bank: {selectedTicket.bankDetails.bankName}</Text> : null}
+                      </View>
+                    )}
+
+                    <View style={{ marginTop: 16, flexDirection: 'row', gap: 12 }}>
+                      {selectedTicket.resolutionPreference === 'refund' ? (
+                        <TouchableOpacity 
+                          style={styles.actionBtnPrimary}
+                          onPress={() => handleResolutionAction(selectedTicket.id, 'refund')}
+                        >
+                          <Text style={styles.actionBtnText}>Process Manual Refund</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity 
+                          style={styles.actionBtnPrimary}
+                          onPress={() => handleResolutionAction(selectedTicket.id, 'replacement')}
+                        >
+                          <Text style={styles.actionBtnText}>Create Replacement Order</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                )}
+
                 {/* --- ORDER SNAPSHOT CARD --- */}
                 {linkedOrder && (
                   <View style={styles.orderSnapshotCard}>
                     <View style={styles.snapshotHeader}>
                       <Text style={styles.snapshotTitle}>Order Snapshot</Text>
-                      <Text style={styles.snapshotStatus}>{linkedOrder.status.toUpperCase()}</Text>
+                      <Text style={styles.snapshotStatus}>{getCurrentStepKey(linkedOrder).toUpperCase()}</Text>
                     </View>
                     <View style={styles.snapshotRow}>
                       <View style={{ flex: 1 }}>
@@ -465,7 +585,7 @@ export const AdminCustomerTicketsScreen: React.FC<AdminCustomerTicketsScreenProp
                             <View key={idx} style={styles.timelineEventRow}>
                               <View style={styles.timelineIconCol}>
                                 <View style={[styles.timelineDot, isLatest ? styles.timelineDotActive : styles.timelineDotInactive]}>
-                                  {event.status === 'delivered' ? <CheckCircle2 size={12} color={isLatest ? '#FFFFFF' : '#94A3B8'} /> : <Clock size={12} color={isLatest ? '#FFFFFF' : '#94A3B8'} />}
+                                  {event.status === 'delivered' ? <CircleCheck size={12} color={isLatest ? '#FFFFFF' : '#94A3B8'} /> : <Clock size={12} color={isLatest ? '#FFFFFF' : '#94A3B8'} />}
                                 </View>
                                 {idx !== arr.length - 1 && <View style={styles.timelineLine} />}
                               </View>
@@ -651,7 +771,7 @@ export const AdminCustomerTicketsScreen: React.FC<AdminCustomerTicketsScreenProp
                       alert('Ticket marked as RESOLVED!');
                     }}
                   >
-                    <CheckCircle2 size={14} color="#FFFFFF" />
+                    <CircleCheck size={14} color="#FFFFFF" />
                     <Text style={styles.resolveTicketBtnText}>Mark Resolved</Text>
                   </TouchableOpacity>
                 </View>
@@ -781,7 +901,7 @@ export const AdminCustomerTicketsScreen: React.FC<AdminCustomerTicketsScreenProp
                       <View style={[styles.orderSnapshotCard, { marginTop: 12 }]}>
                         <View style={styles.snapshotHeader}>
                           <Text style={styles.snapshotTitle}>Order Snapshot Preview</Text>
-                          <Text style={styles.snapshotStatus}>{newTicketOrder.status.toUpperCase()}</Text>
+                          <Text style={styles.snapshotStatus}>{getCurrentStepKey(newTicketOrder).toUpperCase()}</Text>
                         </View>
                         <View style={styles.snapshotRow}>
                           <View style={{ flex: 1 }}>
@@ -838,7 +958,7 @@ export const AdminCustomerTicketsScreen: React.FC<AdminCustomerTicketsScreenProp
                                 <View key={idx} style={styles.timelineEventRow}>
                                   <View style={styles.timelineIconCol}>
                                     <View style={[styles.timelineDot, isLatest ? styles.timelineDotActive : styles.timelineDotInactive]}>
-                                      {event.status === 'delivered' ? <CheckCircle2 size={12} color={isLatest ? '#FFFFFF' : '#94A3B8'} /> : <Clock size={12} color={isLatest ? '#FFFFFF' : '#94A3B8'} />}
+                                      {event.status === 'delivered' ? <CircleCheck size={12} color={isLatest ? '#FFFFFF' : '#94A3B8'} /> : <Clock size={12} color={isLatest ? '#FFFFFF' : '#94A3B8'} />}
                                     </View>
                                     {idx !== arr.length - 1 && <View style={styles.timelineLine} />}
                                   </View>
@@ -1185,6 +1305,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#334155',
     marginBottom: 4,
+  },
+  bankDetailsText: {
+    fontSize: 12,
+    color: '#451A03',
+    lineHeight: 18,
+  },
+  actionBtnPrimary: {
+    backgroundColor: '#059669',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  actionBtnText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   descBody: {
     fontSize: 12,

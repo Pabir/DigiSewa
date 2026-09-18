@@ -69,7 +69,7 @@ export const MeeshoSupplierHomeScreen: React.FC<MeeshoSupplierHomeScreenProps> =
         today.setHours(0,0,0,0);
 
         orders.forEach(order => {
-          if (order.status === 'pending' || order.status === 'processing') pending++;
+          if (order.fulfillmentStatus === 'pending' || order.fulfillmentStatus === 'processing' || order.fulfillmentStatus === 'ready_to_ship') pending++;
 
           if (order.createdAt) {
             const d = new Date(order.createdAt);

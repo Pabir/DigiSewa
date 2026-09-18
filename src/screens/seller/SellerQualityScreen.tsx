@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { ArrowLeft, CheckCircle2, AlertTriangle, Star, ShieldCheck, Sparkles } from 'lucide-react-native';
+import { ArrowLeft, CircleCheck, AlertTriangle, Star, ShieldCheck, Sparkles } from 'lucide-react-native';
 
 interface SellerQualityScreenProps {
   onBack: () => void;
@@ -31,7 +31,7 @@ export const SellerQualityScreen: React.FC<SellerQualityScreenProps> = ({ onBack
             <Text style={styles.metricValue}>4.8 / 5.0</Text>
           </View>
           <View style={styles.metricCard}>
-            <CheckCircle2 size={20} color="#16A34A" />
+            <CircleCheck size={20} color="#16A34A" />
             <Text style={styles.metricLabel}>QC Pass Rate</Text>
             <Text style={styles.metricValue}>98.2%</Text>
           </View>

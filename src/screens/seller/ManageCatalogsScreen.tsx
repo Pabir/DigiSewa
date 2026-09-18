@@ -9,7 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { Search, CheckCircle, ShoppingBag, Sparkles, ArrowLeft } from 'lucide-react-native';
+import { Search, CircleCheck, ShoppingBag, Sparkles, ArrowLeft } from 'lucide-react-native';
 import { getProducts, wipeAllProducts } from '../../services/firebaseService';
 import { Product, ClothSizeVariant } from '../../types';
 import { useAuth } from '../../context/AuthContext';

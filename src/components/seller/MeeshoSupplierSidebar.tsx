@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import {
   ShoppingBag,
-  CheckCircle,
+  CircleCheck,
   CreditCard,
   Zap,
   Image as ImageIcon,
@@ -153,7 +153,7 @@ export const MeeshoSupplierSidebar: React.FC<MeeshoSupplierSidebarProps> = ({
           style={[styles.navItem, currentTab === 'quality' && styles.navItemActive]}
           onPress={() => onSelectTab('quality')}
         >
-          <CheckCircle size={17} color="#64748B" />
+          <CircleCheck size={17} color="#64748B" />
           <Text style={styles.navItemText}>Quality</Text>
         </TouchableOpacity>
 

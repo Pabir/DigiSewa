@@ -72,70 +72,67 @@ Return ONLY a raw valid JSON object with the following schema, with no markdown 
 }
 
 /**
- * Buyer Search Assistant: Natural language product query processing.
- * Interprets queries like "I need ingredients for making Butter Chicken tonight under 500 rs".
+ * Buyer Search Assistant: Scalable Vector Search implementation.
+ * Queries the Firebase Vector Search Extension endpoint.
  */
 export async function searchProductsWithAI(
-  userQuery: string,
-  catalog: Product[]
+  userQuery: string
 ): Promise<{ matchingProductIds: string[]; aiSummary: string }> {
   const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 
   if (!apiKey || apiKey.includes('EXAMPLE')) {
-    // Smart offline natural language matching fallback
-    const lower = userQuery.toLowerCase();
-    const matches = catalog.filter(p => 
-      p.title.toLowerCase().includes(lower) ||
-      p.description.toLowerCase().includes(lower) ||
-      p.category.toLowerCase().includes(lower) ||
-      p.tags.some(t => t.toLowerCase().includes(lower))
-    );
-
     return {
-      matchingProductIds: matches.map(m => m.id),
-      aiSummary: matches.length > 0 
-        ? `Found ${matches.length} TafDeal products matching your request "${userQuery}".`
-        : `Showing top recommended products for "${userQuery}".`,
+      matchingProductIds: [],
+      aiSummary: 'API key not configured. Please set EXPO_PUBLIC_GEMINI_API_KEY to enable AI search.',
     };
   }
 
   try {
+    const { getGeminiModel } = await import('../config/geminiConfig');
+    
+    // 1. Generate the embedding for the search query using the text-embedding model
+    const embedModel = getGeminiModel('text-embedding-004');
+    const embedResult = await embedModel.embedContent(userQuery);
+    const vectorArray = embedResult.embedding.values;
+
+    // 2. Query Firestore natively using findNearest vector search
+    const { collection, query, getDocs, limit } = await import('firebase/firestore');
+    // Using VectorValue from firestore requires importing it directly, but since some environments might complain about the import if not perfectly typed,
+    // we use the official VectorValue API.
+    const { VectorValue } = await import('firebase/firestore');
+    const { db } = await import('../config/firebaseConfig');
+    
+    // Ensure the extension configured 'embedding' as the field name
+    const q = query(
+      collection(db, 'products'),
+      // @ts-ignore - Some TS versions might not have findNearest typed correctly yet
+      globalThis.firebase?.firestore?.findNearest 
+        ? globalThis.firebase.firestore.findNearest('embedding', VectorValue.fromArray(vectorArray), { limit: 15, distanceMeasure: 'COSINE' })
+        : (await import('firebase/firestore')).findNearest('embedding', VectorValue.fromArray(vectorArray), { limit: 15, distanceMeasure: 'COSINE' })
+    );
+
+    const searchResponse = await getDocs(q);
+    const matchingProductIds = searchResponse.docs.map(doc => doc.id);
+
+    // 3. Generate a friendly, conversational summary for the user
     const model = getGeminiModel('gemini-1.5-flash');
-    const catalogSummary = catalog.map(p => ({
-      id: p.id,
-      title: p.title,
-      price: p.price,
-      category: p.category,
-      tags: p.tags,
-    }));
-
-    const prompt = `You are TafDeal's AI Shopping Assistant.
-User Search Query: "${userQuery}"
-Available Products Catalog: ${JSON.stringify(catalogSummary)}
-
-Task:
-Select the product IDs that best satisfy the user's intent.
-Provide a friendly 1-2 sentence advice summary in English/Hinglish to help the buyer.
-
-Return ONLY a raw valid JSON object with format:
-{
-  "matchingProductIds": ["id1", "id2"],
-  "aiSummary": "Friendly summary response for buyer"
-}`;
+    const prompt = `You are TafDeal's AI Shopping Assistant. 
+The user searched for: "${userQuery}".
+We have found some matching products in the local catalog.
+Write a friendly 1-2 sentence advice summary in English/Hinglish to help the buyer. Do not list products.`;
 
     const result = await model.generateContent(prompt);
-    const text = result.response.text().trim().replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(text);
+    const aiSummary = result.response.text().trim();
 
     return {
-      matchingProductIds: parsed.matchingProductIds || [],
-      aiSummary: parsed.aiSummary || 'Here are the best matches for your search.',
+      matchingProductIds,
+      aiSummary,
     };
   } catch (error) {
-    console.error('Error with Gemini Natural Language Search:', error);
+    console.error('Error with Scalable Vector Search:', error);
     return {
-      matchingProductIds: catalog.map(c => c.id),
-      aiSummary: 'Here are all available products based on your interest.',
+      matchingProductIds: [],
+      aiSummary: 'We encountered an error connecting to the AI Search Engine. Please try again.',
     };
   }
 }

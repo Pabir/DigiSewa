@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import {
   Search,
-  CheckCircle2,
+  CircleCheck,
   AlertTriangle,
   Clock,
   Sparkles,
@@ -21,7 +21,7 @@ import {
 import { BulkCatalogUploadModal } from '../../components/seller/BulkCatalogUploadModal';
 import { L1_SUPER_CATEGORY_OPTIONS } from '../../constants/catalogDropdownOptions';
 import { useAuth } from '../../context/AuthContext';
-import { getProducts } from '../../services/firebaseService';
+import { getProductsPaginated } from '../../services/firebaseService';
 
 interface CatalogUploadsScreenProps {
   onNavigateToAddSingleCatalog: () => void;
@@ -55,12 +55,31 @@ export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showBulkUploadModal, setShowBulkUploadModal] = useState<boolean>(false);
 
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   useEffect(() => {
-    const fetchUploads = async () => {
-      if (!sellerProfile?.id) return;
-      try {
-        const data = await getProducts(false, sellerProfile.id);
-        const myProducts = data.filter(p => p.sellerId === sellerProfile.id);
+    if (sellerProfile?.id) {
+      fetchUploads(false);
+    }
+  }, [sellerProfile?.id]);
+
+  const fetchUploads = async (loadMore = false) => {
+    if (!sellerProfile?.id) return;
+    
+    if (loadMore) {
+      if (!hasMore || loadingMore) return;
+      setLoadingMore(true);
+    } else {
+      setLastVisible(null);
+    }
+
+    try {
+      const startAfterDoc = loadMore ? lastVisible : null;
+      const { products, lastDoc } = await getProductsPaginated(sellerProfile.id, startAfterDoc, 20);
+      
+      const myProducts = products; // Already filtered by sellerId inside getProductsPaginated
         
         // Map products into mock "upload records" for the dashboard
         const mappedRecords: CatalogUploadRecord[] = myProducts.map(p => ({
@@ -72,13 +91,19 @@ export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
           qcStatus: 'pass',
           uploadDate: p.createdAt || new Date().toISOString()
         }));
-        setRecords(mappedRecords);
+        setRecords(prev => loadMore ? [...prev, ...mappedRecords] : mappedRecords);
+        setLastVisible(lastDoc);
+        if (products.length < 20) {
+          setHasMore(false);
+        } else {
+          setHasMore(true);
+        }
       } catch (err) {
         console.error('Failed to fetch catalog uploads', err);
+      } finally {
+        if (loadMore) setLoadingMore(false);
       }
     };
-    fetchUploads();
-  }, [sellerProfile?.id]);
 
   // Filtered list
   const filteredRecords = uploadRecordsList.filter((rec) => {
@@ -337,7 +362,7 @@ export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
                 <View style={{ flex: 1.4 }}>
                   {rec.qcStatus === 'pass' && (
                     <View style={[styles.qcBadge, styles.qcBadgePass]}>
-                      <CheckCircle2 size={12} color="#059669" />
+                      <CircleCheck size={12} color="#059669" />
                       <Text style={[styles.qcBadgeText, { color: '#059669' }]}>QC Pass</Text>
                     </View>
                   )}
@@ -402,6 +427,20 @@ export const CatalogUploadsScreen: React.FC<CatalogUploadsScreenProps> = ({
               <Text style={styles.emptyUploadBtnText}>+ Upload New Catalog</Text>
             </TouchableOpacity>
           </View>
+        )}
+        
+        {hasMore && uploadRecordsList.length > 0 && (
+          <TouchableOpacity 
+            style={{ padding: 16, alignItems: 'center', backgroundColor: '#F8FAFC', borderTopWidth: 1, borderColor: '#E2E8F0', marginTop: 12, borderRadius: 8 }}
+            onPress={() => fetchUploads(true)}
+            disabled={loadingMore}
+          >
+            {loadingMore ? (
+              <Text style={{ color: '#4F46E5', fontWeight: '600' }}>Loading...</Text>
+            ) : (
+              <Text style={{ color: '#4F46E5', fontWeight: '600' }}>Load More Catalogs</Text>
+            )}
+          </TouchableOpacity>
         )}
       </ScrollView>
 

@@ -13,7 +13,7 @@ import {
 import TafdealLogo from '../../../assets/TAFDEAL_logo.svg';
 import {
   Store,
-  CheckCircle2,
+  CircleCheck,
   AlertCircle,
   Building2,
   MapPin,
@@ -25,7 +25,7 @@ import {
   Sparkles,
   RefreshCw,
   Clock,
-  XCircle,
+  CircleX,
   Phone,
   Mail,
   KeyRound,
@@ -398,7 +398,7 @@ export const SellerLoginScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.statusContainer}>
         <View style={styles.statusCard}>
           <View style={[styles.pendingBadgeIcon, { backgroundColor: '#FEF2F2' }]}>
-            <XCircle size={40} color="#DC2626" />
+            <CircleX size={40} color="#DC2626" />
           </View>
           <Text style={[styles.statusTitle, { color: '#DC2626' }]}>Application Rejected</Text>
           <Text style={styles.statusSub}>
@@ -1567,7 +1567,7 @@ export const SellerLoginScreen: React.FC = () => {
                     ) : (
                       <>
                         <Text style={styles.continueBtnText}>Update Account Password</Text>
-                        <CheckCircle2 size={16} color="#FFFFFF" />
+                        <CircleCheck size={16} color="#FFFFFF" />
                       </>
                     )}
                   </TouchableOpacity>
@@ -1578,7 +1578,7 @@ export const SellerLoginScreen: React.FC = () => {
               {forgotStep === 4 && (
                 <View style={{ paddingVertical: 16, gap: 14, alignItems: 'center' }}>
                   <View style={{ backgroundColor: '#DCFCE7', padding: 16, borderRadius: 50 }}>
-                    <CheckCircle2 size={40} color="#16A34A" />
+                    <CircleCheck size={40} color="#16A34A" />
                   </View>
                   <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A', textAlign: 'center' }}>
                     Password Reset Successful!
@@ -1663,7 +1663,7 @@ export const SellerLoginScreen: React.FC = () => {
                   ]}
                 >
                   {isDone ? (
-                    <CheckCircle2 size={18} color="#FFFFFF" />
+                    <CircleCheck size={18} color="#FFFFFF" />
                   ) : (
                     <Icon size={16} color={isActive ? '#FFFFFF' : isUnlocked ? '#475569' : '#94A3B8'} />
                   )}
@@ -1797,7 +1797,7 @@ export const SellerLoginScreen: React.FC = () => {
                       </TouchableOpacity>
 
                       <TouchableOpacity style={styles.verifyOtpActionBtn} onPress={handleVerifyOtp}>
-                        <CheckCircle2 size={16} color="#FFFFFF" />
+                        <CircleCheck size={16} color="#FFFFFF" />
                         <Text style={styles.verifyOtpActionBtnText}>Verify OTP</Text>
                       </TouchableOpacity>
                     </View>
@@ -1808,7 +1808,7 @@ export const SellerLoginScreen: React.FC = () => {
               /* VERIFIED SUCCESS CARD FOR MOBILE */
               <View style={styles.otpSuccessCard}>
                 <View style={styles.otpSuccessBadge}>
-                  <CheckCircle2 size={24} color="#059669" />
+                  <CircleCheck size={24} color="#059669" />
                   <View>
                     <Text style={styles.otpSuccessTitle}>Mobile Number Verified!</Text>
                     <Text style={styles.otpSuccessSub}>{registerMobile} is verified for your TafDeal supplier account.</Text>
@@ -2062,7 +2062,7 @@ export const SellerLoginScreen: React.FC = () => {
               </View>
             ) : bankName ? (
               <View style={styles.bankVerifiedPill}>
-                <CheckCircle2 size={14} color="#059669" />
+                <CircleCheck size={14} color="#059669" />
                 <Text style={styles.bankVerifiedText}>{bankName}</Text>
               </View>
             ) : null}
@@ -2103,7 +2103,7 @@ export const SellerLoginScreen: React.FC = () => {
             {/* Verified Mobile Number Badge OR Input Field */}
             {isMobileVerified && (phone || registerMobile) ? (
               <View style={styles.verifiedMobileBadgeRow}>
-                <CheckCircle2 size={16} color="#059669" />
+                <CircleCheck size={16} color="#059669" />
                 <Text style={styles.verifiedMobileBadgeText}>Verified Mobile: {phone || registerMobile}</Text>
               </View>
             ) : (
@@ -2204,7 +2204,7 @@ export const SellerLoginScreen: React.FC = () => {
               activeOpacity={0.8}
             >
               <View style={[styles.checkbox, whatsappUpdates && styles.checkboxActive]}>
-                {whatsappUpdates && <CheckCircle2 size={14} color="#FFFFFF" />}
+                {whatsappUpdates && <CircleCheck size={14} color="#FFFFFF" />}
               </View>
               <Text style={styles.checkboxText}>I want to receive important updates on WhatsApp</Text>
             </TouchableOpacity>
@@ -2215,7 +2215,7 @@ export const SellerLoginScreen: React.FC = () => {
               activeOpacity={0.8}
             >
               <View style={[styles.checkbox, agreeTerms && styles.checkboxActive]}>
-                {agreeTerms && <CheckCircle2 size={14} color="#FFFFFF" />}
+                {agreeTerms && <CircleCheck size={14} color="#FFFFFF" />}
               </View>
               <Text style={styles.checkboxText}>
                 I agree to comply with TafDeal's <Text style={{ color: '#4338CA', textDecorationLine: 'underline' }}>Supplier Agreement</Text>

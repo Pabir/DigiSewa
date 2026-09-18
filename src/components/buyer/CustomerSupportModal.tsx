@@ -16,12 +16,14 @@ import {
   X,
   Send,
   Bot,
-  User
+  User,
+  Paperclip
 } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { createSupportTicketInFirestore, getOrders } from '../../services/firebaseService';
-import { SupportTicket, SupportTicketMessage } from '../../types/adminTypes';
+import { SupportTicket, SupportTicketMessage, BankAccountDetails, TicketResolutionPreference } from '../../types/adminTypes';
 import { Order } from '../../types';
+import { validateBankDetailsPennyDrop } from '../../services/bankValidationService';
 
 interface CustomerSupportModalProps {
   visible: boolean;
@@ -40,8 +42,10 @@ interface ChatMessage {
   id: string;
   sender: 'user' | 'bot';
   text: string;
+  imageUrl?: string;
   isOptions?: boolean;
   options?: (string | ChatOption)[];
+  isBankForm?: boolean;
 }
 
 export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
@@ -56,6 +60,11 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
   const [ticketCreated, setTicketCreated] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('General Support');
   const [activeOrderId, setActiveOrderId] = useState<string | undefined>(undefined);
+  const [activeOrderDetails, setActiveOrderDetails] = useState<Order | null>(null);
+  const [pendingImageUrl, setPendingImageUrl] = useState<string | null>(null);
+  const [tempResolutionPref, setTempResolutionPref] = useState<TicketResolutionPreference | undefined>(undefined);
+  const [bankFormDetails, setBankFormDetails] = useState<BankAccountDetails>({ accountNumber: '', ifscCode: '', accountName: '', bankName: '' });
+  const [isBankValidating, setIsBankValidating] = useState(false);
   
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -69,7 +78,10 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
     setTicketCreated(false);
     setSelectedCategory('General Support');
     setActiveOrderId(initialOrderId);
+    setActiveOrderDetails(null);
     setInputText('');
+    setPendingImageUrl(null);
+    setTempResolutionPref(undefined);
     
     if (initialOrderId) {
       setSelectedCategory('Order & Delivery');
@@ -96,11 +108,18 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
   };
 
   const handleSend = (text: string) => {
-    if (!text.trim() || isSubmitting) return;
+    if ((!text.trim() && !pendingImageUrl) || isSubmitting) return;
 
-    const userMsg: ChatMessage = { id: Date.now().toString(), sender: 'user', text: text.trim() };
+    const userMsg: ChatMessage = { 
+      id: Date.now().toString(), 
+      sender: 'user', 
+      text: text.trim(),
+      imageUrl: pendingImageUrl || undefined
+    };
+    
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
+    setPendingImageUrl(null);
 
     if (ticketCreated) {
       setTimeout(() => {
@@ -112,7 +131,7 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
       return;
     }
 
-    createTicketFromChat(text.trim());
+    createTicketFromChat(text.trim(), userMsg.imageUrl);
   };
 
   const handleOptionSelect = (option: string | ChatOption) => {
@@ -172,6 +191,8 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
                 options: orderOptions
               }
             ]);
+            // Store fetched orders temporarily so we can access them when one is selected
+            (window as any).__tempUserOrders = userOrders;
           } else {
              setMessages((prev) => [
               ...prev,
@@ -190,6 +211,11 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
       // User selected an order from the list
       const extractedOrderId = optionId.split(' ')[1].replace('ORD-', ''); // e.g. "Order ORD-1234" -> "1234"
       setActiveOrderId(extractedOrderId);
+      
+      const orders: Order[] = (window as any).__tempUserOrders || [];
+      const foundOrder = orders.find(o => o.id === extractedOrderId);
+      if (foundOrder) setActiveOrderDetails(foundOrder);
+
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
@@ -203,6 +229,35 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
         ]);
       }, 500);
       
+    } else if (optionId === 'Wrong Item Received' && activeOrderDetails?.paymentMode === 'cod') {
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          { 
+            id: Date.now().toString(), 
+            sender: 'bot', 
+            text: 'Since this is a COD order, we can either refund the amount to your bank account or send a replacement. What would you prefer?',
+            isOptions: true,
+            options: ['Request Refund to Bank', 'Request Replacement']
+          }
+        ]);
+      }, 500);
+    } else if (optionId === 'Request Refund to Bank') {
+      setTempResolutionPref('refund');
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          { id: Date.now().toString(), sender: 'bot', text: 'Please provide your bank details for the refund:', isBankForm: true }
+        ]);
+      }, 500);
+    } else if (optionId === 'Request Replacement') {
+      setTempResolutionPref('replacement');
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          { id: Date.now().toString(), sender: 'bot', text: 'Got it. We will dispatch a replacement. Please describe the wrong item you received or attach a picture.' }
+        ]);
+      }, 500);
     } else if (['Payment & Refunds', 'Product Quality', 'General Query'].includes(optionId)) {
       setSelectedCategory(optionId);
       setTimeout(() => {
@@ -212,7 +267,6 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
         ]);
       }, 500);
     } else if (activeOrderId) {
-      // It's an order specific option (e.g. "Order Delayed")
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
@@ -229,7 +283,37 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
     }
   };
 
-  const createTicketFromChat = async (description: string) => {
+  const handleBankSubmit = async () => {
+    if (!bankFormDetails.accountNumber || !bankFormDetails.ifscCode || !bankFormDetails.accountName) {
+      alert("Please fill all required bank details.");
+      return;
+    }
+    
+    setIsBankValidating(true);
+    try {
+      const response = await validateBankDetailsPennyDrop(bankFormDetails);
+      if (response.success) {
+        // Validation successful
+        setMessages((prev) => {
+          const updated = [...prev];
+          if (updated.length > 0) updated[updated.length - 1].isBankForm = false;
+          return [
+            ...updated,
+            { id: Date.now().toString(), sender: 'user', text: `Bank Account Details Submitted (${bankFormDetails.accountNumber.slice(-4)})` },
+            { id: (Date.now() + 1).toString(), sender: 'bot', text: `Bank account verified successfully. Finally, please describe the wrong item you received or attach a picture to complete your ticket.` }
+          ];
+        });
+      } else {
+        alert(response.message || "Bank validation failed. Please check details.");
+      }
+    } catch (err) {
+      alert("Validation error. Please try again.");
+    } finally {
+      setIsBankValidating(false);
+    }
+  };
+
+  const createTicketFromChat = async (description: string, attachedImage?: string) => {
     setIsSubmitting(true);
     try {
       const ticketNum = 'TCK-' + Math.floor(1000 + Math.random() * 9000);
@@ -259,17 +343,18 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
         userEmail: user?.email || 'customer@TafDeal.org',
         userPhone: user?.phone || '+91 98765 43210',
         category: selectedCategory,
+        subCategory: tempResolutionPref ? 'wrong_item_delivered' : undefined,
+        resolutionPreference: tempResolutionPref,
+        bankDetails: (tempResolutionPref === 'refund' && bankFormDetails.accountNumber) ? bankFormDetails : undefined,
         subject: activeOrderId ? `Issue with Order ${activeOrderId}` : `Support Inquiry: ${selectedCategory}`,
-        description: description,
+        description: description || (tempResolutionPref === 'refund' ? 'Refund requested for wrong item' : 'Issue details provided.'),
         orderId: activeOrderId,
         status: 'open',
         priority: 'medium',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         messages: firestoreMessages,
-        attachmentUrls: (description.toLowerCase().includes('wrong') || description.toLowerCase().includes('different'))
-          ? ['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80']
-          : undefined,
+        attachmentUrls: attachedImage ? [attachedImage] : undefined,
       };
 
       await createSupportTicketInFirestore(newTicket);
@@ -345,10 +430,15 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
                   styles.messageBubble,
                   msg.sender === 'user' ? styles.messageBubbleUser : styles.messageBubbleBot
                 ]}>
-                  <Text style={[
-                    styles.messageText,
-                    msg.sender === 'user' ? styles.messageTextUser : styles.messageTextBot
-                  ]}>{msg.text}</Text>
+                  {msg.imageUrl && (
+                    <Image source={{ uri: msg.imageUrl }} style={{ width: 140, height: 140, borderRadius: 8, marginBottom: msg.text ? 8 : 0 }} />
+                  )}
+                  {!!msg.text && (
+                    <Text style={[
+                      styles.messageText,
+                      msg.sender === 'user' ? styles.messageTextUser : styles.messageTextBot
+                    ]}>{msg.text}</Text>
+                  )}
                 </View>
                 {msg.sender === 'user' && (
                   <View style={styles.userAvatar}>
@@ -390,6 +480,59 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
               </View>
             )}
 
+            {/* Bank Form */}
+            {messages.length > 0 && messages[messages.length - 1].isBankForm && (
+              <View style={styles.bankFormContainer}>
+                <Text style={styles.bankFormTitle}>Refund Account Details</Text>
+                
+                <Text style={styles.inputLabel}>Account Number*</Text>
+                <TextInput
+                  style={styles.bankInput}
+                  placeholder="e.g. 1234567890"
+                  keyboardType="number-pad"
+                  value={bankFormDetails.accountNumber}
+                  onChangeText={(val) => setBankFormDetails(prev => ({ ...prev, accountNumber: val }))}
+                />
+
+                <Text style={styles.inputLabel}>IFSC Code*</Text>
+                <TextInput
+                  style={styles.bankInput}
+                  placeholder="e.g. HDFC0001234"
+                  autoCapitalize="characters"
+                  value={bankFormDetails.ifscCode}
+                  onChangeText={(val) => setBankFormDetails(prev => ({ ...prev, ifscCode: val.toUpperCase() }))}
+                />
+
+                <Text style={styles.inputLabel}>Account Holder Name*</Text>
+                <TextInput
+                  style={styles.bankInput}
+                  placeholder="Name as per bank"
+                  value={bankFormDetails.accountName}
+                  onChangeText={(val) => setBankFormDetails(prev => ({ ...prev, accountName: val }))}
+                />
+
+                <Text style={styles.inputLabel}>Bank Name (Optional)</Text>
+                <TextInput
+                  style={styles.bankInput}
+                  placeholder="e.g. State Bank of India"
+                  value={bankFormDetails.bankName}
+                  onChangeText={(val) => setBankFormDetails(prev => ({ ...prev, bankName: val }))}
+                />
+
+                <TouchableOpacity 
+                  style={[styles.bankSubmitBtn, isBankValidating && { opacity: 0.7 }]}
+                  onPress={handleBankSubmit}
+                  disabled={isBankValidating}
+                >
+                  {isBankValidating ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.bankSubmitBtnText}>Verify & Submit</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
             {isSubmitting && (
               <View style={styles.typingIndicator}>
                 <ActivityIndicator size="small" color="#4F46E5" />
@@ -399,21 +542,40 @@ export const CustomerSupportModal: React.FC<CustomerSupportModalProps> = ({
           </ScrollView>
 
           {/* Input Area */}
-          <View style={styles.inputArea}>
-            <TextInput
-              style={styles.input}
-              placeholder="Type your message..."
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={() => handleSend(inputText)}
-            />
-            <TouchableOpacity 
-              style={[styles.sendBtn, !inputText.trim() && { opacity: 0.5 }]} 
-              onPress={() => handleSend(inputText)}
-              disabled={!inputText.trim() || isSubmitting}
-            >
-              <Send size={18} color="#FFFFFF" />
-            </TouchableOpacity>
+          <View style={styles.inputAreaWrapper}>
+            {pendingImageUrl && (
+              <View style={styles.pendingImageContainer}>
+                <Image source={{ uri: pendingImageUrl }} style={styles.pendingImage} />
+                <TouchableOpacity style={styles.removeImageBtn} onPress={() => setPendingImageUrl(null)}>
+                  <X size={12} color="#FFF" />
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={styles.inputArea}>
+              <TouchableOpacity 
+                style={styles.attachBtn} 
+                onPress={() => {
+                  const url = window.prompt("Enter image URL to attach (mock file upload):", "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80");
+                  if (url) setPendingImageUrl(url);
+                }}
+              >
+                <Paperclip size={20} color="#64748B" />
+              </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="Type your message..."
+                value={inputText}
+                onChangeText={setInputText}
+                onSubmitEditing={() => handleSend(inputText)}
+              />
+              <TouchableOpacity 
+                style={[styles.sendBtn, (!inputText.trim() && !pendingImageUrl) && { opacity: 0.5 }]} 
+                onPress={() => handleSend(inputText)}
+                disabled={(!inputText.trim() && !pendingImageUrl) || isSubmitting}
+              >
+                <Send size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -581,15 +743,45 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
+  inputAreaWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  pendingImageContainer: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    position: 'relative',
+    alignSelf: 'flex-start',
+  },
+  pendingImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: '#EF4444',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   inputArea: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
     gap: 12,
+  },
+  attachBtn: {
+    padding: 8,
   },
   input: {
     flex: 1,
@@ -619,5 +811,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontStyle: 'italic',
+  },
+  bankFormContainer: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 16,
+    marginLeft: 36,
+    marginTop: 4,
+    maxWidth: '85%',
+  },
+  bankFormTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 12,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  bankInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: '#0F172A',
+  },
+  bankSubmitBtn: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  bankSubmitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
   }
 });

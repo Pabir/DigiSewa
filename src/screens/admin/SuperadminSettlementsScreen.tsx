@@ -1,17 +1,29 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { CheckCircle2, Clock, IndianRupee, Landmark, RefreshCw, Truck, Plus, Minus } from 'lucide-react-native';
+import { CircleCheck, Clock, IndianRupee, Landmark, RefreshCw, Truck, Plus, Minus } from 'lucide-react-native';
 import { Settlement, Order } from '../../types';
-import { getAllSettlements, markSettlementPaid, syncPastDeliveries, getCodRemittedOrders } from '../../services/settlementService';
+import { getAllSettlements, markSettlementPaid, syncPastDeliveries, getCodRemittedOrders, getPendingCodRemittances, markCodAsRemitted } from '../../services/settlementService';
 
 export const SuperadminSettlementsScreen: React.FC = () => {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [remittedOrders, setRemittedOrders] = useState<Order[]>([]);
+  const [pendingCodOrders, setPendingCodOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<'pending' | 'settled' | 'courier'>('pending');
+  const [courierTab, setCourierTab] = useState<'pending' | 'remitted'>('pending');
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [selectedCodOrders, setSelectedCodOrders] = useState<Set<string>>(new Set());
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
+  const toggleSelectCod = (id: string) => {
+    setSelectedCodOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const toggleExpand = (id: string) => {
     setExpandedGroups(prev => {
@@ -29,12 +41,14 @@ export const SuperadminSettlementsScreen: React.FC = () => {
   const fetchSettlements = async () => {
     setLoading(true);
     try {
-      const [data, remittances] = await Promise.all([
+      const [data, remittances, pendingCod] = await Promise.all([
         getAllSettlements(),
-        getCodRemittedOrders()
+        getCodRemittedOrders(),
+        getPendingCodRemittances()
       ]);
       setSettlements(data);
       setRemittedOrders(remittances);
+      setPendingCodOrders(pendingCod);
     } catch (error) {
       console.error(error);
     }
@@ -90,6 +104,27 @@ export const SuperadminSettlementsScreen: React.FC = () => {
           { text: "Proceed", onPress: processPayout }
         ]
       );
+    }
+  };
+
+  const handleMarkRemitted = async () => {
+    if (selectedCodOrders.size === 0) return;
+    const utrNumber = typeof window !== 'undefined' && window.prompt ? window.prompt("Enter UTR Number for this remittance:") : "MOCK_UTR_" + Date.now();
+    if (!utrNumber) return;
+    
+    setProcessingId('cod_remit');
+    try {
+      const ordersToMark = pendingCodOrders.filter(o => selectedCodOrders.has(o.id));
+      await markCodAsRemitted(ordersToMark, utrNumber);
+      if (typeof window !== 'undefined' && window.alert) window.alert(`Successfully marked ${ordersToMark.length} orders as remitted!`);
+      else Alert.alert("Success", `Successfully marked ${ordersToMark.length} orders as remitted!`);
+      setSelectedCodOrders(new Set());
+      fetchSettlements();
+    } catch (error) {
+      if (typeof window !== 'undefined' && window.alert) window.alert("Error marking as remitted.");
+      else Alert.alert("Error", "Error marking as remitted.");
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -228,6 +263,9 @@ export const SuperadminSettlementsScreen: React.FC = () => {
 
   const calculateTotal = () => {
     if (activeTab === 'courier') {
+      if (courierTab === 'pending') {
+        return pendingCodOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toFixed(2);
+      }
       return remittedOrders.reduce((sum, o) => sum + (o.remittanceAmount || 0), 0).toFixed(2);
     }
     return filteredSettlements.reduce((sum, s) => sum + s.amountOwed, 0).toFixed(2);
@@ -292,45 +330,108 @@ export const SuperadminSettlementsScreen: React.FC = () => {
             )}
           </TouchableOpacity>
         )}
+
+        {activeTab === 'courier' && courierTab === 'pending' && pendingCodOrders.length > 0 && (
+          <TouchableOpacity 
+            style={[styles.payBtn, { backgroundColor: '#0ea5e9' }, selectedCodOrders.size === 0 && { backgroundColor: '#94A3B8' }]} 
+            onPress={handleMarkRemitted}
+            disabled={processingId === 'cod_remit' || selectedCodOrders.size === 0}
+          >
+            {processingId === 'cod_remit' ? (
+              <ActivityIndicator size="small" color="#FFF" />
+            ) : (
+              <Text style={styles.payBtnText}>Mark {selectedCodOrders.size > 0 ? selectedCodOrders.size : ''} Remitted</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#4F46E5" style={{ marginTop: 40 }} />
       ) : activeTab === 'courier' ? (
-        <ScrollView contentContainerStyle={styles.listContainer}>
-          {remittedOrders.length === 0 ? (
-            <Text style={styles.emptyText}>No courier remittances tracked yet.</Text>
-          ) : (
-            remittedOrders.map((order) => (
-              <View key={order.id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
-                    <Truck size={18} color="#047857" />
-                    <Text style={[styles.storeName, {color: '#047857'}]}>
-                      {order.courierPartner === 'shadowfax' ? 'Shadowfax' : order.courierPartner}
-                    </Text>
+        <View style={{flex: 1}}>
+          <View style={{flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginBottom: 12}}>
+            <TouchableOpacity 
+              style={[styles.subTab, courierTab === 'pending' && styles.activeSubTab]}
+              onPress={() => setCourierTab('pending')}
+            >
+              <Text style={[styles.subTabText, courierTab === 'pending' && styles.activeSubTabText]}>Pending Transfer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.subTab, courierTab === 'remitted' && styles.activeSubTab]}
+              onPress={() => setCourierTab('remitted')}
+            >
+              <Text style={[styles.subTabText, courierTab === 'remitted' && styles.activeSubTabText]}>Remitted</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView contentContainerStyle={styles.listContainer}>
+            {courierTab === 'pending' ? (
+              pendingCodOrders.length === 0 ? (
+                <Text style={styles.emptyText}>No pending COD remittances.</Text>
+              ) : (
+                pendingCodOrders.map((order) => (
+                  <View key={order.id} style={styles.card}>
+                    <View style={styles.cardHeader}>
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+                        <TouchableOpacity onPress={() => toggleSelectCod(order.id)} style={{marginRight: 4}}>
+                          <View style={[styles.checkbox, selectedCodOrders.has(order.id) && styles.checkboxSelected]}>
+                            {selectedCodOrders.has(order.id) && <CircleCheck size={14} color="#FFF" />}
+                          </View>
+                        </TouchableOpacity>
+                        <Truck size={18} color="#0EA5E9" />
+                        <Text style={[styles.storeName, {color: '#0EA5E9'}]}>
+                          {order.courierPartner === 'shadowfax' ? 'Shadowfax' : (order.courierPartner || 'Courier')}
+                        </Text>
+                      </View>
+                      <Text style={styles.orderId}>AWB: {order.awbCode || order.shadowfaxAwb || 'N/A'}</Text>
+                    </View>
+                    
+                    <View style={styles.amountRow}>
+                      <IndianRupee size={20} color="#0F172A" />
+                      <Text style={styles.amountText}>
+                        {order.totalAmount?.toFixed(2) || '0.00'}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={styles.orderId}>AWB: {order.awbCode || order.shadowfaxAwb}</Text>
-                </View>
-                
-                <View style={styles.amountRow}>
-                  <IndianRupee size={20} color="#047857" />
-                  <Text style={[styles.amountText, { color: '#047857' }]}>
-                    {order.remittanceAmount?.toFixed(2) || '0.00'}
-                  </Text>
-                </View>
+                ))
+              )
+            ) : (
+              remittedOrders.length === 0 ? (
+                <Text style={styles.emptyText}>No courier remittances tracked yet.</Text>
+              ) : (
+                remittedOrders.map((order) => (
+                  <View key={order.id} style={styles.card}>
+                    <View style={styles.cardHeader}>
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
+                        <Truck size={18} color="#047857" />
+                        <Text style={[styles.storeName, {color: '#047857'}]}>
+                          {order.courierPartner === 'shadowfax' ? 'Shadowfax' : (order.courierPartner || 'Courier')}
+                        </Text>
+                      </View>
+                      <Text style={styles.orderId}>AWB: {order.awbCode || order.shadowfaxAwb || 'N/A'}</Text>
+                    </View>
+                    
+                    <View style={styles.amountRow}>
+                      <IndianRupee size={20} color="#047857" />
+                      <Text style={[styles.amountText, { color: '#047857' }]}>
+                        {order.remittanceAmount?.toFixed(2) || '0.00'}
+                      </Text>
+                    </View>
 
-                <View style={styles.settledRow}>
-                  <CheckCircle2 size={16} color="#15803D" />
-                  <Text style={styles.settledText}>
-                    Deposited on {order.remittanceDate ? new Date(order.remittanceDate).toLocaleDateString() : 'N/A'}
-                  </Text>
-                  <Text style={styles.refText}>UTR: {order.utrNumber || 'N/A'}</Text>
-                </View>
-              </View>
-            ))
-          )}
-        </ScrollView>
+                    <View style={styles.settledRow}>
+                      <CircleCheck size={16} color="#15803D" />
+                      <Text style={styles.settledText}>
+                        Deposited on {order.remittanceDate ? new Date(order.remittanceDate).toLocaleDateString() : 'N/A'}
+                      </Text>
+                      <Text style={styles.refText}>UTR: {order.utrNumber || 'N/A'}</Text>
+                    </View>
+                  </View>
+                ))
+              )
+            )}
+          </ScrollView>
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.listContainer}>
           {groupedSettlements.length === 0 ? (
@@ -413,7 +514,7 @@ export const SuperadminSettlementsScreen: React.FC = () => {
                   </View>
                 ) : (
                   <View style={styles.settledRow}>
-                    <CheckCircle2 size={16} color="#15803D" />
+                    <CircleCheck size={16} color="#15803D" />
                     <Text style={styles.settledText}>
                       Settled on {item.settledAt ? new Date(item.settledAt).toLocaleDateString() : ''}
                     </Text>
@@ -644,5 +745,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#475569',
     marginLeft: 2,
+  },
+  subTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+  },
+  activeSubTab: {
+    backgroundColor: '#0EA5E9',
+  },
+  subTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  activeSubTabText: {
+    color: '#FFFFFF',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#0EA5E9',
+    borderColor: '#0EA5E9',
   }
 });

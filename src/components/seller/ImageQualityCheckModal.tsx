@@ -68,8 +68,8 @@ export const ImageQualityCheckModal: React.FC<ImageQualityCheckModalProps> = ({
               img.src = event.target?.result as string;
               img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                const MAX_HEIGHT = 800;
+                const MAX_WIDTH = 400;
+                const MAX_HEIGHT = 400;
                 let width = img.width;
                 let height = img.height;
 
@@ -85,13 +85,38 @@ export const ImageQualityCheckModal: React.FC<ImageQualityCheckModalProps> = ({
                   }
                 }
                 
-                canvas.width = width;
-                canvas.height = height;
+                let currentWidth = width;
+                let currentHeight = height;
+                canvas.width = currentWidth;
+                canvas.height = currentHeight;
                 const ctx = canvas.getContext('2d');
+
                 if (ctx) {
-                  ctx.drawImage(img, 0, 0, width, height);
-                  // Compress to JPEG with 0.6 quality to drastically reduce size
-                  resolve(canvas.toDataURL('image/jpeg', 0.6));
+                  ctx.drawImage(img, 0, 0, currentWidth, currentHeight);
+                  
+                  let quality = 0.9;
+                  let dataUrl = canvas.toDataURL('image/jpeg', quality);
+                  
+                  // Target max ~70KB per image to comfortably fit 10+ images in a 1MB Firestore document
+                  const MAX_BYTES = 70 * 1024;
+                  
+                  // Loop to reduce quality and dimensions until the image is under the target size
+                  while (dataUrl.length * 0.75 > MAX_BYTES && quality > 0.1) {
+                    quality -= 0.15;
+                    if (quality < 0.1) quality = 0.1;
+                    
+                    // If quality is already low and size is still big, reduce dimensions
+                    if (quality <= 0.45 && dataUrl.length * 0.75 > MAX_BYTES) {
+                      currentWidth *= 0.8;
+                      currentHeight *= 0.8;
+                      canvas.width = currentWidth;
+                      canvas.height = currentHeight;
+                      ctx.drawImage(img, 0, 0, currentWidth, currentHeight);
+                    }
+                    
+                    dataUrl = canvas.toDataURL('image/jpeg', quality);
+                  }
+                  resolve(dataUrl);
                 } else {
                   resolve(event.target?.result as string); // Fallback
                 }
@@ -107,9 +132,9 @@ export const ImageQualityCheckModal: React.FC<ImageQualityCheckModalProps> = ({
           
           setUploadedImages((prev) => {
             const combined = [...prev, ...newUrls];
-            if (combined.length > 9) {
-              alert('Maximum 9 products allowed per catalog. First 9 selected.');
-              return combined.slice(0, 9);
+            if (combined.length > 20) {
+              alert('Maximum 20 images allowed per catalog. First 20 selected.');
+              return combined.slice(0, 20);
             }
             return combined;
           });
@@ -125,8 +150,8 @@ export const ImageQualityCheckModal: React.FC<ImageQualityCheckModalProps> = ({
   };
 
   const handleAddSampleImage = (imgUrl: string) => {
-    if (uploadedImages.length >= 9) {
-      alert('Maximum 9 products allowed per catalog.');
+    if (uploadedImages.length >= 20) {
+      alert('Maximum 20 images allowed per catalog.');
       return;
     }
     setUploadedImages([...uploadedImages, imgUrl]);
@@ -163,7 +188,7 @@ export const ImageQualityCheckModal: React.FC<ImageQualityCheckModalProps> = ({
                 <View style={styles.yellowInfoAlert}>
                   <Sparkles size={16} color="#D97706" />
                   <Text style={styles.yellowInfoText}>
-                    You can add minimum 1 and maximum 9 products to create a catalog
+                    You can add minimum 1 and maximum 20 images to create a catalog
                   </Text>
                 </View>
 
@@ -179,7 +204,7 @@ export const ImageQualityCheckModal: React.FC<ImageQualityCheckModalProps> = ({
                   ))}
 
                   {/* Add Product Slot Button */}
-                  {uploadedImages.length < 9 && (
+                  {uploadedImages.length < 20 && (
                     <TouchableOpacity
                       style={styles.addProductSlotBtn}
                       onPress={() => pickImageFromDevice()}

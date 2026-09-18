@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { ArrowLeft, UploadCloud, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react-native';
+import { ArrowLeft, UploadCloud, CircleCheck, AlertCircle, Sparkles } from 'lucide-react-native';
 
 interface SellerBulkUploadScreenProps {
   onBack: () => void;
@@ -45,7 +45,7 @@ export const SellerBulkUploadScreen: React.FC<SellerBulkUploadScreenProps> = ({ 
 
           {uploadSuccess && (
             <View style={styles.successBanner}>
-              <CheckCircle2 size={16} color="#16A34A" />
+              <CircleCheck size={16} color="#16A34A" />
               <Text style={styles.successText}>File successfully uploaded & queued for QC inspection!</Text>
             </View>
           )}

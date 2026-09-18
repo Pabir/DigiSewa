@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
-import { X, Activity, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react-native';
+import { X, Activity, CircleCheck, AlertTriangle, TrendingUp } from 'lucide-react-native';
 
 interface DispatchHealthModalProps {
   visible: boolean;
@@ -32,7 +32,7 @@ export const DispatchHealthModal: React.FC<DispatchHealthModalProps> = ({ visibl
             <View style={styles.metricGrid}>
               <View style={styles.metricCard}>
                 <View style={styles.metricHeader}>
-                  <CheckCircle size={20} color="#10B981" />
+                  <CircleCheck size={20} color="#10B981" />
                   <Text style={styles.metricTitle}>On-Time Dispatch</Text>
                 </View>
                 <Text style={styles.metricValue}>98.5%</Text>

@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { X, CheckCircle } from 'lucide-react-native';
+import { X, CircleCheck } from 'lucide-react-native';
 import { Product } from '../../types';
 import { updateProduct } from '../../services/firebaseService';
 
@@ -224,7 +224,7 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <>
-                  <CheckCircle size={16} color="#FFFFFF" />
+                  <CircleCheck size={16} color="#FFFFFF" />
                   <Text style={styles.saveBtnText}>Save Changes</Text>
                 </>
               )}

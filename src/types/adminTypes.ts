@@ -59,6 +59,15 @@ export interface SupportTicketMessage {
   attachmentUrl?: string;
 }
 
+export type TicketResolutionPreference = 'refund' | 'replacement';
+
+export interface BankAccountDetails {
+  accountNumber: string;
+  ifscCode: string;
+  accountName: string;
+  bankName: string;
+}
+
 export interface SupportTicket {
   id: string;
   ticketNumber: string;
@@ -70,6 +79,11 @@ export interface SupportTicket {
   category: string;
   subject: string;
   description: string;
+  subCategory?: string;
+  resolutionPreference?: TicketResolutionPreference;
+  bankDetails?: BankAccountDetails;
+  returnTrackingId?: string;
+  replacementOrderId?: string;
   orderId?: string;
   catalogId?: string;
   priority: TicketPriority;

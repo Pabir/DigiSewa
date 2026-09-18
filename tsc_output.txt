@@ -1,0 +1,221 @@
+src/components/admin/AdminHeader.tsx(3,25): error TS2307: Cannot find module '../../../assets/TAFDEAL_logo.svg' or its corresponding type declarations.
+src/components/admin/AdminSellerInventoryModal.tsx(12,29): error TS2305: Module '"lucide-react-native"' has no exported member 'Landmark'.
+src/components/admin/AdminSellerInventoryModal.tsx(12,45): error TS2305: Module '"lucide-react-native"' has no exported member 'Tag'.
+src/components/admin/AdminSellerInventoryModal.tsx(12,50): error TS2305: Module '"lucide-react-native"' has no exported member 'ClipboardList'.
+src/components/auth/AuthModal.tsx(13,25): error TS2307: Cannot find module '../../../assets/TAFDEAL_logo.svg' or its corresponding type declarations.
+src/components/buyer/CustomerSupportModal.tsx(17,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Send'.
+src/components/buyer/CustomerSupportModal.tsx(18,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Bot'.
+src/components/Footer.tsx(3,25): error TS2307: Cannot find module '../../assets/TAFDEAL_logo.svg' or its corresponding type declarations.
+src/components/Navbar.tsx(3,25): error TS2307: Cannot find module '../../assets/TAFDEAL_logo.svg' or its corresponding type declarations.
+src/components/ProductCard.tsx(3,63): error TS2305: Module '"lucide-react-native"' has no exported member 'Scale'.
+src/components/seller/DispatchHealthModal.tsx(3,13): error TS2305: Module '"lucide-react-native"' has no exported member 'Activity'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(27,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Smartphone'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(28,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Baby'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(30,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Home'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(31,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Shirt'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(32,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Monitor'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(33,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Headphones'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(34,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Car'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(35,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Utensils'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(36,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Gem'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(37,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Scissors'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(39,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Footprints'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(458,61): error TS2339: Property 'isVariant' does not exist on type 'ResolvedCategoryField'.
+src/components/seller/DynamicCatalogUploadWizard.tsx(1162,90): error TS2367: This comparison appears to be unintentional because the types 'AttributeType' and '"dropdown"' have no overlap.
+src/components/seller/SellerProfileModal.tsx(366,37): error TS2339: Property 'modalTitle' does not exist on type '{ overlay: { flex: number; backgroundColor: string; justifyContent: "center"; alignItems: "center"; padding: number; zIndex: number; }; modalCard: { width: "100%"; maxWidth: number; maxHeight: "90%"; ... 7 more ...; elevation: number; }; ... 37 more ...; doneBtnText: { ...; }; }'.
+src/components/seller/ShippingLabelModal.tsx(3,13): error TS2305: Module '"lucide-react-native"' has no exported member 'Printer'.
+src/components/seller/ShippingLabelModal.tsx(3,22): error TS2305: Module '"lucide-react-native"' has no exported member 'Download'.
+src/context/AuthContext.tsx(59,38): error TS2304: Cannot find name 'DeliveryAddress'.
+src/context/AuthContext.tsx(61,56): error TS2304: Cannot find name 'DeliveryAddress'.
+src/context/AuthContext.tsx(65,35): error TS2552: Cannot find name 'PaymentMethod'. Did you mean 'PaymentMethodData'?
+src/context/AuthContext.tsx(736,45): error TS2304: Cannot find name 'DeliveryAddress'.
+src/context/AuthContext.tsx(738,25): error TS2304: Cannot find name 'DeliveryAddress'.
+src/context/AuthContext.tsx(759,63): error TS2304: Cannot find name 'DeliveryAddress'.
+src/context/AuthContext.tsx(798,42): error TS2552: Cannot find name 'PaymentMethod'. Did you mean 'PaymentMethodData'?
+src/context/AuthContext.tsx(800,24): error TS2552: Cannot find name 'PaymentMethod'. Did you mean 'PaymentMethodData'?
+src/navigation/AppNavigator.tsx(382,30): error TS2339: Property 'storeName' does not exist on type 'User'.
+src/screens/admin/AdminCatalogFormBuilderScreen.tsx(57,3): error TS2305: Module '"lucide-react-native"' has no exported member 'ArrowUp'.
+src/screens/admin/AdminCatalogFormBuilderScreen.tsx(58,3): error TS2305: Module '"lucide-react-native"' has no exported member 'ArrowDown'.
+src/screens/admin/AdminCatalogFormBuilderScreen.tsx(63,40): error TS2339: Property 'uid' does not exist on type 'User'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(409,58): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ImageProps): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+  Overload 2 of 2, '(props: ImageProps, context: any): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(448,74): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ImageProps): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+  Overload 2 of 2, '(props: ImageProps, context: any): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(462,47): error TS2339: Property 'sku' does not exist on type 'Product'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(524,69): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ImageProps): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+  Overload 2 of 2, '(props: ImageProps, context: any): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(754,27): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'CSSProperties'.
+  Type 'ViewStyle' is not assignable to type 'Properties<string | number, string & {}>'.
+    Types of property 'backgroundColor' are incompatible.
+      Type 'ColorValue' is not assignable to type 'BackgroundColor'.
+        Type 'OpaqueColorValue' is not assignable to type 'BackgroundColor'.
+          Type 'OpaqueColorValue' is not assignable to type 'string & {}'.
+            Type 'OpaqueColorValue' is not assignable to type 'string'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(763,27): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'CSSProperties'.
+  Type 'ViewStyle' is not assignable to type 'Properties<string | number, string & {}>'.
+    Types of property 'backgroundColor' are incompatible.
+      Type 'ColorValue' is not assignable to type 'BackgroundColor'.
+        Type 'OpaqueColorValue' is not assignable to type 'BackgroundColor'.
+          Type 'OpaqueColorValue' is not assignable to type 'string & {}'.
+            Type 'OpaqueColorValue' is not assignable to type 'string'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(821,78): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ImageProps): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+  Overload 2 of 2, '(props: ImageProps, context: any): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(835,51): error TS2339: Property 'sku' does not exist on type 'Product'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(889,25): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'CSSProperties'.
+  Type 'ViewStyle' is not assignable to type 'Properties<string | number, string & {}>'.
+    Types of property 'backgroundColor' are incompatible.
+      Type 'ColorValue' is not assignable to type 'BackgroundColor'.
+        Type 'OpaqueColorValue' is not assignable to type 'BackgroundColor'.
+          Type 'OpaqueColorValue' is not assignable to type 'string & {}'.
+            Type 'OpaqueColorValue' is not assignable to type 'string'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(904,25): error TS2322: Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'CSSProperties'.
+  Type 'ViewStyle' is not assignable to type 'Properties<string | number, string & {}>'.
+    Types of property 'backgroundColor' are incompatible.
+      Type 'ColorValue' is not assignable to type 'BackgroundColor'.
+        Type 'OpaqueColorValue' is not assignable to type 'BackgroundColor'.
+          Type 'OpaqueColorValue' is not assignable to type 'string & {}'.
+            Type 'OpaqueColorValue' is not assignable to type 'string'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(970,52): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ImageProps): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+  Overload 2 of 2, '(props: ImageProps, context: any): Image', gave the following error.
+    Type 'ViewStyle | TextStyle | ImageStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<ImageStyle>'.
+        Type 'ViewStyle' is not assignable to type 'ImageStyle'.
+          Types of property 'overflow' are incompatible.
+            Type '"visible" | "hidden" | "scroll"' is not assignable to type '"visible" | "hidden"'.
+              Type '"scroll"' is not assignable to type '"visible" | "hidden"'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(1513,5): error TS2353: Object literal may only specify known properties, and 'border' does not exist in type 'ViewStyle | TextStyle | ImageStyle'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(1521,5): error TS2322: Type '"8px 12px"' is not assignable to type 'DimensionValue'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(1523,5): error TS2322: Type 'string' is not assignable to type 'AnimatableNumericValue'.
+src/screens/admin/AdminCustomerTicketsScreen.tsx(1525,5): error TS2322: Type 'string' is not assignable to type 'number'.
+src/screens/admin/AdminMockDeliveriesScreen.tsx(3,10): error TS2305: Module '"lucide-react-native"' has no exported member 'PackageSearch'.
+src/screens/admin/AdminMockDeliveriesScreen.tsx(23,88): error TS2339: Property 'status' does not exist on type 'Order'.
+src/screens/admin/AdminMockDeliveriesScreen.tsx(31,62): error TS2339: Property 'status' does not exist on type 'Order'.
+src/screens/admin/AdminPendingTasksScreen.tsx(3,39): error TS2305: Module '"lucide-react-native"' has no exported member 'DollarSign'.
+src/screens/admin/AdminPendingTasksScreen.tsx(3,62): error TS2305: Module '"lucide-react-native"' has no exported member 'Box'.
+src/screens/admin/AdminPendingTasksScreen.tsx(25,18): error TS2339: Property 'status' does not exist on type 'Order'.
+src/screens/admin/AdminPendingTasksScreen.tsx(42,18): error TS2339: Property 'status' does not exist on type 'Order'.
+src/screens/admin/AdminPendingTasksScreen.tsx(82,15): error TS2339: Property 'status' does not exist on type 'Order'.
+src/screens/admin/AdminPendingTasksScreen.tsx(105,18): error TS2339: Property 'status' does not exist on type 'Order'.
+src/screens/admin/AdminReturnsScreen.tsx(3,21): error TS2724: '"lucide-react-native"' has no exported member named 'PackageX'. Did you mean 'Package'?
+src/screens/admin/AdminReturnsScreen.tsx(3,51): error TS2305: Module '"lucide-react-native"' has no exported member 'ExternalLink'.
+src/screens/admin/AdminSellerApprovalScreen.tsx(41,9): error TS2367: This comparison appears to be unintentional because the types 'SellerApprovalStatus | "all"' and '"gst_requests"' have no overlap.
+src/screens/admin/AdminSystemSettingsScreen.tsx(3,10): error TS2305: Module '"lucide-react-native"' has no exported member 'Settings'.
+src/screens/admin/finance/FinanceDashboardScreen.tsx(3,22): error TS2305: Module '"lucide-react-native"' has no exported member 'DollarSign'.
+src/screens/admin/finance/FinanceDashboardScreen.tsx(3,34): error TS2305: Module '"lucide-react-native"' has no exported member 'Activity'.
+src/screens/admin/finance/ReconciliationScreen.tsx(3,10): error TS2305: Module '"lucide-react-native"' has no exported member 'Upload'.
+src/screens/admin/finance/ReconciliationScreen.tsx(3,18): error TS2305: Module '"lucide-react-native"' has no exported member 'FileText'.
+src/screens/admin/finance/SellerWiseFinanceScreen.tsx(10,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Wallet'.
+src/screens/admin/finance/SellerWiseFinanceScreen.tsx(11,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Landmark'.
+src/screens/admin/finance/SellerWiseFinanceScreen.tsx(12,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Receipt'.
+src/screens/admin/finance/SellerWiseFinanceScreen.tsx(14,3): error TS2305: Module '"lucide-react-native"' has no exported member 'ChevronRight'.
+src/screens/admin/finance/SellerWiseFinanceScreen.tsx(18,3): error TS2724: '"lucide-react-native"' has no exported member named 'ArrowUpRight'. Did you mean 'ArrowRight'?
+src/screens/admin/finance/SettlementBatchesScreen.tsx(3,10): error TS2305: Module '"lucide-react-native"' has no exported member 'DollarSign'.
+src/screens/admin/finance/TaxReportsScreen.tsx(3,10): error TS2305: Module '"lucide-react-native"' has no exported member 'Download'.
+src/screens/admin/finance/TaxReportsScreen.tsx(3,20): error TS2305: Module '"lucide-react-native"' has no exported member 'FileText'.
+src/screens/admin/finance/TaxReportsScreen.tsx(3,30): error TS2305: Module '"lucide-react-native"' has no exported member 'Calendar'.
+src/screens/admin/SuperadminSettlementsScreen.tsx(3,44): error TS2305: Module '"lucide-react-native"' has no exported member 'Landmark'.
+src/screens/buyer/CartScreen.tsx(3,79): error TS2305: Module '"lucide-react-native"' has no exported member 'Landmark'.
+src/screens/buyer/CartScreen.tsx(3,89): error TS2305: Module '"lucide-react-native"' has no exported member 'Wallet'.
+src/screens/buyer/CartScreen.tsx(220,42): error TS2304: Cannot find name 'CartItem'.
+src/screens/buyer/HomeScreen.tsx(12,10): error TS2305: Module '"lucide-react-native"' has no exported member 'Scale'.
+src/screens/buyer/HomeScreen.tsx(24,71): error TS2551: Property 'Circle' does not exist on type 'typeof import("lucide-react-native")'. Did you mean 'XCircle'?
+src/screens/buyer/OrderHistoryScreen.tsx(63,16): error TS2339: Property 'razorpayOrderId' does not exist on type 'Order'.
+src/screens/buyer/OrderTrackingScreen.tsx(3,35): error TS2724: '"lucide-react-native"' has no exported member named 'Circle'. Did you mean 'XCircle'?
+src/screens/buyer/OrderTrackingScreen.tsx(3,74): error TS2305: Module '"lucide-react-native"' has no exported member 'FileText'.
+src/screens/buyer/OrderTrackingScreen.tsx(3,91): error TS2305: Module '"lucide-react-native"' has no exported member 'Activity'.
+src/screens/buyer/OrderTrackingScreen.tsx(28,23): error TS2339: Property 'status' does not exist on type 'Order'.
+src/screens/buyer/ProductDetailScreen.tsx(3,107): error TS2305: Module '"lucide-react-native"' has no exported member 'Scale'.
+src/screens/buyer/ProductDetailScreen.tsx(1242,3): error TS1117: An object literal cannot have multiple properties with the same name.
+src/screens/seller/DashboardScreen.tsx(48,51): error TS2339: Property 'status' does not exist on type 'Order'.
+src/screens/seller/DashboardScreen.tsx(48,77): error TS2339: Property 'status' does not exist on type 'Order'.
+src/screens/seller/ManageOrdersScreen.tsx(3,60): error TS2305: Module '"lucide-react-native"' has no exported member 'Megaphone'.
+src/screens/seller/ManageOrdersScreen.tsx(3,71): error TS2305: Module '"lucide-react-native"' has no exported member 'ChevronDown'.
+src/screens/seller/ManageOrdersScreen.tsx(3,92): error TS2305: Module '"lucide-react-native"' has no exported member 'CheckSquare'.
+src/screens/seller/ManageOrdersScreen.tsx(3,105): error TS2305: Module '"lucide-react-native"' has no exported member 'Download'.
+src/screens/seller/ManageOrdersScreen.tsx(3,115): error TS2305: Module '"lucide-react-native"' has no exported member 'Activity'.
+src/screens/seller/ManageOrdersScreen.tsx(95,55): error TS2339: Property 'status' does not exist on type 'Partial<Order>'.
+src/screens/seller/MeeshoSupplierHomeScreen.tsx(4,3): error TS2305: Module '"lucide-react-native"' has no exported member 'ListTodo'.
+src/screens/seller/MeeshoSupplierHomeScreen.tsx(6,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Download'.
+src/screens/seller/MeeshoSupplierHomeScreen.tsx(7,3): error TS2305: Module '"lucide-react-native"' has no exported member 'ClipboardX'.
+src/screens/seller/MeeshoSupplierHomeScreen.tsx(8,3): error TS2305: Module '"lucide-react-native"' has no exported member 'ClipboardList'.
+src/screens/seller/MeeshoSupplierHomeScreen.tsx(9,3): error TS2305: Module '"lucide-react-native"' has no exported member 'Activity'.
+src/screens/seller/MeeshoSupplierHomeScreen.tsx(12,3): error TS2305: Module '"lucide-react-native"' has no exported member 'ChevronRight'.
+src/screens/seller/SellerGenericTabScreen.tsx(3,115): error TS2305: Module '"lucide-react-native"' has no exported member 'Download'.
+src/screens/seller/SellerGenericTabScreen.tsx(3,125): error TS2305: Module '"lucide-react-native"' has no exported member 'ChevronDown'.
+src/screens/seller/SellerLoginScreen.tsx(13,25): error TS2307: Cannot find module '../../../assets/TAFDEAL_logo.svg' or its corresponding type declarations.
+src/screens/seller/SellerReviewsScreen.tsx(3,16): error TS2305: Module '"lucide-react-native"' has no exported member 'MessageSquare'.
+src/services/dynamicCatalogService.ts(9131,74): error TS2551: Property 'createdByAdminId' does not exist on type 'AttributeDefinition'. Did you mean 'updatedByAdminId'?
+src/services/dynamicCatalogService.ts(9132,77): error TS2551: Property 'createdByAdminEmail' does not exist on type 'AttributeDefinition'. Did you mean 'updatedByAdminEmail'?
+src/services/dynamicCatalogService.ts(9133,67): error TS2339: Property 'createdAt' does not exist on type 'AttributeDefinition'.
+src/services/financialEventService.ts(468,21): error TS2304: Cannot find name 'SellerSettlement'.
+src/services/financialEventService.ts(532,9): error TS2304: Cannot find name 'updateDoc'.
+src/services/firebaseService.ts(255,75): error TS2339: Property 'status' does not exist on type 'Order'.
+src/services/firebaseService.ts(258,29): error TS2339: Property 'status' does not exist on type 'Order'.
+src/services/firebaseService.ts(279,42): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/services/firebaseService.ts(286,39): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/services/firebaseService.ts(287,30): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/services/firebaseService.ts(800,59): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/services/firebaseService.ts(835,52): error TS2339: Property 'status' does not exist on type 'Order'.
+src/services/settlementService.ts(130,53): error TS2339: Property 'status' does not exist on type 'Order'.
+src/services/shadowfaxService.ts(127,29): error TS2551: Property 'categoryId' does not exist on type 'Product'. Did you mean 'category'?
+src/services/shadowfaxService.ts(199,32): error TS2551: Property 'categoryId' does not exist on type 'Product'. Did you mean 'category'?
+src/services/shadowfaxService.ts(203,29): error TS2339: Property 'legalName' does not exist on type 'Seller'.

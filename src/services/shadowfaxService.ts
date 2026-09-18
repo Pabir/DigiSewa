@@ -290,34 +290,14 @@ export const trackShadowfaxOrder = async (awb_number: string): Promise<any> => {
 
     if (!response.ok) {
       console.warn('Shadowfax tracking failed', response.status);
-      // Return mock tracking data for testing in staging since we use mock AWBs
-      return {
-        status: "Out for Delivery",
-        location: "Local Hub",
-        tracking_history: [
-          { status: "Out for Delivery", location: "Local Hub", remarks: "Out for delivery by executive", date: new Date().toISOString() },
-          { status: "Reached Nearest Hub", location: "Destination City", remarks: "Shipment arrived at destination hub", date: new Date(Date.now() - 86400000).toISOString() },
-          { status: "In Transit", location: "Transit Hub", remarks: "Shipment in transit", date: new Date(Date.now() - 172800000).toISOString() },
-          { status: "Shipped", location: "Origin Hub", remarks: "Package picked up from seller", date: new Date(Date.now() - 259200000).toISOString() }
-        ]
-      };
+      return null;
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error tracking Shadowfax order', error);
-    // Return mock tracking data for testing in staging
-    return {
-      status: "Out for Delivery",
-      location: "Local Hub",
-      tracking_history: [
-        { status: "Out for Delivery", location: "Local Hub", remarks: "Out for delivery by executive", date: new Date().toISOString() },
-        { status: "Reached Nearest Hub", location: "Destination City", remarks: "Shipment arrived at destination hub", date: new Date(Date.now() - 86400000).toISOString() },
-        { status: "In Transit", location: "Transit Hub", remarks: "Shipment in transit", date: new Date(Date.now() - 172800000).toISOString() },
-        { status: "Shipped", location: "Origin Hub", remarks: "Package picked up from seller", date: new Date(Date.now() - 259200000).toISOString() }
-      ]
-    };
+    return null;
   }
 };
 

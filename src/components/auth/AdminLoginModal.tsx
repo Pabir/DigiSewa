@@ -10,7 +10,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { ShieldAlert, KeyRound, X, ArrowRight, CheckCircle2 } from 'lucide-react-native';
+import { ShieldAlert, KeyRound, X, ArrowRight, CircleCheck } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 
 export const AdminLoginModal: React.FC = () => {
@@ -107,7 +107,7 @@ export const AdminLoginModal: React.FC = () => {
               </TouchableOpacity>
 
               <View style={styles.hintBox}>
-                <CheckCircle2 size={14} color="#10B981" />
+                <CircleCheck size={14} color="#10B981" />
                 <Text style={styles.hintText}>Demo Admin PIN: <Text style={{ fontWeight: '800' }}>8888</Text></Text>
               </View>
             </View>

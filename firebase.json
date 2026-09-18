@@ -8,6 +8,10 @@
     ],
     "rewrites": [
       {
+        "source": "/api/catalog_settings",
+        "function": "getCatalogSettingsCDN"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -17,6 +21,7 @@
     "source": "functions"
   },
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }

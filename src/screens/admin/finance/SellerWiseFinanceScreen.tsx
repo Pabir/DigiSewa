@@ -13,7 +13,7 @@ import {
   X,
   ChevronRight,
   Package,
-  CheckCircle2,
+  CircleCheck,
   Clock,
   ArrowUpRight
 } from 'lucide-react-native';
@@ -26,13 +26,14 @@ interface SellerFinanceData {
   totalPaid: number;
   unclearedFunds: number;
   taxLiabilities: number;
+  anticipatedRevenue: number;
 }
 
 export const SellerWiseFinanceScreen: React.FC = () => {
   const [sellerData, setSellerData] = useState<SellerFinanceData[]>([]);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [allSettlements, setAllSettlements] = useState<Settlement[]>([]);
-  const [selectedSeller, setSelectedSeller] = useState<{ seller: SellerFinanceData, metric: 'gmv' | 'revenue' | 'paid' | 'uncleared' | 'tax' | 'all' } | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<{ seller: SellerFinanceData, metric: 'gmv' | 'revenue' | 'paid' | 'uncleared' | 'tax' | 'anticipated' | 'all' } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -60,6 +61,7 @@ export const SellerWiseFinanceScreen: React.FC = () => {
           totalPaid: 0,
           unclearedFunds: 0,
           taxLiabilities: 0,
+          anticipatedRevenue: 0,
         });
       });
 
@@ -77,10 +79,34 @@ export const SellerWiseFinanceScreen: React.FC = () => {
               totalPaid: 0,
               unclearedFunds: 0,
               taxLiabilities: 0,
+              anticipatedRevenue: 0,
             });
           }
           const sellerStats = dataMap.get(orderSellerId)!;
           sellerStats.totalGmv += (order.totalAmount || 0);
+          
+          const getOrderDisplayStatus = (order: Order) => {
+            const fStatus = order.fulfillmentStatus || (order as any).status;
+            const dStatus = order.deliveryStatus || ((order as any).status === 'shipped' ? 'shipped' : (order as any).status === 'delivered' ? 'delivered' : undefined);
+            if (fStatus === 'cancelled') return 'CANCELLED';
+            if (dStatus === 'delivered') return 'DELIVERED';
+            if (dStatus === 'rto_in_transit' || dStatus === 'rto_delivered_to_seller') return 'RTO';
+            if (dStatus && dStatus !== 'unshipped') return dStatus.toUpperCase();
+            if (fStatus) return fStatus.toUpperCase();
+            return 'PENDING';
+          };
+          
+          if (['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'REACHED_HUB', 'OUT_FOR_DELIVERY'].includes(getOrderDisplayStatus(order))) {
+            const hasSettlement = settlements.some(s => s.orderId === order.id && (s.amountOwed || 0) > 0);
+            if (!hasSettlement) {
+              const baseAmt = order.productTotal !== undefined ? order.productTotal : (order.totalAmount || 0);
+              let expectedAmt = baseAmt * 0.95;
+              if (order.sellerOffersFreeShipping && order.actualShippingCost) {
+                expectedAmt -= order.actualShippingCost;
+              }
+              sellerStats.anticipatedRevenue += Math.max(0, expectedAmt);
+            }
+          }
         }
       });
 
@@ -96,6 +122,7 @@ export const SellerWiseFinanceScreen: React.FC = () => {
               totalPaid: 0,
               unclearedFunds: 0,
               taxLiabilities: 0,
+              anticipatedRevenue: 0,
             });
         }
         
@@ -212,6 +239,14 @@ export const SellerWiseFinanceScreen: React.FC = () => {
                     <Text style={[styles.statValue, {color: '#F59E0B'}]} numberOfLines={1} adjustsFontSizeToFit>₹{(seller.unclearedFunds || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
                 </TouchableOpacity>
 
+                <TouchableOpacity style={styles.statBox} onPress={() => setSelectedSeller({ seller, metric: 'anticipated' })}>
+                    <View style={styles.statLabelRow}>
+                      <TrendingUp size={14} color="#8B5CF6" />
+                      <Text style={styles.statLabel}>Anticipated Revenue</Text>
+                    </View>
+                    <Text style={[styles.statValue, {color: '#8B5CF6'}]} numberOfLines={1} adjustsFontSizeToFit>₹{(seller.anticipatedRevenue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity style={styles.statBox} onPress={() => setSelectedSeller({ seller, metric: 'tax' })}>
                     <View style={styles.statLabelRow}>
                       <Landmark size={14} color="#EF4444" />
@@ -247,6 +282,7 @@ export const SellerWiseFinanceScreen: React.FC = () => {
                      selectedSeller.metric === 'revenue' ? 'Platform Revenue Details' : 
                      selectedSeller.metric === 'paid' ? 'Paid Payouts History' : 
                      selectedSeller.metric === 'uncleared' ? 'Uncleared Funds Overview' : 
+                     selectedSeller.metric === 'anticipated' ? 'Anticipated Revenue Details' :
                      'Tax Liabilities Breakdown'}
                   </Text>
                 </View>
@@ -257,6 +293,20 @@ export const SellerWiseFinanceScreen: React.FC = () => {
             </View>
             
             <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              
+              {(() => {
+                const getOrderDisplayStatus = (order: Order) => {
+                  const fStatus = order.fulfillmentStatus || (order as any).status;
+                  const dStatus = order.deliveryStatus || ((order as any).status === 'shipped' ? 'shipped' : (order as any).status === 'delivered' ? 'delivered' : undefined);
+                  if (fStatus === 'cancelled') return 'CANCELLED';
+                  if (dStatus === 'delivered') return 'DELIVERED';
+                  if (dStatus === 'rto_in_transit' || dStatus === 'rto_delivered_to_seller') return 'RTO';
+                  if (dStatus && dStatus !== 'unshipped') return dStatus.toUpperCase();
+                  if (fStatus) return fStatus.toUpperCase();
+                  return 'PENDING';
+                };
+                return (
+                  <>
               
               {(selectedSeller.metric === 'gmv' || selectedSeller.metric === 'all') && (
                 <>
@@ -335,7 +385,7 @@ export const SellerWiseFinanceScreen: React.FC = () => {
                       <View key={s.id} style={[styles.detailRow, index === arr.length - 1 && { borderBottomWidth: 0 }]}>
                         <View style={styles.detailRowLeft}>
                            <View style={[styles.orderIconWrapper, { backgroundColor: s.status === 'settled' ? '#D1FAE5' : '#FEF3C7' }]}>
-                             {s.status === 'settled' ? <CheckCircle2 size={16} color="#10B981" /> : <Clock size={16} color="#D97706" />}
+                             {s.status === 'settled' ? <CircleCheck size={16} color="#10B981" /> : <Clock size={16} color="#D97706" />}
                            </View>
                           <View>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -354,6 +404,51 @@ export const SellerWiseFinanceScreen: React.FC = () => {
                   </View>
                 </>
               )}
+
+              {(selectedSeller.metric === 'anticipated' || selectedSeller.metric === 'all') && (
+                <>
+                  <View style={styles.sectionHeader}>
+                    <TrendingUp size={18} color="#8B5CF6" />
+                    <Text style={[styles.sectionTitle, { color: '#8B5CF6' }]}>
+                      Anticipated Revenue
+                    </Text>
+                  </View>
+                  <View style={styles.listContainer}>
+                    {allOrders
+                      .filter(o => o && o.items?.[0]?.product?.sellerId === selectedSeller.seller.sellerId && ['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'REACHED_HUB', 'OUT_FOR_DELIVERY'].includes(getOrderDisplayStatus(o)))
+                      .filter(o => !allSettlements.some(s => s.orderId === o.id && (s.amountOwed || 0) > 0))
+                      .map((o, index, arr) => {
+                        const baseAmt = o.productTotal !== undefined ? o.productTotal : (o.totalAmount || 0);
+                        let expectedAmt = baseAmt * 0.95;
+                        if (o.sellerOffersFreeShipping && o.actualShippingCost) {
+                          expectedAmt -= o.actualShippingCost;
+                        }
+                        const finalAmt = Math.max(0, expectedAmt);
+                        return (
+                          <View key={o.id} style={[styles.detailRow, index === arr.length - 1 && { borderBottomWidth: 0 }]}>
+                            <View style={styles.detailRowLeft}>
+                              <View style={[styles.orderIconWrapper, { backgroundColor: '#EDE9FE' }]}>
+                                <Package size={16} color="#8B5CF6" />
+                              </View>
+                              <View>
+                                <Text style={styles.detailText}>Order #{o.id?.substring(0, 8)}</Text>
+                                <Text style={styles.detailSubText}>Status: {getOrderDisplayStatus(o).replace(/_/g, ' ')}</Text>
+                              </View>
+                            </View>
+                            <Text style={styles.detailAmount}>₹{Number(finalAmt).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</Text>
+                          </View>
+                        );
+                    })}
+                    {allOrders
+                      .filter(o => o && o.items?.[0]?.product?.sellerId === selectedSeller.seller.sellerId && ['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'REACHED_HUB', 'OUT_FOR_DELIVERY'].includes(getOrderDisplayStatus(o)))
+                      .filter(o => !allSettlements.some(s => s.orderId === o.id && (s.amountOwed || 0) > 0))
+                      .length === 0 && <Text style={{padding: 16, color: '#64748B'}}>No anticipated revenue.</Text>}
+                  </View>
+                </>
+              )}
+                  </>
+                );
+              })()}
               <View style={{ height: 20 }} />
             </ScrollView>
           </View>

@@ -223,3 +223,8 @@ export interface DynamicProductData {
   isHyperlocalAvailable: boolean;
   offerFreeShipping?: boolean;
 }
+
+export interface StockShard {
+  id: string; // "0" to "N-1"
+  count: number;
+}

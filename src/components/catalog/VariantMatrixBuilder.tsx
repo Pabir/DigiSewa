@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { ProductVariant, AttributeDefinition } from '../../types/dynamicCatalog';
 import { generateVariantMatrix } from '../../services/dynamicCatalogService';
-import { Sparkles, Trash2, Plus, CheckCircle2, ShoppingBag, Image as ImageIcon } from 'lucide-react-native';
+import { Sparkles, Trash2, Plus, CircleCheck, ShoppingBag, Image as ImageIcon } from 'lucide-react-native';
 import { ImageQualityCheckModal } from '../seller/ImageQualityCheckModal';
 
 interface VariantMatrixBuilderProps {
@@ -200,6 +200,12 @@ export const VariantMatrixBuilder: React.FC<VariantMatrixBuilderProps> = ({
                 </View>
               );
             })}
+          </View>
+          
+          <View style={styles.warningBox}>
+            <Text style={styles.warningText}>
+              ⚠️ Warning: To avoid upload errors during catalog submission, please compress or reduce your image sizes before uploading. Large files (e.g., &gt; 1MB) will cause the submission to fail.
+            </Text>
           </View>
         </View>
       )}
@@ -613,5 +619,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#0F172A',
+  },
+  warningBox: {
+    marginTop: 12,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    borderRadius: 8,
+    padding: 10,
+  },
+  warningText: {
+    fontSize: 11,
+    color: '#991B1B',
+    fontWeight: '600',
+    lineHeight: 16,
   }
 });

@@ -14,6 +14,7 @@ import {
 import { doc, setDoc, getDoc, onSnapshot, collection, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db, ensureFirebaseAuth } from '../config/firebaseConfig';
 import { addProduct } from './firebaseService';
+import { initializeStockShards } from './inventoryService';
 import { getWearType, getGenderType } from '../utils/productSizeUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -8682,77 +8683,116 @@ export const deduplicateAttributes = (list: AttributeDefinition[]): AttributeDef
 };
 
 export const syncFromFirestore = async (): Promise<{ success: boolean; attrCount: number; catCount: number }> => {
+  let cdnSuccess = false;
   try {
-    await ensureFirebaseAuth();
-    let latestAttrs: AttributeDefinition[] = [...SEED_ATTRIBUTES];
-    let collSuccess = false;
+    const projectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
+    if (!projectId) throw new Error("EXPO_PUBLIC_FIREBASE_PROJECT_ID is not defined");
 
-    // 1. Fetch from catalog_attributes collection docs (Primary Source of Truth)
-    try {
-      const collSnap = await getDocs(collection(db, 'catalog_attributes'));
-      collSnap.docs.forEach((d) => {
-        const data = d.data() as AttributeDefinition;
-        if (data && data.id && data.label) {
-          latestAttrs.push(data);
-        }
-      });
-      collSuccess = true;
-    } catch (e) {}
+    // Bypass CDN cache temporarily to ensure fresh mappings are pulled
+    const cdnUrl = `https://${projectId}.web.app/api/catalog_settings?_t=${Date.now()}`;
+    const response = await fetch(cdnUrl, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`CDN fetch failed with status ${response.status}`);
 
-    // 2. Fetch from catalog_settings/attributes_repository doc (Fallback)
-    if (!collSuccess) {
-      try {
-        const attrDoc = await getDoc(doc(db, 'catalog_settings', 'attributes_repository'));
-        if (attrDoc.exists() && Array.isArray(attrDoc.data()?.attributes)) {
-          latestAttrs.push(...attrDoc.data()?.attributes);
-        }
-      } catch (e) {}
-      // retain memory if both fail
-      latestAttrs.push(...memoryAttributes);
+    const data = await response.json();
+    if (!data.categories && !data.attributes && !data.mappings) {
+      throw new Error("Invalid CDN response format");
     }
 
-    memoryAttributes = deduplicateAttributes(latestAttrs);
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(STORAGE_KEYS.ATTRIBUTES, JSON.stringify(memoryAttributes));
-    }
-
-    // 3. Fetch Category Tree
-    try {
-      const catDoc = await getDoc(doc(db, 'catalog_settings', 'categories_tree'));
-      if (catDoc.exists() && Array.isArray(catDoc.data()?.categories)) {
-        const cloudCats = catDoc.data()?.categories;
-        const isCloudValid = cloudCats.length >= 20 && cloudCats.some((c: any) => c.name === 'Men Fashion' || c.name === 'Women Fashion');
-        if (isCloudValid) {
-          memoryCategories = cloudCats;
-        } else {
-          memoryCategories = SEED_CATEGORIES;
-          await setDoc(doc(db, 'catalog_settings', 'categories_tree'), { categories: SEED_CATEGORIES, updatedAt: new Date().toISOString() });
-        }
-      } else {
-        memoryCategories = SEED_CATEGORIES;
-        await setDoc(doc(db, 'catalog_settings', 'categories_tree'), { categories: SEED_CATEGORIES, updatedAt: new Date().toISOString() });
+    if (data.attributes && Array.isArray(data.attributes)) {
+      memoryAttributes = deduplicateAttributes([...SEED_ATTRIBUTES, ...data.attributes]);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEYS.ATTRIBUTES, JSON.stringify(memoryAttributes));
       }
+    }
+
+    if (data.categories && Array.isArray(data.categories)) {
+      const isCloudValid = data.categories.length >= 20 && data.categories.some((c: any) => c.name === 'Men Fashion' || c.name === 'Women Fashion');
+      memoryCategories = isCloudValid ? data.categories : SEED_CATEGORIES;
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(memoryCategories));
       }
-    } catch (e) {}
+    }
 
-    // 4. Fetch Category Mappings
-    try {
-      const mapDoc = await getDoc(doc(db, 'catalog_settings', 'category_mappings'));
-      if (mapDoc.exists() && Array.isArray(mapDoc.data()?.mappings)) {
-        memoryMappings = mapDoc.data()?.mappings;
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(STORAGE_KEYS.MAPPINGS, JSON.stringify(memoryMappings));
-        }
+    if (data.mappings && Array.isArray(data.mappings)) {
+      memoryMappings = data.mappings;
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEYS.MAPPINGS, JSON.stringify(memoryMappings));
       }
-    } catch (e) {}
+    }
 
-    return { success: true, attrCount: memoryAttributes.length, catCount: memoryCategories.length };
+    cdnSuccess = true;
   } catch (err) {
-    console.warn('Firestore sync load warning:', err);
-    return { success: false, attrCount: memoryAttributes.length, catCount: memoryCategories.length };
+    console.warn('CDN sync load warning, falling back to Firestore:', err);
   }
+
+  if (!cdnSuccess) {
+    try {
+      await ensureFirebaseAuth();
+      let latestAttrs: AttributeDefinition[] = [...SEED_ATTRIBUTES];
+      let collSuccess = false;
+
+      // 1. Fetch from catalog_attributes collection docs (Primary Source of Truth)
+      try {
+        const collSnap = await getDocs(collection(db, 'catalog_attributes'));
+        collSnap.docs.forEach((d) => {
+          const data = d.data() as AttributeDefinition;
+          if (data && data.id && data.label) latestAttrs.push(data);
+        });
+        collSuccess = true;
+      } catch (e) {}
+
+      // 2. Fetch from catalog_settings/attributes_repository doc (Fallback)
+      if (!collSuccess) {
+        try {
+          const attrDoc = await getDoc(doc(db, 'catalog_settings', 'attributes_repository'));
+          if (attrDoc.exists() && Array.isArray(attrDoc.data()?.attributes)) {
+            latestAttrs.push(...attrDoc.data()?.attributes);
+          }
+        } catch (e) {}
+        latestAttrs.push(...memoryAttributes);
+      }
+
+      memoryAttributes = deduplicateAttributes(latestAttrs);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEYS.ATTRIBUTES, JSON.stringify(memoryAttributes));
+      }
+
+      // 3. Fetch Category Tree
+      try {
+        const catDoc = await getDoc(doc(db, 'catalog_settings', 'categories_tree'));
+        if (catDoc.exists() && Array.isArray(catDoc.data()?.categories)) {
+          const cloudCats = catDoc.data()?.categories;
+          const isCloudValid = cloudCats.length >= 20 && cloudCats.some((c: any) => c.name === 'Men Fashion' || c.name === 'Women Fashion');
+          if (isCloudValid) {
+            memoryCategories = cloudCats;
+          } else {
+            memoryCategories = SEED_CATEGORIES;
+          }
+        } else {
+          memoryCategories = SEED_CATEGORIES;
+        }
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(memoryCategories));
+        }
+      } catch (e) {}
+
+      // 4. Fetch Category Mappings
+      try {
+        const mapDoc = await getDoc(doc(db, 'catalog_settings', 'category_mappings'));
+        if (mapDoc.exists() && Array.isArray(mapDoc.data()?.mappings)) {
+          memoryMappings = mapDoc.data()?.mappings;
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(STORAGE_KEYS.MAPPINGS, JSON.stringify(memoryMappings));
+          }
+        }
+      } catch (e) {}
+    } catch (fallbackErr) {
+      console.error('Firestore fallback sync failed:', fallbackErr);
+      return { success: false, attrCount: memoryAttributes.length, catCount: memoryCategories.length };
+    }
+  }
+
+  return { success: true, attrCount: memoryAttributes.length, catCount: memoryCategories.length };
 };
 
 export const pushAllSettingsToFirestore = async (): Promise<boolean> => {
@@ -8772,12 +8812,12 @@ export const pushAllSettingsToFirestore = async (): Promise<boolean> => {
       }
     };
 
-    addOperationToBatch(doc(db, 'catalog_settings', 'attributes_repository'), { attributes: memoryAttributes, updatedAt: new Date().toISOString() });
-    addOperationToBatch(doc(db, 'catalog_settings', 'categories_tree'), { categories: memoryCategories, updatedAt: new Date().toISOString() });
-    addOperationToBatch(doc(db, 'catalog_settings', 'category_mappings'), { mappings: memoryMappings, updatedAt: new Date().toISOString() });
+    addOperationToBatch(doc(db, 'catalog_settings', 'attributes_repository'), { attributes: JSON.parse(JSON.stringify(memoryAttributes)), updatedAt: new Date().toISOString() });
+    addOperationToBatch(doc(db, 'catalog_settings', 'categories_tree'), { categories: JSON.parse(JSON.stringify(memoryCategories)), updatedAt: new Date().toISOString() });
+    addOperationToBatch(doc(db, 'catalog_settings', 'category_mappings'), { mappings: JSON.parse(JSON.stringify(memoryMappings)), updatedAt: new Date().toISOString() });
 
     for (const attr of memoryAttributes) {
-      addOperationToBatch(doc(db, 'catalog_attributes', attr.id), attr);
+      addOperationToBatch(doc(db, 'catalog_attributes', attr.id), JSON.parse(JSON.stringify(attr)));
     }
 
     if (operationCount > 0) {
@@ -8787,8 +8827,9 @@ export const pushAllSettingsToFirestore = async (): Promise<boolean> => {
     await Promise.all(commitPromises);
 
     return true;
-  } catch (e) {
+  } catch (e: any) {
     console.error('Push to firestore error:', e);
+    alert('Push to firestore error: ' + (e.message || e.toString()));
     return false;
   }
 };
@@ -8833,60 +8874,12 @@ export const importCatalogSchemaJSON = (jsonStr: string): boolean => {
 };
 
 export const subscribeToCatalogSettings = (onUpdate: () => void) => {
-  try {
-    const unsubAttrs = onSnapshot(doc(db, 'catalog_settings', 'attributes_repository'), (snapshot) => {
-      if (snapshot.exists() && Array.isArray(snapshot.data()?.attributes)) {
-        const cloudAttrs: AttributeDefinition[] = snapshot.data()?.attributes;
-        memoryAttributes = deduplicateAttributes([...SEED_ATTRIBUTES, ...cloudAttrs]);
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(STORAGE_KEYS.ATTRIBUTES, JSON.stringify(memoryAttributes));
-        }
-        onUpdate();
-      }
-    });
-
-    const unsubCats = onSnapshot(doc(db, 'catalog_settings', 'categories_tree'), (snapshot) => {
-      if (snapshot.exists() && Array.isArray(snapshot.data()?.categories)) {
-        const cloudCats = snapshot.data()?.categories;
-        const isCloudValid = cloudCats.length >= 20 && cloudCats.some((c: any) => c.name === 'Men Fashion' || c.name === 'Women Fashion');
-        if (isCloudValid) {
-          memoryCategories = cloudCats;
-          if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(memoryCategories));
-          }
-          onUpdate();
-        }
-      }
-    });
-
-    const unsubMappings = onSnapshot(doc(db, 'catalog_settings', 'category_mappings'), (snapshot) => {
-      if (snapshot.exists() && Array.isArray(snapshot.data()?.mappings)) {
-        memoryMappings = snapshot.data()?.mappings;
-        if (typeof window !== 'undefined' && window.localStorage) {
-          window.localStorage.setItem(STORAGE_KEYS.MAPPINGS, JSON.stringify(memoryMappings));
-        }
-        onUpdate();
-      }
-    });
-
-    const unsubAttrsCollection = onSnapshot(collection(db, 'catalog_attributes'), (snapshot) => {
-      const cloudAttrs: AttributeDefinition[] = snapshot.docs.map((doc) => doc.data() as AttributeDefinition);
-      memoryAttributes = deduplicateAttributes([...SEED_ATTRIBUTES, ...cloudAttrs]);
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem(STORAGE_KEYS.ATTRIBUTES, JSON.stringify(memoryAttributes));
-      }
-      onUpdate();
-    });
-
-    return () => {
-      unsubAttrs();
-      unsubAttrsCollection();
-      unsubCats();
-      unsubMappings();
-    };
-  } catch (e) {
-    return () => {};
-  }
+  // Disabled real-time listeners for standard users to prevent massive concurrent 
+  // connections and read costs. We now rely on the CDN cache via syncFromFirestore().
+  console.log("Real-time subscriptions disabled in favor of CDN caching.");
+  return () => {
+    // Return empty unsubscribe function
+  };
 };
 
 const syncToFirestore = async (key: string, data: any) => {
@@ -9172,7 +9165,23 @@ export const deleteAttribute = async (attributeId: string): Promise<boolean> => 
 export const getCategoryAttributeMappings = (categoryId: string): CategoryAttributeMapping[] => {
   const pathNodes = getCategoryPathNodes(categoryId);
   const pathIds = pathNodes.map((n) => n.id);
-  return memoryMappings.filter((m) => pathIds.includes(m.categoryId));
+  const allMappings = memoryMappings.filter((m) => pathIds.includes(m.categoryId));
+  
+  const deduplicated = new Map<string, CategoryAttributeMapping>();
+  allMappings.forEach((mapping) => {
+    const existing = deduplicated.get(mapping.attributeId);
+    if (!existing) {
+      deduplicated.set(mapping.attributeId, mapping);
+    } else {
+      const existingDepth = pathIds.indexOf(existing.categoryId);
+      const newDepth = pathIds.indexOf(mapping.categoryId);
+      if (newDepth > existingDepth) {
+        deduplicated.set(mapping.attributeId, mapping);
+      }
+    }
+  });
+
+  return Array.from(deduplicated.values());
 };
 
 export const mapAttributeToCategory = (
@@ -9229,7 +9238,7 @@ export const toggleCategoryAttributeRequired = (
   categoryId: string,
   attributeId: string,
   adminInfo?: { uid: string; email: string }
-): boolean => {
+): void => {
   let mapping = memoryMappings.find(
     (m) => m.categoryId === categoryId && m.attributeId === attributeId
   );
@@ -9660,6 +9669,17 @@ export const saveCatalogProduct = async (productData: Partial<DynamicProductData
 
     if (syncedProduct && syncedProduct.id) {
       newProduct.id = syncedProduct.id;
+      
+      // Initialize distributed stock shards
+      if (newProduct.variants && newProduct.variants.length > 0) {
+        for (const variant of newProduct.variants) {
+          if (variant.id) {
+            await initializeStockShards(newProduct.id, variant.id, variant.stock);
+          }
+        }
+      } else {
+        await initializeStockShards(newProduct.id, null, newProduct.stock);
+      }
     }
   } catch (err) {
     console.warn('Firebase sync warning:', err);

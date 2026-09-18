@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity, Modal } from 'react-native';
-import { TrendingUp, DollarSign, Activity, AlertCircle, CheckCircle2, X } from 'lucide-react-native';
+import { TrendingUp, DollarSign, Activity, AlertCircle, CircleCheck, X } from 'lucide-react-native';
 import { getOrders } from '../../../services/firebaseService';
 import { getAllSettlements } from '../../../services/settlementService';
 import { Order, Settlement } from '../../../types';
@@ -12,13 +12,14 @@ export const FinanceDashboardScreen: React.FC = () => {
     unclearedFunds: 0,
     taxLiabilities: 0,
     totalPaid: 0,
+    anticipatedRevenue: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [allSettlements, setAllSettlements] = useState<Settlement[]>([]);
-  const [selectedCard, setSelectedCard] = useState<'gmv' | 'revenue' | 'paid' | 'uncleared' | 'tax' | null>(null);
+  const [selectedCard, setSelectedCard] = useState<'gmv' | 'revenue' | 'paid' | 'uncleared' | 'tax' | 'anticipated' | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedPayout, setSelectedPayout] = useState<Settlement | null>(null);
 
@@ -36,9 +37,33 @@ export const FinanceDashboardScreen: React.FC = () => {
       let netRevenue = 0;
       let unclearedFunds = 0;
       let totalPaid = 0;
+      let anticipatedRevenue = 0;
+
+      const getOrderDisplayStatus = (order: Order) => {
+        const fStatus = order.fulfillmentStatus || (order as any).status;
+        const dStatus = order.deliveryStatus || ((order as any).status === 'shipped' ? 'shipped' : (order as any).status === 'delivered' ? 'delivered' : undefined);
+        if (fStatus === 'cancelled') return 'CANCELLED';
+        if (dStatus === 'delivered') return 'DELIVERED';
+        if (dStatus === 'rto_in_transit' || dStatus === 'rto_delivered_to_seller') return 'RTO';
+        if (dStatus && dStatus !== 'unshipped') return dStatus.toUpperCase();
+        if (fStatus) return fStatus.toUpperCase();
+        return 'PENDING';
+      };
 
       orders.forEach(order => {
         gmv += (order.totalAmount || 0);
+
+        if (['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'REACHED_HUB', 'OUT_FOR_DELIVERY'].includes(getOrderDisplayStatus(order))) {
+          const hasSettlement = settlements.some(s => s.orderId === order.id && (s.amountOwed || 0) > 0);
+          if (!hasSettlement) {
+            const baseAmt = order.productTotal !== undefined ? order.productTotal : (order.totalAmount || 0);
+            let expectedAmt = baseAmt * 0.95;
+            if (order.sellerOffersFreeShipping && order.actualShippingCost) {
+              expectedAmt -= order.actualShippingCost;
+            }
+            anticipatedRevenue += Math.max(0, expectedAmt);
+          }
+        }
       });
 
       settlements.forEach(s => {
@@ -62,7 +87,8 @@ export const FinanceDashboardScreen: React.FC = () => {
         netRevenue,
         unclearedFunds,
         taxLiabilities,
-        totalPaid
+        totalPaid,
+        anticipatedRevenue
       });
     } catch (error) {
       console.error(error);
@@ -85,6 +111,17 @@ export const FinanceDashboardScreen: React.FC = () => {
       </View>
     );
   }
+
+  const getOrderDisplayStatus = (order: Order) => {
+    const fStatus = order.fulfillmentStatus || (order as any).status;
+    const dStatus = order.deliveryStatus || ((order as any).status === 'shipped' ? 'shipped' : (order as any).status === 'delivered' ? 'delivered' : undefined);
+    if (fStatus === 'cancelled') return 'CANCELLED';
+    if (dStatus === 'delivered') return 'DELIVERED';
+    if (dStatus === 'rto_in_transit' || dStatus === 'rto_delivered_to_seller') return 'RTO';
+    if (dStatus && dStatus !== 'unshipped') return dStatus.toUpperCase();
+    if (fStatus) return fStatus.toUpperCase();
+    return 'PENDING';
+  };
 
   const renderModalContent = () => {
     switch(selectedCard) {
@@ -144,6 +181,32 @@ export const FinanceDashboardScreen: React.FC = () => {
             ))}
           </ScrollView>
         );
+      case 'anticipated':
+        return (
+          <ScrollView style={styles.modalScroll}>
+            {allOrders
+              .filter(o => ['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'REACHED_HUB', 'OUT_FOR_DELIVERY'].includes(getOrderDisplayStatus(o)))
+              .filter(o => !allSettlements.some(s => s.orderId === o.id && (s.amountOwed || 0) > 0))
+              .map(o => {
+                const baseAmt = o.productTotal !== undefined ? o.productTotal : (o.totalAmount || 0);
+                let expectedAmt = baseAmt * 0.95;
+                if (o.sellerOffersFreeShipping && o.actualShippingCost) {
+                  expectedAmt -= o.actualShippingCost;
+                }
+                const finalAmt = Math.max(0, expectedAmt);
+                return (
+                  <TouchableOpacity key={o.id} style={styles.detailRow} onPress={() => setSelectedOrder(o)}>
+                    <View>
+                      <Text style={[styles.detailText, { color: '#8B5CF6', textDecorationLine: 'underline' }]}>Order: {o.id}</Text>
+                      <Text style={{fontSize: 12, color: '#64748B'}}>Status: {getOrderDisplayStatus(o).replace(/_/g, ' ')}</Text>
+                    </View>
+                    <Text style={styles.detailAmount}>₹{finalAmt.toFixed(2)}</Text>
+                  </TouchableOpacity>
+                );
+            })}
+            {allOrders.filter(o => ['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'REACHED_HUB', 'OUT_FOR_DELIVERY'].includes(getOrderDisplayStatus(o))).filter(o => !allSettlements.some(s => s.orderId === o.id && (s.amountOwed || 0) > 0)).length === 0 && <Text style={{padding: 16, color: '#64748B'}}>No anticipated revenue.</Text>}
+          </ScrollView>
+        );
       case 'tax':
         return (
           <View style={styles.modalScroll}>
@@ -163,6 +226,7 @@ export const FinanceDashboardScreen: React.FC = () => {
       case 'revenue': return 'Net Revenue Details';
       case 'paid': return 'Settled Payouts Details';
       case 'uncleared': return 'Uncleared PG Funds Details';
+      case 'anticipated': return 'Anticipated Revenue Details';
       case 'tax': return 'Tax Liabilities Details';
       default: return '';
     }
@@ -206,7 +270,7 @@ export const FinanceDashboardScreen: React.FC = () => {
           <TouchableOpacity style={styles.card} onPress={() => setSelectedCard('paid')}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>Total Paid to Sellers</Text>
-              <CheckCircle2 size={20} color="#15803D" />
+              <CircleCheck size={20} color="#15803D" />
             </View>
             <Text style={styles.cardValue}>₹{metrics.totalPaid.toFixed(2)}</Text>
             <Text style={styles.cardSubtext}>Settled payouts</Text>
@@ -220,6 +284,16 @@ export const FinanceDashboardScreen: React.FC = () => {
             </View>
             <Text style={styles.cardValue}>₹{metrics.unclearedFunds.toFixed(2)}</Text>
             <Text style={styles.cardSubtext}>Pending T+2 settlement</Text>
+          </TouchableOpacity>
+
+          {/* Anticipated Revenue Card */}
+          <TouchableOpacity style={styles.card} onPress={() => setSelectedCard('anticipated')}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Anticipated Revenue</Text>
+              <TrendingUp size={20} color="#8B5CF6" />
+            </View>
+            <Text style={styles.cardValue}>₹{metrics.anticipatedRevenue.toFixed(2)}</Text>
+            <Text style={styles.cardSubtext}>Revenue from active shipments</Text>
           </TouchableOpacity>
 
           {/* Tax Liabilities Card */}
@@ -274,7 +348,7 @@ export const FinanceDashboardScreen: React.FC = () => {
                 <View>
                   <Text style={{fontWeight: 'bold', marginBottom: 5, fontSize: 16}}>Order ID: {selectedOrder.id}</Text>
                   <Text style={{marginBottom: 2}}>Buyer: {selectedOrder.buyerName} ({selectedOrder.buyerPhone})</Text>
-                  <Text style={{marginBottom: 2}}>Status: {selectedOrder.status.toUpperCase()}</Text>
+                  <Text style={{marginBottom: 2}}>Status: {getOrderDisplayStatus(selectedOrder).replace(/_/g, ' ')}</Text>
                   <Text style={{marginBottom: 2}}>Payment Mode: {selectedOrder.paymentMode.toUpperCase()}</Text>
                   <Text style={{marginBottom: 2}}>Total Amount: ₹{selectedOrder.totalAmount?.toFixed(2)}</Text>
                   <Text style={{marginBottom: 10}}>Date: {new Date(selectedOrder.createdAt).toLocaleString()}</Text>

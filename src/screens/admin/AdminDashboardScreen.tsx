@@ -18,6 +18,8 @@ import { ReconciliationScreen } from './finance/ReconciliationScreen';
 import { SettlementBatchesScreen } from './finance/SettlementBatchesScreen';
 import { TaxReportsScreen } from './finance/TaxReportsScreen';
 import { AdminPendingTasksScreen } from './AdminPendingTasksScreen';
+import { AdminMockDeliveriesScreen } from './AdminMockDeliveriesScreen';
+import { AdminOrderTrackingScreen } from './AdminOrderTrackingScreen';
 import {
   AdminSeller,
   AdminCustomer,
@@ -29,7 +31,7 @@ import {
 
 import { UserRole, Seller, Order } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { getSellersFromFirestore, getSupportTicketsFromFirestore, getUsersFromFirestore, getOrders, updateSellerGstInFirestore, listenToSystemSettings } from '../../services/firebaseService';
+import { listenToSystemSettings, getAdminDashboardMetrics, updateSellerGstInFirestore } from '../../services/firebaseService';
 import { Alert } from 'react-native';
 
 interface AdminDashboardScreenProps {
@@ -65,108 +67,22 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
     return () => unsubscribe();
   }, []);
 
+  const [metrics, setMetrics] = useState<AdminOverviewMetrics>({
+    totalRevenue: 0,
+    activeSellersCount: 0,
+    pendingSellersCount: 0,
+    totalCustomersCount: 0,
+    openSellerTicketsCount: 0,
+    openCustomerTicketsCount: 0,
+  });
+
   useEffect(() => {
-    getSellersFromFirestore().then(remoteSellers => {
-      if (remoteSellers && remoteSellers.length > 0) {
-        const mappedAdminSellers: AdminSeller[] = remoteSellers.map((s: Seller) => ({
-          id: s.id,
-          storeName: s.storeName,
-          ownerName: s.ownerName || s.storeName,
-          email: s.email || 'seller@TafDeal.in',
-          phone: s.phone,
-          gstin: s.gstin || 'GST-NOT-PROVIDED',
-          panNumber: s.panNumber || 'PAN-NOT-PROVIDED',
-          bankAccountNo: s.bankDetails?.accountNumber || '918020044556611',
-          ifscCode: s.bankDetails?.ifscCode || 'UTIB0000123',
-          bankName: s.bankDetails?.bankName || 'Axis Bank',
-          storeAddress: s.businessAddress || `${s.pickupAddress?.building || ''}, ${s.pickupAddress?.city || ''}`,
-          city: s.pickupAddress?.city || 'Guwahati',
-          state: s.pickupAddress?.state || 'Assam',
-          pincode: s.pickupAddress?.pincode || '781001',
-          status: s.verificationStatus === 'verified' ? 'approved' : s.verificationStatus === 'rejected' ? 'rejected' : 'pending',
-          joinedDate: s.joinedDate ? s.joinedDate.split('T')[0] : new Date().toISOString().split('T')[0],
-          totalProductsCount: 1,
-          totalSalesVolume: s.totalSales || 0,
-          rejectionReason: s.rejectionReason,
-          eSignatureText: s.eSignatureText,
-          eSignatureUrl: s.eSignatureUrl || (s.eSignatureText ? 'verified' : undefined),
-          gstAdditionRequest: s.gstAdditionRequest,
-        }));
-
-        setSellers(prev => {
-          const map = new Map<string, AdminSeller>();
-          prev.forEach(item => map.set(item.id, item));
-          mappedAdminSellers.forEach(item => map.set(item.id, item));
-          return Array.from(map.values());
-        });
-      }
-    });
-
-    getSupportTicketsFromFirestore().then(remoteTickets => {
-      if (remoteTickets && remoteTickets.length > 0) {
-        setSellerTickets(remoteTickets.filter(t => t.ticketType === 'seller'));
-        setCustomerTickets(remoteTickets.filter(t => t.ticketType === 'customer'));
-      }
-    });
-
-    getUsersFromFirestore().then(async remoteUsers => {
-      if (remoteUsers && remoteUsers.length > 0) {
-        const customerUsers = remoteUsers.filter(u => u.role === 'customer' || u.role === 'buyer' || u.role === 'guest');
-        if (customerUsers.length > 0) {
-          try {
-            const fetchedOrders = await getOrders();
-            setAllOrders(fetchedOrders);
-            const mappedAdminCustomers: AdminCustomer[] = customerUsers.map((u) => {
-              const userOrders = fetchedOrders.filter(order => order.buyerId === u.id);
-              const totalOrders = userOrders.length;
-              const totalSpent = userOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-
-              return {
-                id: u.id,
-                name: u.name || 'Unknown',
-                email: u.email || 'N/A',
-                phone: u.phone || 'N/A',
-                city: 'N/A', 
-                state: 'N/A',
-                walletBalance: 0,
-                totalOrders: totalOrders,
-                totalSpent: totalSpent,
-                orders: userOrders,
-                status: 'active',
-                registeredDate: new Date().toISOString().split('T')[0],
-                lastActive: new Date().toISOString().split('T')[0]
-              };
-            });
-
-            setCustomers(prev => {
-              const map = new Map<string, AdminCustomer>();
-              prev.forEach(item => map.set(item.id, item));
-              mappedAdminCustomers.forEach(item => map.set(item.id, item));
-              return Array.from(map.values());
-            });
-          } catch (error) {
-            console.error('Failed to fetch orders for customers:', error);
-          }
-        }
-      }
-    });
+    const fetchMetrics = async () => {
+      const data = await getAdminDashboardMetrics();
+      setMetrics(data);
+    };
+    fetchMetrics();
   }, []);
-
-  // Computed Overview Metrics
-  const pendingSellersCount = sellers.filter((s) => s.status === 'pending').length;
-  const activeSellersCount = sellers.filter((s) => s.status === 'approved').length;
-  const openSellerTicketsCount = sellerTickets.filter((t) => t.status === 'open' || t.status === 'in_progress').length;
-  const openCustomerTicketsCount = customerTickets.filter((t) => t.status === 'open' || t.status === 'in_progress').length;
-  const totalRevenue = sellers.reduce((sum, s) => sum + s.totalSalesVolume, 0);
-
-  const metrics: AdminOverviewMetrics = {
-    totalRevenue,
-    activeSellersCount,
-    pendingSellersCount,
-    totalCustomersCount: customers.length,
-    openSellerTicketsCount,
-    openCustomerTicketsCount,
-  };
 
   // Handlers for Seller Approvals
   const handleApproveSeller = (sellerId: string) => {
@@ -352,12 +268,11 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
         </View>
       )}
 
-      {/* Admin Top Navigation Bar */}
       <AdminHeader
         activeRole="admin"
         onSwitchRole={onSwitchRole}
-        pendingApprovalsCount={pendingSellersCount}
-        openTicketsCount={openSellerTicketsCount + openCustomerTicketsCount}
+        pendingApprovalsCount={metrics.pendingSellersCount}
+        openTicketsCount={metrics.openSellerTicketsCount + metrics.openCustomerTicketsCount}
         onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
         isSidebarOpen={isSidebarOpen}
       />
@@ -369,9 +284,9 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
           <AdminSidebar
             activeTab={activeTab}
             onTabSelect={handleSelectAdminTab}
-            pendingSellersCount={pendingSellersCount}
-            openSellerTicketsCount={openSellerTicketsCount}
-            openCustomerTicketsCount={openCustomerTicketsCount}
+            pendingSellersCount={metrics.pendingSellersCount}
+            openSellerTicketsCount={metrics.openSellerTicketsCount}
+            openCustomerTicketsCount={metrics.openCustomerTicketsCount}
           />
         )}
 
@@ -387,9 +302,9 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
               <AdminSidebar
                 activeTab={activeTab}
                 onTabSelect={handleSelectAdminTab}
-                pendingSellersCount={pendingSellersCount}
-                openSellerTicketsCount={openSellerTicketsCount}
-                openCustomerTicketsCount={openCustomerTicketsCount}
+                pendingSellersCount={metrics.pendingSellersCount}
+                openSellerTicketsCount={metrics.openSellerTicketsCount}
+                openCustomerTicketsCount={metrics.openCustomerTicketsCount}
               />
             </View>
           </View>
@@ -418,7 +333,6 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
 
           {activeTab === 'seller_approvals' && (
             <AdminSellerApprovalScreen
-              sellers={sellers}
               onApproveSeller={handleApproveSeller}
               onRejectSeller={handleRejectSeller}
               onSuspendSeller={handleSuspendSeller}
@@ -428,26 +342,23 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
           )}
 
           {activeTab === 'customers' && (
-            <AdminCustomerManagementScreen
-              customers={customers}
-              onUpdateWalletBalance={handleUpdateWalletBalance}
-              onToggleBlockUser={handleToggleBlockUser}
+            <AdminCustomerManagementScreen 
+              onUpdateWalletBalance={handleUpdateWalletBalance} 
+              onToggleBlockUser={handleToggleBlockUser} 
             />
           )}
 
           {activeTab === 'seller_tickets' && (
             <AdminSellerTicketsScreen
-              tickets={sellerTickets}
               onReplyTicket={handleReplySellerTicket}
+              onResolveTicket={(ticketId) => handleReplySellerTicket(ticketId, 'Resolved', 'resolved')}
             />
           )}
 
           {activeTab === 'customer_tickets' && (
             <AdminCustomerTicketsScreen
-              tickets={customerTickets}
-              customers={customers}
-              orders={allOrders}
               onReplyTicket={handleReplyCustomerTicket}
+              onResolveTicket={(ticketId) => handleReplyCustomerTicket(ticketId, 'Resolved', 'resolved')}
               onCreateTicket={handleCreateCustomerTicket}
               onProcessInstantRefund={handleProcessInstantRefund}
             />
@@ -491,6 +402,14 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onSw
 
           {activeTab === 'pending_tasks' && (
             <AdminPendingTasksScreen />
+          )}
+
+          {activeTab === 'mock_deliveries' && (
+            <AdminMockDeliveriesScreen />
+          )}
+
+          {activeTab === 'order_tracker' && (
+            <AdminOrderTrackingScreen />
           )}
             </>
           )}

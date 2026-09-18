@@ -12,7 +12,7 @@ import {
   Store,
   ArrowLeft,
   Search,
-  CheckCircle2,
+  CircleCheck,
   AlertCircle,
   Building2,
   CreditCard,
@@ -246,7 +246,7 @@ export const SellerGuideScreen: React.FC<SellerGuideScreenProps> = ({
             </Text>
 
             <View style={styles.featureBoxGreen}>
-              <CheckCircle2 size={20} color="#059669" />
+              <CircleCheck size={20} color="#059669" />
               <View style={{ flex: 1, marginLeft: 10 }}>
                 <Text style={styles.featureBoxTitle}>Instant Bank Prefix Preview</Text>
                 <Text style={styles.featureBoxText}>

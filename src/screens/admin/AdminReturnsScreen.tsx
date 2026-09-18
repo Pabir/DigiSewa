@@ -1,30 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { RefreshCw, PackageX, CheckCircle, Truck, ExternalLink } from 'lucide-react-native';
+import { RefreshCw, PackageX, CircleCheck, Truck, ExternalLink, CircleX } from 'lucide-react-native';
 import { ReturnItem } from '../../types';
-import { getReturnsFromFirestore, approveReturnRequest } from '../../services/firebaseService';
+import { getReturnsPaginated, approveReturnRequest, updateReturnRequest } from '../../services/firebaseService';
 
 export const AdminReturnsScreen: React.FC = () => {
   const [returns, setReturns] = useState<ReturnItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchReturns = async () => {
-    setLoading(true);
+  const fetchReturns = async (loadMore = false) => {
+    if (loadMore) {
+      if (!hasMore || loadingMore) return;
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setLastVisible(null);
+    }
+
     try {
-      const data = await getReturnsFromFirestore();
-      // Sort by newest first
-      data.sort((a, b) => new Date(b.returnDate).getTime() - new Date(a.returnDate).getTime());
-      setReturns(data);
+      const startAfterDoc = loadMore ? lastVisible : null;
+      const { returns: fetchedReturns, lastDoc } = await getReturnsPaginated(startAfterDoc, 20);
+      
+      setLastVisible(lastDoc);
+      if (fetchedReturns.length < 20) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+      
+      setReturns(prev => loadMore ? [...prev, ...fetchedReturns] : fetchedReturns);
     } catch (error) {
       console.error('Error fetching returns:', error);
     } finally {
-      setLoading(false);
+      if (loadMore) setLoadingMore(false);
+      else setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchReturns();
+    fetchReturns(false);
   }, []);
 
   const handleApprove = async (returnId: string) => {
@@ -52,6 +71,32 @@ export const AdminReturnsScreen: React.FC = () => {
         }
       ]
     );
+  };
+
+  const handleAdminOverrideApprove = async (returnId: string) => {
+    setProcessingId(returnId);
+    try {
+      await updateReturnRequest(returnId, 'approved', 'passed', 'Admin forced approval');
+      Alert.alert('Success', 'Return forced approved. Buyer refund will be processed.');
+      await fetchReturns();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to approve.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleAdminOverrideReject = async (returnId: string) => {
+    setProcessingId(returnId);
+    try {
+      await updateReturnRequest(returnId, 'rejected', 'failed_admin_review', 'Admin rejected (Buyer Fraud)');
+      Alert.alert('Success', 'Return rejected. No refund will be given.');
+      await fetchReturns();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to reject.');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -123,6 +168,20 @@ export const AdminReturnsScreen: React.FC = () => {
                     <Text style={styles.detailValue}>{item.returnReason}</Text>
                   </View>
                   <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Action Requested:</Text>
+                    <Text style={[styles.detailValue, { fontWeight: '600', color: item.returnAction === 'refund' ? '#EA580C' : '#059669' }]}>
+                      {item.returnAction === 'refund' ? 'Refund' : (item.returnAction === 'replace' ? 'Replacement' : 'N/A')}
+                    </Text>
+                  </View>
+                  {item.returnAction === 'refund' && item.refundMethod && (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Refund Details:</Text>
+                      <Text style={styles.detailValue}>
+                        {item.refundMethod.toUpperCase()} - {item.refundDetails || 'Original Source'}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Amount:</Text>
                     <Text style={[styles.detailValue, { fontWeight: '700' }]}>₹{item.amount}</Text>
                   </View>
@@ -146,16 +205,59 @@ export const AdminReturnsScreen: React.FC = () => {
                         <ActivityIndicator size="small" color="#FFF" />
                       ) : (
                         <>
-                          <CheckCircle size={16} color="#FFF" />
+                          <CircleCheck size={16} color="#FFF" />
                           <Text style={styles.approveBtnText}>Approve & Create Pickup</Text>
                         </>
                       )}
                     </TouchableOpacity>
                   </View>
                 )}
+
+                {item.qcStatus === 'failed_admin_review' && (
+                  <View style={styles.cardFooter}>
+                    <View style={{ width: '100%' }}>
+                      <Text style={{ fontSize: 13, color: '#B91C1C', fontWeight: '600', marginBottom: 12 }}>
+                        Seller flagged this return as Fraud/Fake item.
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity 
+                          style={[styles.approveBtn, { flex: 1, backgroundColor: '#059669' }, processingId === item.id && styles.disabledBtn]} 
+                          onPress={() => handleAdminOverrideApprove(item.id)}
+                          disabled={processingId === item.id}
+                        >
+                          <CircleCheck size={16} color="#FFF" />
+                          <Text style={styles.approveBtnText}>Force Approve</Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                          style={[styles.approveBtn, { flex: 1, backgroundColor: '#EF4444' }, processingId === item.id && styles.disabledBtn]} 
+                          onPress={() => handleAdminOverrideReject(item.id)}
+                          disabled={processingId === item.id}
+                        >
+                          <CircleX size={16} color="#FFF" />
+                          <Text style={styles.approveBtnText}>Reject (Fraud)</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                )}
               </View>
             );
           })
+        )}
+        
+        {hasMore && returns.length > 0 && (
+          <TouchableOpacity 
+            style={{ padding: 16, alignItems: 'center', backgroundColor: '#F8FAFC', borderTopWidth: 1, borderColor: '#E2E8F0', marginTop: 10, borderRadius: 8 }}
+            onPress={() => fetchReturns(true)}
+            disabled={loadingMore}
+          >
+            {loadingMore ? (
+              <ActivityIndicator size="small" color="#4F46E5" />
+            ) : (
+              <Text style={{ color: '#4F46E5', fontWeight: '600' }}>Load More Returns</Text>
+            )}
+          </TouchableOpacity>
         )}
       </ScrollView>
     </View>

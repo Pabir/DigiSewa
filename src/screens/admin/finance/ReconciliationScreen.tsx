@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Upload, FileText, CheckCircle, AlertTriangle } from 'lucide-react-native';
+import { Upload, FileText, CircleCheck, AlertTriangle } from 'lucide-react-native';
 
 export const ReconciliationScreen: React.FC = () => {
   return (

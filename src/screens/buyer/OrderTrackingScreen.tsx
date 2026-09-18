@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
-import { ArrowLeft, CheckCircle2, Circle, Truck, MapPin, Package, Clock, FileText, Phone, Activity } from 'lucide-react-native';
+import { ArrowLeft, CircleCheck, Circle, Truck, MapPin, Package, Clock, FileText, Phone, Activity } from 'lucide-react-native';
 import { Order, OrderStatus } from '../../types';
 import { trackShadowfaxOrder } from '../../services/shadowfaxService';
 
@@ -23,10 +23,20 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({ order,
   const [loadingTracking, setLoadingTracking] = useState<boolean>(false);
 
   useEffect(() => {
-    if (order.courierPartner === 'shadowfax' && order.awbCode) {
+    if (order.isMockDelivery) {
+      setTrackingData({
+        status: order.status,
+        tracking_history: (order.mockTrackingHistory || []).map(event => ({
+          status: event.status.replace(/_/g, ' '),
+          location: event.location,
+          remarks: event.message,
+          date: event.timestamp
+        }))
+      });
+    } else if (order.courierPartner === 'shadowfax' && order.awbCode) {
       fetchTracking();
     }
-  }, [order.awbCode, order.courierPartner]);
+  }, [order.awbCode, order.courierPartner, order.isMockDelivery, order.deliveryStatus, order.fulfillmentStatus, order.mockTrackingHistory]);
 
   const fetchTracking = async () => {
     setLoadingTracking(true);
@@ -40,11 +50,22 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({ order,
     }
   };
 
-  const getStepIndex = (status: OrderStatus) => {
-    return statusSteps.findIndex(s => s.key === status);
+  const getStepIndex = (statusKey: string) => {
+    return statusSteps.findIndex(s => s.key === statusKey);
   };
 
-  const currentStepIndex = order.status === 'cancelled' ? -1 : getStepIndex(order.status);
+  const getCurrentStepKey = (o: Order) => {
+    if (o.fulfillmentStatus === 'cancelled') return 'cancelled';
+    if (o.deliveryStatus === 'delivered') return 'delivered';
+    if (o.deliveryStatus === 'out_for_delivery') return 'out_for_delivery';
+    if (o.deliveryStatus === 'reached_hub') return 'reached_hub';
+    if (o.deliveryStatus === 'shipped') return 'shipped';
+    if (o.fulfillmentStatus === 'ready_to_ship' || o.fulfillmentStatus === 'processing') return 'processing';
+    return 'pending';
+  };
+
+  const currentStatusKey = getCurrentStepKey(order);
+  const currentStepIndex = currentStatusKey === 'cancelled' ? -1 : getStepIndex(currentStatusKey);
   
   const handleSupport = () => {
     // A placeholder for contacting support. Usually this might open mailto or dialer
@@ -132,9 +153,9 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({ order,
       <View style={styles.timelineCard}>
         <Text style={styles.timelineTitle}>Tracking Updates</Text>
         
-        {order.status === 'cancelled' ? (
+        {currentStatusKey === 'cancelled' ? (
           <View style={styles.cancelledState}>
-            <CheckCircle2 size={32} color="#DC2626" />
+            <CircleCheck size={32} color="#DC2626" />
             <Text style={styles.cancelledTitle}>Order Cancelled</Text>
             <Text style={styles.cancelledDesc}>This order was cancelled and will not be delivered.</Text>
           </View>
@@ -155,7 +176,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({ order,
                 return (
                   <View key={index} style={styles.stepWrapper}>
                     <View style={styles.stepIndicator}>
-                      <CheckCircle2 size={24} color="#10B981" />
+                      <CircleCheck size={24} color="#10B981" />
                       {!isLast && (
                         <View style={[styles.stepLine, { backgroundColor: '#10B981' }]} />
                       )}
@@ -196,7 +217,7 @@ export const OrderTrackingScreen: React.FC<OrderTrackingScreenProps> = ({ order,
                   {/* Left Column (Icon + Line) */}
                   <View style={styles.stepIndicator}>
                     {isCompleted ? (
-                      <CheckCircle2 size={24} color="#10B981" />
+                      <CircleCheck size={24} color="#10B981" />
                     ) : (
                       <Circle size={24} color="#CBD5E1" />
                     )}

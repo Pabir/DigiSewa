@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Platform } from 'react-native';
-import { ArrowLeft, CreditCard, ShieldCheck, MapPin, Sparkles, TrendingUp, Zap, IndianRupee, Clock, CheckCircle2, Download, ChevronDown, X } from 'lucide-react-native';
+import { ArrowLeft, CreditCard, ShieldCheck, MapPin, Sparkles, TrendingUp, Zap, IndianRupee, Clock, CircleCheck, Download, ChevronDown, X } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { getSettlementsBySeller } from '../../services/settlementService';
 import { getOrders } from '../../services/firebaseService';
@@ -323,7 +323,7 @@ export const SellerGenericTabScreen: React.FC<SellerGenericTabScreenProps> = ({ 
                   </View>
                 ) : (
                   <View style={{flexDirection: 'row', alignItems: 'center', gap: 6}}>
-                    <CheckCircle2 size={14} color="#15803D" />
+                    <CircleCheck size={14} color="#15803D" />
                     <Text style={{fontSize: 12, color: '#15803D', fontWeight: '500'}}>
                       Settled on {item.settledAt ? new Date(item.settledAt).toLocaleDateString() : ''}
                     </Text>

@@ -20,7 +20,7 @@ import {
   ArrowRight,
   Sparkles,
   MapPin,
-  CheckCircle2,
+  CircleCheck,
   RefreshCw,
   KeyRound,
 } from 'lucide-react-native';
@@ -732,7 +732,7 @@ export const AuthModal: React.FC = () => {
 
               {successMessage ? (
                 <View style={styles.successBanner}>
-                  <CheckCircle2 size={16} color="#16A34A" />
+                  <CircleCheck size={16} color="#16A34A" />
                   <Text style={styles.successText}>{successMessage}</Text>
                 </View>
               ) : null}
@@ -1117,7 +1117,7 @@ export const AuthModal: React.FC = () => {
                     ) : (
                       <>
                         <Text style={styles.primaryButtonText}>Verify & Save Account</Text>
-                        <CheckCircle2 size={18} color="#FFFFFF" />
+                        <CircleCheck size={18} color="#FFFFFF" />
                       </>
                     )}
                   </TouchableOpacity>
@@ -1182,7 +1182,7 @@ export const AuthModal: React.FC = () => {
                     ) : (
                       <>
                         <Text style={styles.primaryButtonText}>Save Password & Continue</Text>
-                        <CheckCircle2 size={18} color="#FFFFFF" />
+                        <CircleCheck size={18} color="#FFFFFF" />
                       </>
                     )}
                   </TouchableOpacity>
@@ -1413,7 +1413,7 @@ export const AuthModal: React.FC = () => {
                         ) : (
                           <>
                             <Text style={styles.primaryButtonText}>Save New Password & Log In</Text>
-                            <CheckCircle2 size={18} color="#FFFFFF" />
+                            <CircleCheck size={18} color="#FFFFFF" />
                           </>
                         )}
                       </TouchableOpacity>

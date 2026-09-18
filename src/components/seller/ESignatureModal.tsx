@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, Image } from 'react-native';
-import { CheckCircle2, ShieldCheck, Sparkles, UploadCloud } from 'lucide-react-native';
+import { CircleCheck, ShieldCheck, Sparkles, UploadCloud } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 
 interface ESignatureModalProps {
@@ -179,7 +179,7 @@ export const ESignatureModal: React.FC<ESignatureModalProps> = ({
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <CheckCircle2 size={16} color="#FFFFFF" />
+              <CircleCheck size={16} color="#FFFFFF" />
               <Text style={styles.saveBtnText}>Save E-Signature</Text>
             </TouchableOpacity>
           </View>

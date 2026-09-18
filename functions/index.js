@@ -586,8 +586,47 @@ exports.onOrderRTO = functions.firestore.document('orders/{orderId}').onUpdate(a
         createdAt: timestamp
       });
       await updateAccountBalance(transaction, db, 'LOGISTICS_PAYABLE', rtoFee, false);
+      
+      // Phase 3: Secure Inventory Restocking & COD Status update on RTO
+      const orderData = newValue;
+      if (orderData.items && Array.isArray(orderData.items)) {
+         for (const item of orderData.items) {
+           const pId = item.product?.id;
+           const qty = item.quantity || 1;
+           const selectedSize = item.product?.selectedSize;
+           if (!pId) continue;
+           
+           const productRef = db.collection('products').doc(pId);
+           const pSnap = await transaction.get(productRef);
+           
+           if (pSnap.exists) {
+             const pData = pSnap.data();
+             const pUpdate = {};
+             
+             if (selectedSize && pData.sizes) {
+               const newSizes = pData.sizes.map(sz => 
+                 sz.size === selectedSize ? { ...sz, stock: (sz.stock || 0) + qty } : sz
+               );
+               pUpdate.sizes = newSizes;
+             } else {
+               pUpdate.stock = admin.firestore.FieldValue.increment(qty);
+             }
+             transaction.update(productRef, pUpdate);
+           }
+         }
+      }
+      
+      // Update COD Status if it was COD
+      if (orderData.paymentMode === 'cod') {
+         transaction.update(change.after.ref, {
+            paymentStatus: 'payment_failed',
+            codStatus: 'collection_failed',
+            updatedAt: timestamp
+         });
+      }
+      
     });
-    console.log(`RTO penalty fee entry posted for order ${orderId}`);
+    console.log(`RTO penalty fee entry & inventory restocked for order ${orderId}`);
   }
 });
 
@@ -640,5 +679,134 @@ exports.onSettlementProcessed = functions.firestore.document('seller_settlements
       await updateAccountBalance(transaction, db, 'MAIN_BANK_ACCOUNT', netPayout, false);
     });
     console.log(`Bank settlement entry posted for settlement ${settlementId}`);
+  }
+});
+
+// Phase 3: Refresh Recommendations On-Demand
+exports.refreshRecommendations = functions.https.onCall(async (data, context) => {
+  const userId = data.userId;
+  if (!userId) {
+    throw new functions.https.HttpsError("invalid-argument", "userId is required");
+  }
+
+  const db = admin.firestore();
+  
+  try {
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (!userDoc.exists) return { success: true, recommendedIds: [] };
+    
+    const user = userDoc.data();
+    
+    // Fetch user's orders to find categories they buy
+    const ordersSnap = await db.collection("orders").where("buyerId", "==", userId).get();
+    const boughtCategories = new Set();
+    
+    ordersSnap.forEach(snap => {
+      const order = snap.data();
+      if (order.items) {
+        order.items.forEach(item => {
+          if (item.product && item.product.category) {
+            boughtCategories.add(item.product.category);
+          }
+        });
+      }
+    });
+
+    const searchKeywords = (user.searchHistory || []).map(s => s.toLowerCase());
+    
+    // Query products
+    // Since this is backend, we can afford a bit heavier query, but still we want to optimize.
+    // For simplicity, we fetch products from bought categories or general if none
+    let productsQuery;
+    if (boughtCategories.size > 0) {
+      // get up to 10 categories (Firestore IN query limit)
+      const categoriesArray = Array.from(boughtCategories).slice(0, 10);
+      productsQuery = db.collection("products").where("category", "in", categoriesArray).limit(50);
+    } else {
+      productsQuery = db.collection("products").limit(50);
+    }
+    
+    const productsSnap = await productsQuery.get();
+    const products = [];
+    productsSnap.forEach(snap => {
+      products.push({ id: snap.id, ...snap.data() });
+    });
+
+    const recommended = products.filter(p => {
+      if (user.recentlyViewed && user.recentlyViewed.includes(p.id)) return false;
+      
+      const inCategory = boughtCategories.has(p.category);
+      const matchesSearch = searchKeywords.some(kw => 
+        (p.name && p.name.toLowerCase().includes(kw)) || 
+        (p.tags && p.tags.some(tag => tag.toLowerCase().includes(kw)))
+      );
+      
+      return inCategory || matchesSearch;
+    });
+
+    // Fallback if not enough recommendations
+    if (recommended.length < 5) {
+      const fallbackSnap = await db.collection("products").orderBy("totalSales", "desc").limit(10).get();
+      fallbackSnap.forEach(snap => {
+        if (!recommended.find(r => r.id === snap.id) && !(user.recentlyViewed && user.recentlyViewed.includes(snap.id))) {
+          recommended.push({ id: snap.id, ...snap.data() });
+        }
+      });
+    }
+
+    const finalIds = recommended.slice(0, 15).map(p => p.id);
+
+    // Save to user_recommendations collection
+    await db.collection("user_recommendations").doc(userId).set({
+      recommendedIds: finalIds,
+      updatedAt: new Date().toISOString()
+    });
+
+    return { success: true, recommendedIds: finalIds };
+  } catch (error) {
+    console.error("refreshRecommendations error:", error);
+    throw new functions.https.HttpsError("internal", error.message);
+  }
+});
+
+// --- CATALOG SETTINGS CDN ---
+exports.getCatalogSettingsCDN = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  // Only allow GET requests
+  if (req.method !== 'GET') {
+    return res.status(405).send('Method Not Allowed');
+  }
+
+  // Set Cache-Control header for Firebase Hosting CDN
+  // Browser caches for 1 hour (3600s), CDN caches for 24 hours (86400s)
+  res.set('Cache-Control', 'public, max-age=3600, s-maxage=86400');
+
+  try {
+    const db = admin.firestore();
+    
+    // Fetch all three settings documents concurrently
+    const [catDoc, attrDoc, mapDoc] = await Promise.all([
+      db.collection('catalog_settings').doc('categories_tree').get(),
+      db.collection('catalog_settings').doc('attributes_repository').get(),
+      db.collection('catalog_settings').doc('category_mappings').get()
+    ]);
+
+    const result = {
+      categories: catDoc.exists ? (catDoc.data().categories || []) : [],
+      attributes: attrDoc.exists ? (attrDoc.data().attributes || []) : [],
+      mappings: mapDoc.exists ? (mapDoc.data().mappings || []) : []
+    };
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching catalog settings:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });

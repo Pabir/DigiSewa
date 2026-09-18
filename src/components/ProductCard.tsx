@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { ShoppingBag, Star, Zap, CheckCircle2, Heart, Trash2, Scale } from 'lucide-react-native';
+import { ShoppingBag, Star, Zap, CircleCheck, Heart, Trash2, Scale } from 'lucide-react-native';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';

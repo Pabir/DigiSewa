@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, Image, Linking } from 'react-native';
-import { PackageCheck, ArrowRight, AlertCircle, ArrowLeft, Megaphone, ChevronDown, Search, CheckSquare, Download, Activity } from 'lucide-react-native';
+import { PackageCheck, ArrowRight, AlertCircle, ArrowLeft, Megaphone, ChevronDown, Search, SquareCheck, Download, Activity } from 'lucide-react-native';
 import { Order, OrderStatus } from '../../types';
-import { getOrders, updateOrderStatus, wipeAllOrders } from '../../services/firebaseService';
+import { getOrdersPaginated, updateOrderStatus, wipeAllOrders } from '../../services/firebaseService';
 import { shiprocketLogin, createShiprocketOrder, generateShiprocketLabel } from '../../services/shiprocketService';
 import { createShadowfaxOrder } from '../../services/shadowfaxService';
 import { useAuth } from '../../context/AuthContext';
@@ -23,47 +23,69 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
   const [selectedOrderForLabel, setSelectedOrderForLabel] = useState<Order | null>(null);
   const [healthModalVisible, setHealthModalVisible] = useState(false);
 
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   useEffect(() => {
     if (sellerProfile?.id) {
-      fetchOrders();
+      fetchOrders(false);
     }
   }, [sellerProfile?.id]);
 
-  const fetchOrders = async () => {
-    setLoading(true);
+  const fetchOrders = async (loadMore = false) => {
+    if (loadMore) {
+      if (!hasMore || loadingMore) return;
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setLastVisible(null);
+    }
+
     try {
-      const data = await getOrders(sellerProfile?.id);
+      const startAfterDoc = loadMore ? lastVisible : null;
+      const { orders: newOrders, lastDoc } = await getOrdersPaginated(sellerProfile?.id, undefined, startAfterDoc, 20);
       
-      const myOrders = data.filter(order => {
-        if (!sellerProfile?.id) return false;
-        if (!order.items || !Array.isArray(order.items)) return false;
-        return order.items.some(item => item.product?.sellerId === sellerProfile.id);
-      });
-      
-      setOrders(myOrders);
+      // Native query inside getOrdersPaginated already filters by sellerId
+      if (newOrders.length < 20) {
+        setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+
+      setLastVisible(lastDoc);
+      setOrders(prev => loadMore ? [...prev, ...newOrders] : newOrders);
     } catch (err) {
       console.error(err);
-      setOrders([]);
+      if (!loadMore) setOrders([]);
     } finally {
-      setLoading(false);
+      if (loadMore) setLoadingMore(false);
+      else setLoading(false);
     }
   };
 
-  const handleAdvanceStatus = async (orderId: string, currentStatus: OrderStatus) => {
-    let nextStatus: OrderStatus = 'processing';
-    if (currentStatus === 'pending') nextStatus = 'processing';
-    else if (currentStatus === 'processing') nextStatus = 'shipped';
-    else if (currentStatus === 'shipped') nextStatus = 'reached_hub';
-    else if (currentStatus === 'reached_hub') nextStatus = 'out_for_delivery';
-    else if (currentStatus === 'out_for_delivery') nextStatus = 'delivered';
-    else return;
+  const handleAdvanceStatus = async (order: Order) => {
+    let updatePayload: Partial<Order> = {};
+    const { fulfillmentStatus, deliveryStatus } = order;
+
+    if (fulfillmentStatus === 'pending') {
+      updatePayload.fulfillmentStatus = 'processing';
+    } else if (fulfillmentStatus === 'processing') {
+      updatePayload.fulfillmentStatus = 'ready_to_ship';
+      updatePayload.deliveryStatus = 'shipped';
+    } else if (deliveryStatus === 'shipped') {
+      updatePayload.deliveryStatus = 'reached_hub';
+    } else if (deliveryStatus === 'reached_hub') {
+      updatePayload.deliveryStatus = 'out_for_delivery';
+    } else if (deliveryStatus === 'out_for_delivery') {
+      updatePayload.deliveryStatus = 'delivered';
+    } else return;
 
     try {
       setLoading(true);
       let courierData = {};
 
-      if (currentStatus === 'pending' && nextStatus === 'processing' && sellerProfile) {
-        const order = orders.find(o => o.id === orderId);
+      if (fulfillmentStatus === 'pending' && updatePayload.fulfillmentStatus === 'processing' && sellerProfile) {
         if (order) {
           if (order.courierPartner === 'shadowfax') {
             const result = await createShadowfaxOrder(order, sellerProfile);
@@ -85,17 +107,14 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
         }
       }
 
-      await updateOrderStatus(orderId, nextStatus, courierData);
+      await updateOrderStatus(order.id, updatePayload.status as any, { ...updatePayload, ...courierData });
       
-      if (nextStatus === 'delivered' && sellerProfile) {
-        const order = orders.find(o => o.id === orderId);
-        if (order) {
-          await createSettlement(order, sellerProfile.id, sellerProfile.storeName);
-        }
+      if (updatePayload.deliveryStatus === 'delivered' && sellerProfile) {
+        await createSettlement(order, sellerProfile.id, sellerProfile.storeName);
       }
 
       setOrders(prev =>
-        prev.map(o => (o.id === orderId ? { ...o, status: nextStatus, ...courierData } : o))
+        prev.map(o => (o.id === order.id ? { ...o, ...updatePayload, ...courierData } : o))
       );
     } catch (err: any) {
       console.error(err);
@@ -109,7 +128,7 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
     try {
       setLoading(true);
       const nextStatus = isDelivered ? 'rto_delivered_to_seller' : 'rto_in_transit';
-      await updateOrderStatus(orderId, nextStatus);
+      await updateOrderStatus(orderId, nextStatus as any, { deliveryStatus: nextStatus });
       
       if (isDelivered) {
         // Trigger penalty using settlementService (we need to make sure order object is passed if required)
@@ -121,7 +140,7 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
       }
 
       setOrders(prev =>
-        prev.map(o => (o.id === orderId ? { ...o, status: nextStatus } : o))
+        prev.map(o => (o.id === orderId ? { ...o, deliveryStatus: nextStatus } : o))
       );
       alert(`Order marked as ${isDelivered ? 'RTO Delivered' : 'RTO In Transit'}`);
     } catch (err: any) {
@@ -135,8 +154,8 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
   const handleRejectStatus = async (orderId: string) => {
     try {
       setLoading(true);
-      await updateOrderStatus(orderId, 'cancelled');
-      setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, status: 'cancelled' } : o)));
+      await updateOrderStatus(orderId, 'cancelled', { fulfillmentStatus: 'cancelled' });
+      setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, fulfillmentStatus: 'cancelled' } : o)));
       alert('Order rejected successfully.');
     } catch (err: any) {
       console.error(err);
@@ -197,8 +216,12 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
 
   const filteredOrders = orders.filter(o => {
     if (activeFilter === 'all') return true;
-    if (activeFilter === 'shipped') return ['shipped', 'reached_hub', 'out_for_delivery', 'rto_in_transit'].includes(o.status);
-    return o.status === activeFilter;
+    if (activeFilter === 'pending') return o.fulfillmentStatus === 'pending';
+    if (activeFilter === 'processing') return o.fulfillmentStatus === 'processing' || o.fulfillmentStatus === 'ready_to_ship';
+    if (activeFilter === 'shipped') return ['shipped', 'reached_hub', 'out_for_delivery', 'rto_in_transit'].includes(o.deliveryStatus);
+    if (activeFilter === 'delivered') return o.deliveryStatus === 'delivered';
+    if (activeFilter === 'cancelled') return o.fulfillmentStatus === 'cancelled';
+    return false;
   });
 
   const flatItems = filteredOrders.flatMap(order => 
@@ -307,28 +330,30 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
           <View style={styles.table}>
             {/* Table Header */}
             <View style={styles.tableHeader}>
-              <View style={[styles.thCell, { width: 40 }]}><CheckSquare size={16} color="#94A3B8" /></View>
+              <View style={[styles.thCell, { width: 40 }]}><SquareCheck size={16} color="#94A3B8" /></View>
               <View style={[styles.thCell, { flex: 2 }]}><Text style={styles.thText}>Product Details</Text></View>
               <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.thText}>Sub-order ID</Text></View>
               <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.thText}>SKU ID</Text></View>
               <View style={[styles.thCell, { flex: 1 }]}><Text style={styles.thText}>TafDeal ID</Text></View>
               <View style={[styles.thCell, { width: 50 }]}><Text style={styles.thText}>Qty</Text></View>
-              <View style={[styles.thCell, { width: 50 }]}><Text style={styles.thText}>Size</Text></View>
+              <View style={[styles.thCell, { width: 80 }]}><Text style={styles.thText}>Size/Color</Text></View>
               <View style={[styles.thCell, { flex: 1.2 }]}><Text style={styles.thText}>Order Date</Text></View>
               <View style={[styles.thCell, { flex: 1.2 }]}><Text style={styles.thText}>SLA</Text></View>
               <View style={[styles.thCell, { width: 110, alignItems: 'center' }]}><Text style={styles.thText}>Action</Text></View>
             </View>
 
-            {loading ? (
+            {loading && orders.length === 0 ? (
               <ActivityIndicator size="large" color="#4F46E5" style={{ marginVertical: 40 }} />
             ) : flatItems.length === 0 ? (
               <View style={styles.emptyCard}>
                 <AlertCircle size={32} color="#94A3B8" />
                 <Text style={styles.emptyTitle}>No orders found</Text>
               </View>
-            ) : (
-              flatItems.map(({ order, item, subOrderId }, index) => {
-                const isPending = order.status === 'pending';
+              ) : (
+                flatItems.map(({ order, item, subOrderId }, index) => {
+                  const fStatus = order.fulfillmentStatus || (order as any).status || 'pending';
+                  const dStatus = order.deliveryStatus || ((order as any).status === 'shipped' ? 'shipped' : (order as any).status === 'delivered' ? 'delivered' : 'unshipped');
+                  const isPending = fStatus === 'pending';
                 const orderDate = new Date(order.createdAt || Date.now());
                 const slaDate = new Date(orderDate);
                 slaDate.setDate(slaDate.getDate() + 2);
@@ -382,7 +407,26 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
                     })()}
                     <View style={[styles.tdCell, { flex: 1 }]}><Text style={styles.tdText} numberOfLines={2}>{order.id}</Text></View>
                     <View style={[styles.tdCell, { width: 50 }]}><Text style={styles.tdText}>{item.quantity}</Text></View>
-                    <View style={[styles.tdCell, { width: 50 }]}><Text style={styles.tdText} numberOfLines={1}>{item.product.selectedSize || 'Free Size'}</Text></View>
+
+                    {(() => {
+                      let resolvedColor = item.product?.color || (item.product as any)?.selectedColor || (item as any).color || (item as any).selectedColor;
+                      if (!resolvedColor && item.product?.variants && item.product?.selectedSize) {
+                        const matchedVar = item.product.variants.find((v: any) => {
+                          const vSize = v.attributeValues?.Size || v.attributeValues?.size || v.attributeValues?.['Shirt Size'] || v.title?.split('-')?.pop()?.trim();
+                          return vSize === item.product?.selectedSize;
+                        });
+                        if (matchedVar) {
+                          resolvedColor = matchedVar.attributeValues?.color || matchedVar.attributeValues?.Color;
+                        }
+                      }
+                      const sizeText = item.product?.selectedSize || 'Free Size';
+                      const colorText = resolvedColor ? `\n${resolvedColor}` : '';
+                      return (
+                        <View style={[styles.tdCell, { width: 80, justifyContent: 'center' }]}>
+                          <Text style={styles.tdText} numberOfLines={2}>{sizeText}{colorText}</Text>
+                        </View>
+                      );
+                    })()}
                     
                     <View style={[styles.tdCell, { flex: 1.2 }]}>
                       <Text style={styles.tdText} numberOfLines={2}>{formattedOrderDate}</Text>
@@ -401,14 +445,14 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
                     <View style={[styles.tdCell, { width: 110, paddingRight: 10, justifyContent: 'center' }]}>
                       {isPending ? (
                         <View style={{ gap: 8 }}>
-                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
+                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order)}>
                             <Text style={styles.btnPrimaryText}>Accept</Text>
                           </TouchableOpacity>
                           <TouchableOpacity style={styles.btnSecondary} onPress={() => handleRejectStatus(order.id)}>
                             <Text style={styles.btnSecondaryText}>Cancel</Text>
                           </TouchableOpacity>
                         </View>
-                      ) : order.status === 'processing' ? (
+                      ) : (fStatus === 'processing' || fStatus === 'ready_to_ship') && dStatus === 'unshipped' ? (
                         <View style={{ gap: 8, alignItems: 'center', width: '100%' }}>
                           {order.courierPartner === 'shadowfax' ? (
                             <TouchableOpacity 
@@ -430,45 +474,45 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
                           <Text style={order.isLabelDownloaded ? styles.labelSuccess : styles.labelPending}>
                             {order.isLabelDownloaded ? 'Downloaded' : 'Not Downloaded'}
                           </Text>
-                          {order.isLabelDownloaded && (
-                            <TouchableOpacity style={[styles.btnSecondary, { width: '100%' }]} onPress={() => handleAdvanceStatus(order.id, order.status)}>
+                          {order.isLabelDownloaded && dStatus === 'unshipped' && (
+                            <TouchableOpacity style={[styles.btnSecondary, { width: '100%' }]} onPress={() => handleAdvanceStatus(order)}>
                               <Text style={styles.btnSecondaryText}>Dispatch</Text>
                             </TouchableOpacity>
                           )}
                         </View>
-                      ) : order.status === 'shipped' ? (
+                      ) : dStatus === 'shipped' ? (
                         <View style={{ gap: 8 }}>
-                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
+                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order)}>
                             <Text style={styles.btnPrimaryText}>Mark at Hub</Text>
                           </TouchableOpacity>
                           <TouchableOpacity style={styles.btnSecondary} onPress={() => handleMarkRTO(order.id, false)}>
                             <Text style={styles.btnSecondaryText}>Mark RTO</Text>
                           </TouchableOpacity>
                         </View>
-                      ) : order.status === 'reached_hub' ? (
+                      ) : dStatus === 'reached_hub' ? (
                         <View style={{ gap: 8 }}>
-                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
+                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order)}>
                             <Text style={styles.btnPrimaryText}>Out for Delivery</Text>
                           </TouchableOpacity>
                           <TouchableOpacity style={styles.btnSecondary} onPress={() => handleMarkRTO(order.id, false)}>
                             <Text style={styles.btnSecondaryText}>Mark RTO</Text>
                           </TouchableOpacity>
                         </View>
-                      ) : order.status === 'out_for_delivery' ? (
+                      ) : dStatus === 'out_for_delivery' ? (
                         <View style={{ gap: 8 }}>
-                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order.id, order.status)}>
+                          <TouchableOpacity style={styles.btnPrimary} onPress={() => handleAdvanceStatus(order)}>
                             <Text style={styles.btnPrimaryText}>Mark Delivered</Text>
                           </TouchableOpacity>
                           <TouchableOpacity style={styles.btnSecondary} onPress={() => handleMarkRTO(order.id, false)}>
                             <Text style={styles.btnSecondaryText}>Mark RTO</Text>
                           </TouchableOpacity>
                         </View>
-                      ) : order.status === 'rto_in_transit' ? (
+                      ) : dStatus === 'rto_in_transit' ? (
                         <TouchableOpacity style={styles.btnPrimary} onPress={() => handleMarkRTO(order.id, true)}>
                           <Text style={styles.btnPrimaryText}>RTO Delivered</Text>
                         </TouchableOpacity>
                       ) : (
-                        <Text style={styles.statusCompletedText}>{order.status.toUpperCase()}</Text>
+                        <Text style={styles.statusCompletedText}>{fStatus === 'cancelled' ? 'CANCELLED' : dStatus?.toUpperCase()}</Text>
                       )}
                     </View>
                   </View>
@@ -476,6 +520,20 @@ export const ManageOrdersScreen: React.FC<ManageOrdersScreenProps> = ({ onBack }
               })
             )}
           </View>
+          
+          {hasMore && orders.length > 0 && (
+            <TouchableOpacity 
+              style={{ padding: 16, alignItems: 'center', backgroundColor: '#F8FAFC', borderTopWidth: 1, borderColor: '#E2E8F0' }}
+              onPress={() => fetchOrders(true)}
+              disabled={loadingMore}
+            >
+              {loadingMore ? (
+                <ActivityIndicator size="small" color="#4F46E5" />
+              ) : (
+                <Text style={{ color: '#4F46E5', fontWeight: '600' }}>Load More Orders</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 

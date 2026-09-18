@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { ShieldCheck, Plus, CheckCircle2, XCircle, Trash2, Check } from 'lucide-react-native';
+import { ShieldCheck, Plus, CircleCheck, CircleX, Trash2, Check } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { SystemAdmin } from '../../types';
 import { getPendingDeletionRequests, approveDeletionRequest, rejectDeletionRequest } from '../../services/dynamicCatalogService';
@@ -168,7 +168,7 @@ export const SuperAdminManagementScreen: React.FC = () => {
             
             <View style={styles.adminActions}>
               <View style={[styles.statusBadge, admin.status === 'active' ? styles.statusActive : styles.statusSuspended]}>
-                {admin.status === 'active' ? <CheckCircle2 size={12} color="#10B981" /> : <XCircle size={12} color="#EF4444" />}
+                {admin.status === 'active' ? <CircleCheck size={12} color="#10B981" /> : <CircleX size={12} color="#EF4444" />}
                 <Text style={[styles.statusText, admin.status === 'active' ? styles.statusTextActive : styles.statusTextSuspended]}>
                   {admin.status.toUpperCase()}
                 </Text>
@@ -229,7 +229,7 @@ export const SuperAdminManagementScreen: React.FC = () => {
                   style={styles.btnRejectReq}
                   onPress={() => handleRejectRequest(req.id)}
                 >
-                  <XCircle size={14} color="#475569" />
+                  <CircleX size={14} color="#475569" />
                   <Text style={styles.btnRejectReqText}>Reject</Text>
                 </TouchableOpacity>
               </View>

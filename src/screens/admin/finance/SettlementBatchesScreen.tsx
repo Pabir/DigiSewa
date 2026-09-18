@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { DollarSign, CheckCircle, Clock } from 'lucide-react-native';
+import { DollarSign, CircleCheck, Clock } from 'lucide-react-native';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 export const SettlementBatchesScreen: React.FC = () => {

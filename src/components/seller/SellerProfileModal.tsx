@@ -16,14 +16,14 @@ import {
   ShieldCheck,
   Clock,
   AlertTriangle,
-  XCircle,
+  CircleX,
   Phone,
   Mail,
   Star,
   ShoppingBag,
   Sparkles,
   X,
-  CheckCircle2,
+  CircleCheck,
 } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { ESignatureModal } from './ESignatureModal';
@@ -43,7 +43,7 @@ export const SellerProfileModal: React.FC = () => {
       case 'verified':
         return (
           <View style={[styles.statusBadge, styles.statusVerified]}>
-            <CheckCircle2 size={14} color="#059669" />
+            <CircleCheck size={14} color="#059669" />
             <Text style={styles.statusVerifiedText}>Verified Seller Account</Text>
           </View>
         );
@@ -64,7 +64,7 @@ export const SellerProfileModal: React.FC = () => {
       case 'suspended':
         return (
           <View style={[styles.statusBadge, styles.statusSuspended]}>
-            <XCircle size={14} color="#D97706" />
+            <CircleX size={14} color="#D97706" />
             <Text style={styles.statusSuspendedText}>Account Suspended</Text>
           </View>
         );

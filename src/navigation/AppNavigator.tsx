@@ -17,6 +17,7 @@ import { OrderHistoryScreen } from '../screens/buyer/OrderHistoryScreen';
 import { OrderTrackingScreen } from '../screens/buyer/OrderTrackingScreen';
 import { WishlistScreen } from '../screens/buyer/WishlistScreen';
 import { CompareScreen } from '../screens/buyer/CompareScreen';
+import { CustomerTicketsScreen } from '../screens/buyer/CustomerTicketsScreen';
 
 // Seller Screens
 import { SellerLoginScreen } from '../screens/seller/SellerLoginScreen';
@@ -265,6 +266,16 @@ export const AppNavigator: React.FC = () => {
           return <WishlistScreen onSelectProduct={p => setSelectedProduct(p)} onBack={() => setBuyerTab('home')} />;
         case 'compare':
           return <CompareScreen onBack={() => setBuyerTab('home')} onNavigateToCart={() => { setIsViewingCart(true); setBuyerTab('home'); }} />;
+        case 'support':
+          return (
+            <CustomerTicketsScreen 
+              onBack={() => setBuyerTab('home')} 
+              onOpenNewTicket={() => {
+                setSupportOrderId(undefined);
+                setIsCustomerSupportOpen(true);
+              }} 
+            />
+          );
         default:
           return <HomeScreen onSelectProduct={p => setSelectedProduct(p)} onNavigateToCompare={() => setBuyerTab('compare')} isDesktop={isDesktop} />;
       }

@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { X, Package, Truck, Landmark, User, Tag, ClipboardList, Clock, CheckCircle } from 'lucide-react-native';
+import { X, Package, Truck, Landmark, User, Tag, ClipboardList, Clock, CircleCheck } from 'lucide-react-native';
 import { Product, Order } from '../../types';
 import { AdminSeller } from '../../types/adminTypes';
 import { getProducts, getOrders } from '../../services/firebaseService';
@@ -64,6 +64,18 @@ export const AdminSellerInventoryModal: React.FC<AdminSellerInventoryModalProps>
       amountOwed -= DUMMY_SHIPPING_COST;
     }
     return Math.max(0, Math.round(amountOwed * 100) / 100);
+  };
+
+  const getOrderDisplayStatus = (order: Order) => {
+    const fStatus = order.fulfillmentStatus || (order as any).status;
+    const dStatus = order.deliveryStatus || ((order as any).status === 'shipped' ? 'shipped' : (order as any).status === 'delivered' ? 'delivered' : undefined);
+
+    if (fStatus === 'cancelled') return 'CANCELLED';
+    if (dStatus === 'delivered') return 'DELIVERED';
+    if (dStatus === 'rto_in_transit' || dStatus === 'rto_delivered_to_seller') return 'RTO';
+    if (dStatus && dStatus !== 'unshipped') return dStatus.toUpperCase();
+    if (fStatus) return fStatus.toUpperCase();
+    return 'PENDING';
   };
 
   const calculateCustomerPrice = (product: Product) => {
@@ -293,9 +305,9 @@ export const AdminSellerInventoryModal: React.FC<AdminSellerInventoryModalProps>
 
                               {/* Status */}
                               <View style={[styles.td, { flex: 1 }]}>
-                                <View style={[styles.statusBadge, order.status === 'delivered' ? styles.statusDelivered : order.status === 'cancelled' || order.status === 'rto' ? styles.statusCancelled : styles.statusPending]}>
-                                  <Text style={[styles.statusText, order.status === 'delivered' ? styles.statusTextDelivered : order.status === 'cancelled' || order.status === 'rto' ? styles.statusTextCancelled : styles.statusTextPending]}>
-                                    {order.status.toUpperCase().replace('_', ' ')}
+                                <View style={[styles.statusBadge, getOrderDisplayStatus(order) === 'DELIVERED' ? styles.statusDelivered : getOrderDisplayStatus(order) === 'CANCELLED' || getOrderDisplayStatus(order) === 'RTO' ? styles.statusCancelled : styles.statusPending]}>
+                                  <Text style={[styles.statusText, getOrderDisplayStatus(order) === 'DELIVERED' ? styles.statusTextDelivered : getOrderDisplayStatus(order) === 'CANCELLED' || getOrderDisplayStatus(order) === 'RTO' ? styles.statusTextCancelled : styles.statusTextPending]}>
+                                    {getOrderDisplayStatus(order).replace(/_/g, ' ')}
                                   </Text>
                                 </View>
                               </View>

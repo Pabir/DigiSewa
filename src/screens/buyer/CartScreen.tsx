@@ -225,7 +225,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
       ordersBySeller[item.product.sellerId].push(item);
     });
 
-    const processOrders = async (paymentId?: string, rzpOrderId?: string, initialStatus: any = 'pending', initialPaymentStatus: any = 'pending') => {
+    const processOrders = async (paymentId?: string, rzpOrderId?: string, initialFulfillmentStatus: any = 'pending', initialPaymentStatus: any = 'pending') => {
       const sellerIds = Object.keys(ordersBySeller);
       for (const sellerId of sellerIds) {
         const sellerItems = ordersBySeller[sellerId];
@@ -245,15 +245,21 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
             pickupPincode = seller.pickupAddress.pincode;
           }
           const deliveryPincode = pincode.trim() || '110001';
-          const token = await shiprocketLogin();
-          const infoArray = await checkServiceability(pickupPincode, deliveryPincode, 0.5, token, paymentMode === 'cod');
           const wantsFast = sellerItems.some(i => i.deliveryPreference === 'fast');
           
-          if (infoArray && Array.isArray(infoArray) && infoArray.length > 0) {
-            let selectedOption = infoArray.find(o => o.type === (wantsFast ? 'fast' : 'budget'));
-            if (!selectedOption) selectedOption = infoArray[0];
-            estimatedDelivery = new Date(selectedOption.estimatedDeliveryDate).toDateString();
-            actualShippingCost = selectedOption.rate;
+          if (selectedCourier === 'shadowfax') {
+            actualShippingCost = calculateShadowfaxDeliveryCharge(pickupPincode, deliveryPincode);
+            estimatedDelivery = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toDateString();
+          } else {
+            const token = await shiprocketLogin();
+            const infoArray = await checkServiceability(pickupPincode, deliveryPincode, 0.5, token, paymentMode === 'cod');
+            
+            if (infoArray && Array.isArray(infoArray) && infoArray.length > 0) {
+              let selectedOption = infoArray.find(o => o.type === (wantsFast ? 'fast' : 'budget'));
+              if (!selectedOption) selectedOption = infoArray[0];
+              estimatedDelivery = new Date(selectedOption.estimatedDeliveryDate).toDateString();
+              actualShippingCost = selectedOption.rate;
+            }
           }
         } catch (e) {
           console.warn('Failed to fetch expected delivery for seller', e);
@@ -290,7 +296,8 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
           platformFee: currentPlatformFee,
           paymentMode,
           paymentStatus: initialPaymentStatus,
-          status: initialStatus,
+          fulfillmentStatus: initialFulfillmentStatus,
+          deliveryStatus: 'unshipped',
           estimatedDelivery,
           courierPartner: selectedCourier,
           shadowfaxAwb,
@@ -323,7 +330,7 @@ export const CartScreen: React.FC<CartScreenProps> = ({ onBack, onOrderSuccess }
         }
 
         // 2. Save Preliminary Orders as Payment Pending
-        await processOrders(undefined, rzpOrderId, 'payment_pending', 'pending');
+        await processOrders(undefined, rzpOrderId, 'pending', 'payment_pending');
 
         const res = await loadRazorpay();
         if (!res) {

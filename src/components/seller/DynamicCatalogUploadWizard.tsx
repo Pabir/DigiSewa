@@ -15,7 +15,7 @@ import {
 import {
   ArrowLeft,
   UploadCloud,
-  CheckCircle2,
+  CircleCheck,
   Sparkles,
   AlertTriangle,
   ShoppingBag,
@@ -573,7 +573,7 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
             <ActivityIndicator size="small" color="#4F46E5" />
           ) : (
             <>
-              <CheckCircle2 size={16} color="#4F46E5" />
+              <CircleCheck size={16} color="#4F46E5" />
               <Text style={styles.saveDraftBtnText}>Save Draft</Text>
             </>
           )}
@@ -746,7 +746,7 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
                             return (
                               <TouchableOpacity key={c.id} style={[styles.drillDownListItem, isSelected && styles.drillDownListItemActive]} onPress={() => setSelectedLeafId(c.id)}>
                                 <Text style={[styles.drillDownListText, isSelected && styles.drillDownListTextActive]}>{c.name}</Text>
-                                {isSelected ? <CheckCircle2 size={18} color="#4F46E5" /> : <View style={styles.emptyCircle} />}
+                                {isSelected ? <CircleCheck size={18} color="#4F46E5" /> : <View style={styles.emptyCircle} />}
                               </TouchableOpacity>
                             );
                           })}
@@ -1254,7 +1254,7 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.saveDraftBtnBar} onPress={handleSaveDraft}>
-            <CheckCircle2 size={16} color="#4F46E5" />
+            <CircleCheck size={16} color="#4F46E5" />
             <Text style={styles.saveDraftBarText}>Save Draft</Text>
           </TouchableOpacity>
 
@@ -1274,7 +1274,7 @@ export const DynamicCatalogUploadWizard: React.FC<DynamicCatalogUploadWizardProp
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
-                  <CheckCircle2 size={18} color="#FFFFFF" />
+                  <CircleCheck size={18} color="#FFFFFF" />
                   <Text style={styles.submitCatalogBtnText}>Submit Product Catalog</Text>
                 </>
               )}

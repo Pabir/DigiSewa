@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { UploadCloud, CheckCircle2, Sparkles, PlusCircle } from 'lucide-react-native';
+import { UploadCloud, CircleCheck, Sparkles, PlusCircle } from 'lucide-react-native';
 import { addProduct } from '../../services/firebaseService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -131,12 +131,12 @@ export const BulkCatalogUploadModal: React.FC<BulkCatalogUploadModalProps> = ({
           ) : (
             <View style={styles.fileSelectedCard}>
               <View style={styles.fileHeaderRow}>
-                <CheckCircle2 size={20} color="#059669" />
+                <CircleCheck size={20} color="#059669" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.fileName}>{selectedFile}</Text>
                   <Text style={styles.fileMeta}>Status: Verified & Parsed • 2 Catalogs Ready</Text>
                 </View>
-                <CheckCircle2 size={20} color="#059669" />
+                <CircleCheck size={20} color="#059669" />
               </View>
 
               {/* Parsed Items Preview */}
@@ -167,7 +167,7 @@ export const BulkCatalogUploadModal: React.FC<BulkCatalogUploadModalProps> = ({
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <>
-                  <CheckCircle2 size={16} color="#FFFFFF" />
+                  <CircleCheck size={16} color="#FFFFFF" />
                   <Text style={styles.publishBtnText}>Publish Catalogs in Bulk</Text>
                 </>
               )}

@@ -361,3 +361,12 @@ export async function getEstimatedShippingCharges(
     return { minShipping: 43, maxShipping: 74, rtoCharge: 43 };
   }
 }
+
+/**
+ * Handle incoming Shiprocket webhook for tracking updates
+ * specifically for incrementing failed delivery attempts.
+ */
+export async function handleShiprocketWebhook(payload: any): Promise<void> {
+  // Simulating a webhook receiver. In a real environment, this would be an API endpoint.
+  console.log('Webhook simulation disabled for production.');
+}

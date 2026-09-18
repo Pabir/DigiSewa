@@ -148,10 +148,15 @@ export interface CartItem {
   deliveryPreference?: 'fast' | 'budget';
 }
 
+export type FulfillmentStatus = 'pending' | 'processing' | 'ready_to_ship' | 'cancelled';
+export type DeliveryStatus = 'unshipped' | 'shipped' | 'reached_hub' | 'out_for_delivery' | 'delivered' | 'rto_in_transit' | 'rto_delivered_to_seller';
+export type CODStatus = 'not_applicable' | 'pending_collection' | 'collected_by_courier' | 'remitted_to_platform' | 'collection_failed';
+
+// Keeping legacy OrderStatus for backward compatibility with tracking events temporarily
 export type OrderStatus = 'payment_pending' | 'payment_failed' | 'pending' | 'processing' | 'shipped' | 'reached_hub' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'rto_in_transit' | 'rto_delivered_to_seller';
 
 export interface OrderTrackingEvent {
-  status: OrderStatus;
+  status: OrderStatus | DeliveryStatus | FulfillmentStatus;
   location?: string;
   timestamp: string;
   message?: string;
@@ -172,7 +177,15 @@ export interface Order {
   platformFee?: number;
   paymentMode: 'cod' | 'upi' | 'card';
   paymentStatus: 'pending' | 'paid' | 'payment_pending' | 'payment_failed';
-  status: OrderStatus;
+  
+  // New Decoupled State Machines
+  fulfillmentStatus: FulfillmentStatus;
+  deliveryStatus: DeliveryStatus;
+  codStatus?: CODStatus;
+  
+  // Deprecated - kept temporarily so compilation doesn't completely fail while we refactor, but we won't use it.
+  status?: OrderStatus;
+  
   createdAt: string;
   estimatedDelivery: string;
   courierPartner?: 'shiprocket' | 'shadowfax';
@@ -191,6 +204,16 @@ export interface Order {
   remittanceDate?: string;
   // Return Status
   returnStatus?: 'not_requested' | 'requested' | 'approved' | 'rejected' | 'picked_up' | 'refunded';
+  // Failed Delivery
+  failedDeliveryAttempts?: number;
+  // Mock Delivery for Dev/Staging
+  isMockDelivery?: boolean;
+  mockTrackingHistory?: OrderTrackingEvent[];
+  // Settlements
+  deliveredAt?: string;
+  settlementCreated?: boolean;
+  // Order Type for replacements
+  orderType?: 'standard' | 'replacement';
 }
 
 export interface Category {
@@ -215,12 +238,16 @@ export interface ReturnItem {
   sellerId?: string;
   productName: string;
   returnReason: string;
+  returnImages?: string[];
   customerName: string;
-  status: 'rto_in_transit' | 'delivered_to_seller' | 'qc_failed' | 'replacement_requested' | 'approved';
+  status: 'rto_in_transit' | 'delivered_to_seller' | 'qc_failed' | 'replacement_requested' | 'approved' | 'rejected' | 'pending';
+  qcStatus?: 'pending' | 'passed' | 'failed_admin_review';
+  qcRemarks?: string;
   returnDate: string;
   amount: number;
-  awbNumber?: string;
-  refundMethod?: 'bank' | 'upi';
+  awbCode?: string;
+  returnAction?: 'refund' | 'replace';
+  refundMethod?: 'original' | 'upi' | 'bank';
   refundDetails?: string;
 }
 

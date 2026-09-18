@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, TextInput, Alert } from 'react-native';
-import { X, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, TextInput, Alert, ScrollView, Image } from 'react-native';
+import { X, ArrowRight, AlertCircle, CircleCheck, Upload } from 'lucide-react-native';
 import { Order, ReturnItem } from '../../types';
 import { checkShadowfaxReversePickupServiceability } from '../../services/shadowfaxService';
 import { createReturnRequest } from '../../services/firebaseService';
@@ -23,9 +23,19 @@ export const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({
   const [checking, setChecking] = useState(true);
   const [isServiceable, setIsServiceable] = useState(false);
   const [reason, setReason] = useState('');
-  const [refundMethod, setRefundMethod] = useState<'bank' | 'upi'>('upi');
+  const [returnAction, setReturnAction] = useState<'replace' | 'refund'>('replace');
+  const [refundMethod, setRefundMethod] = useState<'bank' | 'upi' | 'original'>('upi');
   const [refundDetails, setRefundDetails] = useState('');
+  const [returnImages, setReturnImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const RETURN_REASONS = [
+    'Wrong Item Delivered',
+    'Defective/Damaged',
+    'Size/Fit Issue',
+    'Quality Issue',
+    'Other'
+  ];
 
   useEffect(() => {
     if (visible && order) {
@@ -34,7 +44,10 @@ export const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({
       setChecking(true);
       setIsServiceable(false);
       setReason('');
-      setRefundDetails('');
+      setReturnAction('replace');
+      setRefundMethod(order?.paymentMode === 'cod' ? 'upi' : 'original');
+      setRefundDetails(order?.paymentMode === 'cod' ? '' : 'Original Payment Source');
+      setReturnImages([]);
       setSubmitting(false);
     }
   }, [visible, order]);
@@ -56,11 +69,15 @@ export const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!reason.trim()) {
-      Alert.alert('Error', 'Please provide a reason for the return.');
+    if (!reason) {
+      Alert.alert('Error', 'Please select a reason for the return.');
       return;
     }
-    if (order?.paymentMode === 'cod' && !refundDetails.trim()) {
+    if (reason === 'Wrong Item Delivered' && returnImages.length === 0) {
+      Alert.alert('Error', 'Please upload at least one photo showing the wrong item.');
+      return;
+    }
+    if (returnAction === 'refund' && refundMethod !== 'original' && !refundDetails.trim()) {
       Alert.alert('Error', 'Please provide refund account details.');
       return;
     }
@@ -77,12 +94,13 @@ export const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({
         productName: productNames,
         returnReason: reason,
         customerName: user.name,
-        status: 'replacement_requested',
+        status: returnAction === 'refund' ? 'refund_requested' : 'replacement_requested',
         returnDate: new Date().toISOString().split('T')[0],
         amount: order.totalAmount,
-        ...(order.paymentMode === 'cod' && {
+        returnImages: returnImages.length > 0 ? returnImages : undefined,
+        ...(returnAction === 'refund' && {
           refundMethod,
-          refundDetails
+          refundDetails: refundMethod === 'original' ? 'Original Payment Source' : refundDetails
         })
       };
 
@@ -124,56 +142,109 @@ export const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({
             ) : isServiceable ? (
               <View style={styles.formContainer}>
                 <View style={styles.successBox}>
-                  <CheckCircle2 size={20} color="#059669" />
+                  <CircleCheck size={20} color="#059669" />
                   <Text style={styles.successText}>Reverse pickup is available for your location!</Text>
                 </View>
                 
                 <Text style={styles.label}>Reason for Return <Text style={{color: '#EF4444'}}>*</Text></Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Tell us why you want to return this..."
-                  placeholderTextColor="#94A3B8"
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  value={reason}
-                  onChangeText={setReason}
-                />
+                <View style={styles.reasonContainer}>
+                  {RETURN_REASONS.map(r => (
+                    <TouchableOpacity 
+                      key={r}
+                      style={[styles.reasonPill, reason === r && styles.reasonPillActive]}
+                      onPress={() => setReason(r)}
+                    >
+                      <Text style={[styles.reasonPillText, reason === r && styles.reasonPillTextActive]}>{r}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
-                {order.paymentMode === 'cod' && (
+                <Text style={styles.label}>Action Requested <Text style={{color: '#EF4444'}}>*</Text></Text>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 4 }}>
+                  <TouchableOpacity 
+                    style={[styles.refundToggle, returnAction === 'replace' && styles.refundToggleActive]}
+                    onPress={() => setReturnAction('replace')}
+                  >
+                    <Text style={[styles.refundToggleText, returnAction === 'replace' && styles.refundToggleTextActive]}>Replacement</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.refundToggle, returnAction === 'refund' && styles.refundToggleActive]}
+                    onPress={() => setReturnAction('refund')}
+                  >
+                    <Text style={[styles.refundToggleText, returnAction === 'refund' && styles.refundToggleTextActive]}>Refund</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {reason === 'Wrong Item Delivered' && (
+                  <View style={styles.uploadSection}>
+                    <Text style={styles.label}>Upload Photos of Received Item <Text style={{color: '#EF4444'}}>*</Text></Text>
+                    <View style={styles.imageRow}>
+                      {returnImages.map((img, idx) => (
+                        <Image key={idx} source={{ uri: img }} style={styles.previewImage} />
+                      ))}
+                      {returnImages.length < 3 && (
+                        <TouchableOpacity 
+                          style={styles.uploadBtn}
+                          onPress={() => {
+                            // Mock image upload
+                            setReturnImages(prev => [...prev, 'https://picsum.photos/200?random=' + Math.random()]);
+                          }}
+                        >
+                          <Upload size={24} color="#64748B" />
+                          <Text style={styles.uploadText}>Add Photo</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <Text style={styles.helperText}>Required to verify the wrong item claim.</Text>
+                  </View>
+                )}
+
+                {returnAction === 'refund' && (
                   <View style={{ marginTop: 16 }}>
                     <Text style={styles.label}>Refund Method <Text style={{color: '#EF4444'}}>*</Text></Text>
-                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+                      {order.paymentMode !== 'cod' && (
+                        <TouchableOpacity 
+                          style={[styles.refundToggle, refundMethod === 'original' && styles.refundToggleActive]}
+                          onPress={() => { setRefundMethod('original'); setRefundDetails('Original Payment Source'); }}
+                        >
+                          <Text style={[styles.refundToggleText, refundMethod === 'original' && styles.refundToggleTextActive]}>Original Source</Text>
+                        </TouchableOpacity>
+                      )}
                       <TouchableOpacity 
                         style={[styles.refundToggle, refundMethod === 'upi' && styles.refundToggleActive]}
-                        onPress={() => setRefundMethod('upi')}
+                        onPress={() => { setRefundMethod('upi'); setRefundDetails(refundDetails === 'Original Payment Source' ? '' : refundDetails); }}
                       >
                         <Text style={[styles.refundToggleText, refundMethod === 'upi' && styles.refundToggleTextActive]}>UPI</Text>
                       </TouchableOpacity>
                       <TouchableOpacity 
                         style={[styles.refundToggle, refundMethod === 'bank' && styles.refundToggleActive]}
-                        onPress={() => setRefundMethod('bank')}
+                        onPress={() => { setRefundMethod('bank'); setRefundDetails(refundDetails === 'Original Payment Source' ? '' : refundDetails); }}
                       >
                         <Text style={[styles.refundToggleText, refundMethod === 'bank' && styles.refundToggleTextActive]}>Bank Account</Text>
                       </TouchableOpacity>
                     </View>
-                    <TextInput
-                      style={[styles.input, { height: 48 }]}
-                      placeholder={refundMethod === 'upi' ? "Enter UPI ID (e.g. name@okhdfcbank)" : "Enter A/C No. & IFSC Code"}
-                      placeholderTextColor="#94A3B8"
-                      value={refundDetails}
-                      onChangeText={setRefundDetails}
-                    />
+                    {refundMethod !== 'original' && (
+                      <TextInput
+                        style={[styles.input, { height: 48 }]}
+                        placeholder={refundMethod === 'upi' ? "Enter UPI ID (e.g. name@okhdfcbank)" : "Enter A/C No. & IFSC Code"}
+                        placeholderTextColor="#94A3B8"
+                        value={refundDetails}
+                        onChangeText={setRefundDetails}
+                      />
+                    )}
                     <Text style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
-                      Since you paid via COD, we need this to process your refund.
+                      {refundMethod === 'original' 
+                        ? "Refund will be credited to the original payment source." 
+                        : "We need this to process your refund."}
                     </Text>
                   </View>
                 )}
 
                 <TouchableOpacity 
-                  style={[styles.submitBtn, (!reason.trim() || submitting) && styles.submitBtnDisabled]} 
+                  style={[styles.submitBtn, (!reason || submitting) && styles.submitBtnDisabled]} 
                   onPress={handleSubmit}
-                  disabled={!reason.trim() || submitting}
+                  disabled={!reason || submitting}
                 >
                   {submitting ? (
                     <ActivityIndicator size="small" color="#FFF" />
@@ -362,7 +433,69 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   supportBtnText: {
-    color: '#B91C1C',
+    color: '#0F172A',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  reasonContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  reasonPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  reasonPillActive: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#4F46E5',
+  },
+  reasonPillText: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  reasonPillTextActive: {
+    color: '#4F46E5',
     fontWeight: '600',
   },
+  uploadSection: {
+    marginBottom: 16,
+  },
+  imageRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  previewImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+  },
+  uploadBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadText: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  helperText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 6,
+  }
 });

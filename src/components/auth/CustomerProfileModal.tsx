@@ -17,7 +17,7 @@ import {
   Phone,
   Mail,
   ShieldCheck,
-  CheckCircle2,
+  CircleCheck,
   X,
   Check,
   LogOut,
@@ -396,7 +396,7 @@ export const CustomerProfileModal: React.FC = () => {
           <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollInner}>
             {successMessage !== '' && (
               <View style={styles.successBox}>
-                <CheckCircle2 size={16} color="#15803D" />
+                <CircleCheck size={16} color="#15803D" />
                 <Text style={styles.successText}>{successMessage}</Text>
               </View>
             )}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { ArrowLeft, Sparkles, TrendingUp, IndianRupee, CheckCircle2 } from 'lucide-react-native';
+import { ArrowLeft, Sparkles, TrendingUp, IndianRupee, CircleCheck } from 'lucide-react-native';
 
 interface SellerPricingScreenProps {
   onBack: () => void;
@@ -68,7 +68,7 @@ export const SellerPricingScreen: React.FC<SellerPricingScreenProps> = ({ onBack
             />
             <Text style={styles.percentText}>% OFF</Text>
             <TouchableOpacity style={styles.applyBtn}>
-              <CheckCircle2 size={16} color="#FFFFFF" />
+              <CircleCheck size={16} color="#FFFFFF" />
               <Text style={styles.applyBtnText}>Apply Pricing</Text>
             </TouchableOpacity>
           </View>

@@ -19,7 +19,9 @@ export type AdminTab =
   | 'finance_settlements'
   | 'finance_taxes'
   | 'finance_seller_wise'
-  | 'pending_tasks';
+  | 'pending_tasks'
+  | 'mock_deliveries'
+  | 'order_tracker';
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -78,6 +80,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     { id: 'finance_taxes', label: 'Tax Reports', icon: '📄' },
     { id: 'system_settings', label: 'System Settings', icon: '⚙️' },
     { id: 'pending_tasks', label: 'Pending Interventions', icon: '⚠️', badgeColor: '#DC2626' },
+    { id: 'mock_deliveries', label: 'Mock Delivery Simulator', icon: '🛵' },
+    { id: 'order_tracker', label: 'Order Tracking', icon: '📍' },
   ];
 
   const { activeRole } = useAuth();

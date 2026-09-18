@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, FlatList, StyleShe
 import { Search, Sparkles, SlidersHorizontal, Zap, ShieldCheck, Truck } from 'lucide-react-native';
 import * as LucideIcons from 'lucide-react-native';
 import { Product, Category } from '../../types';
-import { getProducts, getCategories, recordSearchHistory, getRecommendedProducts } from '../../services/firebaseService';
+import { getProductsPaginated, getCategories, recordSearchHistory, getRecommendedProducts } from '../../services/firebaseService';
 import { searchProductsWithAI } from '../../services/geminiAIService';
 import { useAuth } from '../../context/AuthContext';
 import { ProductCard } from '../../components/ProductCard';
@@ -37,7 +37,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, onNavig
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isAISearchEnabled, setIsAISearchEnabled] = useState<boolean>(false);
   const [aiResponseSummary, setAiResponseSummary] = useState<string | null>(null);
+  const [aiMatchingIds, setAiMatchingIds] = useState<string[]>([]);
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [isSearchingAI, setIsSearchingAI] = useState<boolean>(false);
   const [isFilterModalVisible, setIsFilterModalVisible] = useState<boolean>(false);
   const [currentFilters, setCurrentFilters] = useState<FilterState>({
@@ -72,13 +75,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, onNavig
 
   const loadData = async () => {
     setLoading(true);
-    const [fetchedProducts, fetchedCategories] = await Promise.all([
-      getProducts(true),
+    const [paginatedResult, fetchedCategories] = await Promise.all([
+      getProductsPaginated(undefined, undefined, 20),
       getCategories(),
     ]);
-    setProducts(fetchedProducts);
+    setProducts(paginatedResult.products);
+    setLastVisibleDoc(paginatedResult.lastDoc);
     setCategories(fetchedCategories);
     setLoading(false);
+  };
+
+  const loadMoreProducts = async () => {
+    if (!lastVisibleDoc || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const paginatedResult = await getProductsPaginated(undefined, lastVisibleDoc, 20);
+      setProducts(prev => [...prev, ...paginatedResult.products]);
+      setLastVisibleDoc(paginatedResult.lastDoc);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const handleSearchSubmit = async () => {
@@ -97,8 +115,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, onNavig
 
     if (isAISearchEnabled) {
       setIsSearchingAI(true);
-      const aiResult = await searchProductsWithAI(searchQuery, products);
+      const aiResult = await searchProductsWithAI(searchQuery);
       setAiResponseSummary(aiResult.aiSummary);
+      setAiMatchingIds(aiResult.matchingProductIds);
       setIsSearchingAI(false);
     }
   };
@@ -107,7 +126,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, onNavig
   let filteredProducts = products.filter(product => {
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
     if (isAISearchEnabled && aiResponseSummary) {
-      return matchesCategory;
+      return matchesCategory && aiMatchingIds.includes(product.id);
     }
     const matchesQuery =
       !searchQuery.trim() ||
@@ -177,6 +196,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, onNavig
               onPress={() => {
                 setSearchQuery('');
                 setAiResponseSummary(null);
+                setAiMatchingIds([]);
               }}
             >
               <Text style={styles.clearText}>Clear</Text>
@@ -321,6 +341,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectProduct, onNavig
               </View>
             ))}
           </View>
+        )}
+        
+        {/* Load More Button for Pagination */}
+        {!loading && !searchQuery && filteredProducts.length > 0 && lastVisibleDoc && (
+          <TouchableOpacity 
+            style={styles.loadMoreBtn} 
+            onPress={loadMoreProducts}
+            disabled={loadingMore}
+          >
+            {loadingMore ? (
+              <ActivityIndicator size="small" color="#4F46E5" />
+            ) : (
+              <Text style={styles.loadMoreText}>Load More Products</Text>
+            )}
+          </TouchableOpacity>
         )}
       </View>
 

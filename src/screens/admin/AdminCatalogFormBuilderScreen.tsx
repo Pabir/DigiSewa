@@ -48,7 +48,7 @@ import { DynamicFormEngine } from '../../components/catalog/DynamicFormEngine';
 import {
   Plus,
   Trash2,
-  CheckCircle2,
+  CircleCheck,
   ArrowRight,
   Sparkles,
   ShoppingBag,
@@ -101,6 +101,7 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
   // Schema JSON Export/Import Modal State
   const [showJsonModal, setShowJsonModal] = useState<boolean>(false);
   const [jsonInput, setJsonInput] = useState<string>('');
+  const [isPushing, setIsPushing] = useState<boolean>(false);
 
   // Mapped Categories Modal State
   const [showMappedCategoriesModal, setShowMappedCategoriesModal] = useState<boolean>(false);
@@ -430,22 +431,28 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
               const res = await syncFromFirestore();
               setCategories([...getCategoryHierarchy()]);
               setAttributes([...getAllAttributes()]);
-              setMappings([...getCategoryAttributeMappings(selectedCatId)]);
-              alert(`Synced with Cloud! Loaded ${res.attrCount} attributes from team repository.`);
+              const m = getCategoryAttributeMappings(selectedCatId);
+              setMappings([...m]);
+              alert(`Synced with Cloud! Loaded ${res.attrCount} attributes and ${res.catCount} categories.`);
             }}
           >
             <Text style={styles.syncBtnText}>🔄 Pull Team Attributes</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.syncBtnPrimary}
-            onPress={async () => {
-              const ok = await pushAllSettingsToFirestore();
-              if (ok) alert('Successfully published & pushed all attributes & category mappings to Cloud Firestore for team!');
-              else alert('Pushed to local storage. Check network for Firestore cloud push.');
+            style={[styles.syncBtnPrimary, isPushing && { opacity: 0.7 }]}
+            disabled={isPushing}
+            onPress={() => {
+              setIsPushing(true);
+              setTimeout(async () => {
+                const ok = await pushAllSettingsToFirestore();
+                setIsPushing(false);
+                if (ok) alert('Successfully published & pushed all attributes & category mappings to Cloud Firestore for team!');
+                else alert('Pushed to local storage. Check network for Firestore cloud push.');
+              }, 50);
             }}
           >
-            <Text style={styles.syncBtnPrimaryText}>☁️ Push Attributes & Mappings</Text>
+            <Text style={styles.syncBtnPrimaryText}>{isPushing ? '☁️ Pushing...' : '☁️ Push Attributes & Mappings'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -1273,7 +1280,7 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                   }
                 }}
               >
-                <CheckCircle2 size={16} color="#FFFFFF" />
+                <CircleCheck size={16} color="#FFFFFF" />
                 <Text style={styles.primaryBtnText}>Import & Apply JSON</Text>
               </TouchableOpacity>
             </View>
@@ -1315,7 +1322,7 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.primaryBtn} onPress={handleSaveCategoryModal}>
-                <CheckCircle2 size={16} color="#FFFFFF" />
+                <CircleCheck size={16} color="#FFFFFF" />
                 <Text style={styles.primaryBtnText}>Save Category Node</Text>
               </TouchableOpacity>
             </View>
@@ -1520,7 +1527,7 @@ export const AdminCatalogFormBuilderScreen: React.FC = () => {
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.primaryBtn} onPress={handleSaveAttributeForm}>
-                <CheckCircle2 size={16} color="#FFFFFF" />
+                <CircleCheck size={16} color="#FFFFFF" />
                 <Text style={styles.primaryBtnText}>Save Dynamic Field</Text>
               </TouchableOpacity>
             </View>

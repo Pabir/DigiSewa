@@ -2,7 +2,7 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, initializeAuth, signInAnonymously } from 'firebase/auth';
 // @ts-ignore
 import { getReactNativePersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 import { Platform } from 'react-native';
@@ -37,7 +37,14 @@ if (Platform.OS === 'web') {
 }
 
 export { auth };
-export const db = getFirestore(app);
+
+// Phase 2: Enable Native Firestore Offline Cache
+// This replaces the dangerous in-memory state arrays, allowing Firestore to securely manage offline data
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
 
